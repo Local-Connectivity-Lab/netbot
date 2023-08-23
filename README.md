@@ -1,7 +1,22 @@
 # netbot
 community **NET**work discord **BOT**, for integrating network management functions
 
-## Build & Deploy
+## Deploy
+To mangage authorization, security tokens and other credentials are stored in a local `.env` file and read by the code. The following credentials are needed for full integrarion:
+```
+DISCORD_TOKEN=someToken1234
+NETBOX_TOKEN=anotherToken5678
+```
+
+To run `netbot` using a standard python venv setup:
+```
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+./netbot.py
+```
+
+#TODO: netbot should be containerized and run as a standard container (with heartbeat, etc) in the typical SCN setup.
 
 ## Development Log
 
@@ -13,7 +28,7 @@ https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/s
 Adding initial requirement.txt and setting up `venv`:
 
 ```
-python3.10 -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install py-cord
