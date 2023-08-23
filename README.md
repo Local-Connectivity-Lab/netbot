@@ -21,6 +21,11 @@ pip install -r requirements.txt
 ## Development Log
 
 ### 2023-08-23
+* DONE Start with a *basic* Discord command, written in python. Get the example working end to end.
+* Add a command to query netbox.
+* Add netbox API call and get auth working.
+
+#### pycord
 Starting work on a new bot, from scratch, based on https://github.com/Pycord-Development/pycord
 
 https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_autocomplete.py
@@ -45,4 +50,38 @@ Using `.env` file for auth, with a var named `DISCORD_TOKEN`
 ```
 pip install python-dotenv
 pip freeze > requirements.txt
+```
+
+Example bot working. 
+
+#### netbox
+Moving on to netbox integration.
+
+* code: https://github.com/netbox-community/pynetbox
+* docs: https://pynetbox.readthedocs.io/en/latest/
+
+```
+pip install pynetbox
+pip freeze > requirements.txt
+```
+
+The inital command will be getting a list of `sites`.
+
+Code failing due to `ssl.SSLCertVerificationError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self-signed certificate (_ssl.c:1002)`
+
+Looks like self-signed certs fail validation, so it needs to be disabled:
+
+    nb.http_session.verify = False
+
+https://pynetbox.readthedocs.io/en/latest/advanced.html#ssl-verification:
+```
+>>> import pynetbox
+>>> import requests
+>>> session = requests.Session()
+>>> session.verify = False
+>>> nb = pynetbox.api(
+...     'http://localhost:8000',
+...     token='d6f4e314a5b5fefd164995169f28ae32d987704f'
+... )
+>>> nb.http_session = session
 ```

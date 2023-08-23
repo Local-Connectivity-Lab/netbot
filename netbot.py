@@ -1,206 +1,136 @@
 #!/usr/bin/env python3
 
+## --log=DEBUG
+
 import os
+import logging
+
+import requests
 import discord
+import pynetbox
+
+
 from discord.commands import option
 from dotenv import load_dotenv
 
+log = logging.getLogger(__name__)
+NETBOX = None
+
+log.debug('initializing bot')
 bot = discord.Bot()
 
-COLORS = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]
+# from https://drive.google.com/drive/u/1/folders/1zfSaL_Whbi8esFZk8tb8EKsdcUhGNDDo
+#SITES = [
+#    "filipino-community-village",
+#    "katharines-place",
+#    "lihi-southend-village",
+#    "nickelsville-cd",
+#    "nickelsville-northlake",
+#    "progressive-skyway-village",
+#]
 
-LOTS_OF_COLORS = [
-    "aliceblue",
-    "antiquewhite",
-    "aqua",
-    "aquamarine",
-    "azure",
-    "beige",
-    "bisque",
-    "blueviolet",
-    "brown",
-    "burlywood",
-    "cadetblue",
-    "cornflowerblue",
-    "cornsilk",
-    "crimson",
-    "cyan",
-    "darkblue",
-    "deepskyblue",
-    "dimgray",
-    "dimgrey",
-    "dodgerblue",
-    "firebrick",
-    "floralwhite",
-    "forestgreen",
-    "fuchsia",
-    "gainsboro",
-    "ghostwhite",
-    "gold",
-    "goldenrod",
-    "gray",
-    "green",
-    "greenyellow",
-    "grey",
-    "honeydew",
-    "hotpink",
-    "indianred",
-    "indigo",
-    "ivory",
-    "khaki",
-    "lavender",
-    "lavenderblush",
-    "lawngreen",
-    "lightcoral",
-    "maroon",
-    "mediumaquamarine",
-    "mediumblue",
-    "mediumorchid",
-    "midnightblue",
-    "navajowhite",
-    "navy",
-    "oldlace",
-    "olive",
-    "olivedrab",
-    "orange",
-    "orangered",
-    "orchid",
-    "palegoldenrod",
-    "palegreen",
-    "plum",
-    "powderblue",
-    "purple",
-    "red",
-    "rosybrown",
-    "royalblue",
-    "saddlebrown",
-    "sienna",
-    "springgreen",
-    "steelblue",
-    "tan",
-    "teal",
-    "thistle",
-    "tomato",
-    "turquoise",
-    "violet",
-    "wheat",
-    "white",
-    "whitesmoke",
-    "yellow",
-    "yellowgreen",
-]
+SITES = []
 
-BASIC_ALLOWED = [
-    ...
-]  # This would normally be a list of discord user IDs for the purpose of this example
+## Left as example code, for now
+#async def color_searcher(ctx: discord.AutocompleteContext):
+#    """
+#    Returns a list of matching colors from the LOTS_OF_COLORS list.
+#
+#   In this example, we've added logic to only display any results in the
+#    returned list if the user's ID exists in the BASIC_ALLOWED list.
+#
+#    This is to demonstrate passing a callback in the discord.utils.basic_autocomplete function.
+#    """
+#
+#    return [
+#        color for color in LOTS_OF_COLORS if ctx.interaction.user.id in BASIC_ALLOWED
+#    ]
 
 
-async def color_searcher(ctx: discord.AutocompleteContext):
-    """
-    Returns a list of matching colors from the LOTS_OF_COLORS list.
+def build_netbox_client(url, token):
+    """Given a secure token, build a client to communicate with a netbox instance"""
+    client = pynetbox.api(url, token)
 
-    In this example, we've added logic to only display any results in the
-    returned list if the user's ID exists in the BASIC_ALLOWED list.
+    # create a custom session to disable SSL validation, as per
+    # https://pynetbox.readthedocs.io/en/latest/advanced.html#ssl-verification
+    # FIXME This should be removed as soon as real certs are in place.
+    session = requests.Session()
+    session.verify = False
+    client.http_session = session
 
-    This is to demonstrate passing a callback in the discord.utils.basic_autocomplete function.
-    """
-
-    return [
-        color for color in LOTS_OF_COLORS if ctx.interaction.user.id in BASIC_ALLOWED
-    ]
+    return client
 
 
-async def get_colors(ctx: discord.AutocompleteContext):
+def load_sites(netbox):
+    """Load the list of sites from the netbox client"""
+    sites = {}
+    for site in netbox.dcim.sites.all():
+        #sites.append(site.slug) # just grabbing the 'slug', or url short name.
+        sites[site.slug] = site.id
+    return sites
+
+
+async def get_sites(ctx: discord.AutocompleteContext):
     """Returns a list of colors that begin with the characters entered so far."""
-    return [color for color in COLORS if color.startswith(ctx.value.lower())]
+    return [site for site in SITES if site.startswith(ctx.value.lower())]
+
+@bot.slash_command(name="list")
+async def sites(ctx: discord.AutocompleteContext):
+    msg = ""
+    for site in NETBOX.dcim.sites.all():
+        msg += format(site) + '\n'
+
+    log.warn
+    await ctx.respond(msg)
 
 
-async def get_animals(ctx: discord.AutocompleteContext):
-    """Returns a list of animals that are (mostly) the color selected for the "color" option."""
-    picked_color = ctx.options["color"]
-    if picked_color == "red":
-        return ["cardinal", "ladybug"]
-    elif picked_color == "orange":
-        return ["clownfish", "tiger"]
-    elif picked_color == "yellow":
-        return ["goldfinch", "banana slug"]
-    elif picked_color == "green":
-        return ["tree frog", "python"]
-    elif picked_color == "blue":
-        return ["blue jay", "blue whale"]
-    elif picked_color == "indigo":
-        return [
-            "eastern indigo snake"
-        ]  # Needs to return an iterable even if only one item
-    elif picked_color == "violet":
-        return ["purple emperor butterfly", "orchid dottyback"]
-    else:
-        return ["rainbowfish"]
+def format_site(netbox, site_str):
+    return format(netbox.dcim.sites.get(slug=site_str))
 
 
-@bot.slash_command(name="ac_example")
-@option("color", description="Pick a color!", autocomplete=get_colors)
-@option("animal", description="Pick an animal!", autocomplete=get_animals)
+def format(site):
+    #return f"**({site.url})[{site.slug}]** {site.name} {site.last_updated}"
+    return f"({site.url})[{site.name}]"
+
+
+@bot.slash_command(name="site") 
+@option("site", description="pick a site", autocomplete=get_sites)
+#@option("animal", description="Pick an animal!", autocomplete=get_animals)
 async def autocomplete_example(
     ctx: discord.ApplicationContext,
-    color: str,
-    animal: str,
+    site_slug: str,
 ):
-    """
-    Demonstrates using ctx.options to create options
-    that are dependent on the values of other options.
-
-    For the `color` option, a callback is passed, where additional
-    logic can be added to determine which values are returned.
-
-    For the `animal` option, the callback uses the input
-    from the color option to return an iterable of animals
-    """
-
-    await ctx.respond(
-        f"You picked {color} for the color, which allowed you to choose {animal} for"
-        " the animal."
-    )
+    site_msg = format_site(NETBOX, site_slug) ### FIXME: global NETBOX defination
+    await ctx.respond(site_msg)
 
 
-@bot.slash_command(name="ac_basic_example")
-@option(
-    "color",
-    description="Pick a color from this big list!",
-    autocomplete=discord.utils.basic_autocomplete(color_searcher),
-    # Demonstrates passing a callback to discord.utils.basic_autocomplete
-)
-@option(
-    "animal",
-    description="Pick an animal from this small list",
-    autocomplete=discord.utils.basic_autocomplete(
-        ["snail", "python", "cricket", "orca"]
-    ),
-    # Demonstrates passing a static iterable discord.utils.basic_autocomplete
-)
-async def autocomplete_basic_example(
-    ctx: discord.ApplicationContext,
-    color: str,
-    animal: str,
-):
-    """
-    This demonstrates using the discord.utils.basic_autocomplete helper function.
+#@bot.slash_command(name="site")
+#@option(
+#    "site",
+#    description="Pick a site",
+#    autocomplete=discord.utils.basic_autocomplete(SITES),
+#    # Demonstrates passing a static iterable discord.utils.basic_autocomplete
+#)
+#async def autocomplete_site(ctx: discord.ApplicationContext, site_str: str):
+#    # query site details
+#    #site = netbox_client.dcim.sites.get(slug=site_str)
+#    site_msg = format_site(NETBOX, site_str)
+#    await ctx.respond(site_msg)
 
-    For the `color` option, a callback is passed, where additional
-    logic can be added to determine which values are returned.
 
-    For the `animal` option, a static iterable is passed.
-
-    While a small amount of values for `animal` are used in this example,
-    iterables of any length can be passed to discord.utils.basic_autocomplete
-
-    Note that the basic_autocomplete function itself will still only return a maximum of 25 items.
-    """
-
-    await ctx.respond(f"You picked {color} as your color, and {animal} as your animal!")
-
-# load the token from the `.env` file
+# load security creds from the `.env` file
 load_dotenv()
 discord_token = os.getenv('DISCORD_TOKEN')
+netbox_token = os.getenv('NETBOX_TOKEN')
+netbox_url = os.getenv('NETBOX_URL')
 
+# load some cached settings from netbox
+# TODO: need a hook to refresh this cache: command in the bot (eventually)
+log.info("loading sites from netbox")
+NETBOX = build_netbox_client(netbox_url, netbox_token)
+SITES.extend(load_sites(NETBOX))
+log.debug(SITES)
+
+# run the bot, main thread
+log.info("starting bot")
 bot.run(discord_token)
