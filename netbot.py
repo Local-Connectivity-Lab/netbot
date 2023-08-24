@@ -50,7 +50,7 @@ class Netbox():
         """Load the data and cache locally, to avoid a lot of slow network calls"""
         log.info("Loading sites")
         self.sites = self.load_sites()
-        self.site_names = self.sites.keys()
+        self.site_names = list(self.sites)
         log.info(f"Loaded: {self.site_names}")
 
     # build a client for communicating with an instance of netbox
@@ -66,9 +66,6 @@ class Netbox():
         client.http_session = session
         
         return client
-    
-    def site_names(self):
-        return self.site_names
 
     def site(self, slug:str):
         return self.sites[slug]
@@ -126,7 +123,7 @@ bot = NetBot()
 
 async def complete_sites(ctx: discord.AutocompleteContext):
     """Returns a list of sites that begin with the characters entered so far."""
-    names = netbox.site_names()
+    names = netbox.site_names
     return [site for site in names if site.startswith(ctx.value.lower())]
 
 
