@@ -22,8 +22,8 @@ pip install -r requirements.txt
 
 ### 2023-08-23
 * DONE Start with a *basic* Discord command, written in python. Get the example working end to end.
-* Add a command to query netbox.
-* Add netbox API call and get auth working.
+* DONE Add a command to query netbox.
+* DONE Add netbox API call and get auth working.
 
 #### pycord
 Starting work on a new bot, from scratch, based on https://github.com/Pycord-Development/pycord
@@ -85,3 +85,5 @@ https://pynetbox.readthedocs.io/en/latest/advanced.html#ssl-verification:
 ... )
 >>> nb.http_session = session
 ```
+
+After much tinkering, got a `/site` command working in a reliable way.
