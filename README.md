@@ -20,6 +20,16 @@ pip install -r requirements.txt
 
 ## Development Log
 
+### 2023-08-24
+Today's goals:
+* Get Dockerfile in place
+* Get compose.yaml in place
+* Test full deploy on azure
+* Update docs to match
+* Get simple redmine calls in place.
+
+
+
 ### 2023-08-23
 * DONE Start with a *basic* Discord command, written in python. Get the example working end to end.
 * DONE Add a command to query netbox.
