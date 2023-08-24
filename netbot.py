@@ -20,7 +20,8 @@ log = logging.getLogger(__name__)
 log.debug('initializing bot')
 
 # load security creds from the `.env` file
-load_dotenv()
+# not used in container
+#load_dotenv()
 
 
 class NetBot(commands.Bot):
