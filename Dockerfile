@@ -4,8 +4,8 @@ LABEL maintainer="Paul Philion <philion@acmerocket.com>"
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./netbox.py /netbox.py
-RUN chmod +x /netbox.py
+COPY ./netbot.py /netbot.py
+RUN chmod +x /netbot.py
 
 ENV PYTHONPATH=/
 
