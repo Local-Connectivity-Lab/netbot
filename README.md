@@ -34,11 +34,13 @@ sudo docker compose down
 Today's goals:
 * DONE Get Dockerfile in place
 * DONE Get compose.yaml in place
-* Test full deploy on azure
+* DONE Test full deploy on azure
 * DONE Update docs to match
 * Get simple redmine calls in place.
 
 Dockerfile and compose.yaml in place and working.
+
+Deployed and working in azure on redmine host.
 
 
 ### 2023-08-23
