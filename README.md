@@ -6,14 +6,24 @@ To mangage authorization, security tokens and other credentials are stored in a 
 ```
 DISCORD_TOKEN=someToken1234
 NETBOX_TOKEN=anotherToken5678
+NETBOX_URL=https://netbox.example.com/
+REDMINE_TOKEN=yoToken9012
+REDMINE_URL=https://redmine.example.com/
 ```
 
-To run `netbot` using a standard python venv setup:
+`netbot` uses standard Docker compose:
+
+To run `netbot` using a standard container system:
 ```
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-./netbot.py
+git clone https://github.com/philion/netbot
+cd netbox
+cp ~/.env ./.env
+sudo docker compose up -d
+```
+
+to stop:
+```
+sudo docker compose down
 ```
 
 #TODO: netbot should be containerized and run as a standard container (with heartbeat, etc) in the typical SCN setup.
@@ -22,12 +32,13 @@ pip install -r requirements.txt
 
 ### 2023-08-24
 Today's goals:
-* Get Dockerfile in place
-* Get compose.yaml in place
+* DONE Get Dockerfile in place
+* DONE Get compose.yaml in place
 * Test full deploy on azure
-* Update docs to match
+* DONE Update docs to match
 * Get simple redmine calls in place.
 
+Dockerfile and compose.yaml in place and working.
 
 
 ### 2023-08-23
