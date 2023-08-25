@@ -224,7 +224,8 @@ async def tickets_command(ctx: discord.ApplicationContext):
     # to disable embeds
     flags = discord.MessageFlags(suppress_embeds=True).value
 
-    await ctx.respond(site_msg, flags=flags)
+    msg = await ctx.respond(site_msg, flags=flags)
+    await msg.edit(suppress=True)
 
 
 # run the bot
