@@ -26,8 +26,6 @@ to stop:
 sudo docker compose down
 ```
 
-#TODO: netbot should be containerized and run as a standard container (with heartbeat, etc) in the typical SCN setup.
-
 ## Development Log
 
 ### 2023-08-24
