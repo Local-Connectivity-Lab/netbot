@@ -7,6 +7,9 @@ import logging
 import requests
 import discord
 import pynetbox
+import json
+import humanize
+import datetime as dt
 
 
 from discord.commands import option
@@ -78,17 +81,82 @@ class Netbox():
             sites[site.slug] = site
             
         return sites
+    
+    def format_site(self, site):
+        #return f"**({site.url})[{site.slug}]** {site.name} {site.last_updated}"
+        url = site.url.replace('/api', '') # strip the /api from the url
+        return f"**[{site.slug}]({url})** - {site.name}"
+    
+    def format_sites(self):
+        msg = ""
+        for site in self.sites.values():
+            msg += self.format_site(site) + '\n'
+        return msg
 
 
+class Redmine():
+    def __init__(self):
+        self.url = os.getenv('REDMINE_URL')
+        self.token = os.getenv('REDMINE_TOKEN')
+        self.issue_query = "/issues.json?status_id=open&sort=category:desc,updated_on"
+        # GET /issues.json?status_id=open&sort=category:desc,updated_on
 
-# utility stuff for formatting
-def format_site(site):
-    #return f"**({site.url})[{site.slug}]** {site.name} {site.last_updated}"
-    url = site.url.replace('/api', '') # strip the /api from the url
-    return f"**[{site.slug}]({url})** - {site.name}"
+    def load_issues(self):
+        #TODO add query params and default query
+        """load open issues from a redmine instance"""
+        headers = {
+            'User-Agent': 'netbot/0.0.1',
+            'Content-Type': 'application/json',
+            'X-Redmine-API-Key': self.token,
+        }
+
+        r = requests.get(f"{self.url}{self.issue_query}", headers=headers)
+        # parse json response in `r.text`
+        result = json.loads(r.text)
+        # but there's an extra 'issues' wrapper
+        return result['issues']
+
+    def format_issue(self, issue):
+        # parse the "updated_on" field to create a datetime
+        last_updated = dt.datetime.strptime(issue['updated_on'], '%Y-%m-%dT%H:%M:%SZ')
+        # create a human-readable time difference
+        age = humanize.naturaldelta(dt.datetime.now() - last_updated)
+        # format everything for 
+        return f"**[\#{issue['id']}]({self.url}/issues/{issue['id']})** {issue['subject']} {age}"
+    
+    def format_issues(self):
+        msg = ""
+        for issue in self.load_issues():
+            msg += self.format_issue(issue) + '\n'
+        return msg
+
+### issue fields ###
+# issue url: http://40.65.85.252/issues/22 -> {base_url}/issues/{issue.id}
+# {'id': 2, 'project': {'id': 1, 'name': 'Seattle Community Network'}, 
+# 'tracker': {'id': 3, 'name': 'Support'}, 
+# 'status': {'id': 1, 'name': 'New', 'is_closed': False}, 
+# 'priority': {'id': 3, 'name': 'High'}, 
+# 'author': {'id': 5, 'name': 'Paul Philion'}, 
+# 'assigned_to': {'id': 6, 'name': 'Esther Jang'}, 
+# 'subject': 'Testing email notification', 
+# 'description': 'Is email getting sent?\r\n\r\nEsther will know.', 
+# 'start_date': '2023-08-01', 
+# 'due_date': None, 
+# 'done_ratio': 0, 
+# 'is_private': False, 
+# 'estimated_hours': None, 
+# 'total_estimated_hours': None, 
+# 'spent_hours': 0.0, 
+# 'total_spent_hours': 0.0, 
+# 'created_on': '2023-08-01T00:21:07Z', 
+# 'updated_on': '2023-08-04T16:34:24Z', 
+# 'closed_on': None
+
+
 
 
 netbox = Netbox()
+redmine = Redmine()
 bot = NetBot()
 
 
@@ -141,10 +209,9 @@ async def complete_sites(ctx: discord.AutocompleteContext):
 async def site_command(ctx: discord.ApplicationContext, site="all"):
     msg = ""
     if site == 'all':
-        for _site in netbox.sites.values():
-            msg += format_site(_site) + '\n'
+        msg = netbox.format_sites()
     else:
-        msg = format_site(netbox.site(site))
+        msg = netbox.format_site(netbox.site(site))
         
     await ctx.respond(msg)
 

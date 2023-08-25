@@ -40,6 +40,23 @@ Dockerfile and compose.yaml in place and working.
 
 Deployed and working in azure on redmine host.
 
+Turning to....
+#### redmine
+* for JSON content, it must be set to Content-Type: application/json
+* token passed in as a "X-Redmine-API-Key" HTTP header
+* https://www.redmine.org/projects/redmine/wiki/Rest_Issues
+* https://www.redmine.org/projects/redmine/wiki/Rest_api
+
+
+GET /issues.json?status_id=open&sort=category:desc,updated_on
+
+Also adding "humize" to manage dates and timedeltas.
+
+```
+pip install humanize
+pip freeze > requirements.txt
+```
+
 
 ### 2023-08-23
 * DONE Start with a *basic* Discord command, written in python. Get the example working end to end.
