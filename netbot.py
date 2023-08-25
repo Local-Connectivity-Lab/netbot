@@ -220,9 +220,7 @@ async def site_command(ctx: discord.ApplicationContext, site="all"):
 async def tickets_command(ctx: discord.ApplicationContext):
     # query issues
     msg = redmine.format_issues()
-
     await ctx.respond(msg)
-    await ctx.edit(embeds = None) # to disable embeds
 
 
 # run the bot
