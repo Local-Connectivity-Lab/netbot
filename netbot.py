@@ -216,19 +216,12 @@ async def site_command(ctx: discord.ApplicationContext, site="all"):
     await ctx.respond(msg)
 
 
-#@bot.slash_command(name="site")
-#@option(
-#    "site",
-#    description="Pick a site",
-#    autocomplete=discord.utils.basic_autocomplete(SITES),
-#    # Demonstrates passing a static iterable discord.utils.basic_autocomplete
-#)
-#async def autocomplete_site(ctx: discord.ApplicationContext, site_str: str):
-#    # query site details
-#    #site = netbox_client.dcim.sites.get(slug=site_str)
-#    site_msg = format_site(NETBOX, site_str)
-#    await ctx.respond(site_msg)
-
+@bot.slash_command(name="tickets")
+async def autocomplete_site(ctx: discord.ApplicationContext):
+    # query site details
+    #site = netbox_client.dcim.sites.get(slug=site_str)
+    site_msg = redmine.format_issues()
+    await ctx.respond(site_msg)
 
 
 # run the bot
