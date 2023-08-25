@@ -34,7 +34,7 @@ Today's goals:
 * DONE Get compose.yaml in place
 * DONE Test full deploy on azure
 * DONE Update docs to match
-* Get simple redmine calls in place.
+* DONE Get simple redmine calls in place.
 
 Dockerfile and compose.yaml in place and working.
 
@@ -57,6 +57,17 @@ pip install humanize
 pip freeze > requirements.txt
 ```
 
+Got simple query working, with links, but... the embeds were screwing everything up.
+
+Got on the pycord discord....
+
+```
+you can suppress the embeds by wrapping each url in <>
+for example:
+<https://google.com>
+```
+
+Added that to the formatting in the bot, and volia!
 
 ### 2023-08-23
 * DONE Start with a *basic* Discord command, written in python. Get the example working end to end.
