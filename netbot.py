@@ -122,7 +122,7 @@ class Redmine():
         # create a human-readable time difference
         age = humanize.naturaldelta(dt.datetime.now() - last_updated)
         # format everything for 
-        return f"**[\#{issue['id']}]({self.url}/issues/{issue['id']})** {issue['subject']} {age}"
+        return f"**[#{issue['id']}]({self.url}/issues/{issue['id']})** {issue['subject']} - {issue['priority']['Name']} {age} old"
     
     def format_issues(self):
         msg = ""
@@ -217,11 +217,14 @@ async def site_command(ctx: discord.ApplicationContext, site="all"):
 
 
 @bot.slash_command(name="tickets")
-async def autocomplete_site(ctx: discord.ApplicationContext):
-    # query site details
-    #site = netbox_client.dcim.sites.get(slug=site_str)
+async def tickets_command(ctx: discord.ApplicationContext):
+    # query issues
     site_msg = redmine.format_issues()
-    await ctx.respond(site_msg)
+
+    # to disable embeds
+    flags = discord.MessageFlags(suppress_embeds=True).value
+
+    await ctx.respond(site_msg, flags=flags)
 
 
 # run the bot
