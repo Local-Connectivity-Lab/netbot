@@ -122,7 +122,7 @@ class Redmine():
         # create a human-readable time difference
         age = humanize.naturaldelta(dt.datetime.now() - last_updated)
         # format everything for 
-        return f"**[#{issue['id']}]({self.url}/issues/{issue['id']})** {issue['subject']} - {issue['priority']} - {age} old"
+        return f"**[#{issue['id']}]({self.url}/issues/{issue['id']})** {issue['subject']} - {issue['priority']['name']} - {age} old"
     
     def format_issues(self):
         msg = ""
@@ -224,8 +224,7 @@ async def tickets_command(ctx: discord.ApplicationContext):
     # to disable embeds
     #flags = discord.MessageFlags(suppress_embeds=True).value
 
-    msg = await ctx.respond(site_msg)
-    await msg.edit(suppress=True)
+    await ctx.respond(site_msg, suppress=True)
 
 
 # run the bot
