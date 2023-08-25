@@ -221,10 +221,8 @@ async def tickets_command(ctx: discord.ApplicationContext):
     # query issues
     site_msg = redmine.format_issues()
 
-    # to disable embeds
-    #flags = discord.MessageFlags(suppress_embeds=True).value
-
-    await ctx.respond(site_msg, suppress=True)
+    thing = await ctx.respond(site_msg)
+    await thing.message().edit(suppress=True) # another attempt to suppress embeds
 
 
 # run the bot
