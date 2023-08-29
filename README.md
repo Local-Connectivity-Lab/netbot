@@ -34,8 +34,8 @@ After the ticket workflow discussions, I've been thinking about how to better in
 The state of this thread tracking can be managed in redmine, using a custom boolean field attached to the issue. When this flag is enabled (for an open ticket), an external cron script can sync comments on a Discord thread with comments on the redmine ticket.
 
 As the netbot.py code is getting complex, it's time to start partitioning the support code into modules:
-* First is all the redmine and netbox specific code into their own files.
-* Then rebuilding netbot to use the new encapsulated classes.
+* DONE First is all the redmine and netbox specific code into their own files.
+* Then rebuilding netbot to use the new encapsulated classes. - TODO Test in PROD
 * Then adding a job to encapsulate "reqularly manage issue threads":
   * A cron job every N minutes to query "open tickets with discord-thread=Yes modified in the last N minutes"
   * For each:
@@ -43,6 +43,13 @@ As the netbot.py code is getting complex, it's time to start partitioning the su
     * get discord comments from last N minutes and post as note to ticket
     * get comments from ticket from last N minutes and post to discord thread
 
+Side note about user ids and impersonation: https://www.redmine.org/projects/redmine/wiki/rest_api#User-Impersonation
+
+It looks like it is possible to set a header to impersonate a user:
+
+    X-Redmine-Switch-User: jsmith
+
+This can be used to map Discord users to redmine users. (we'll see how it goes)
 
 ### 2023-08-28
 
