@@ -49,6 +49,18 @@ async def check_flagged_issues(channel: str, query: str):
         propagate_comments(channel, issue)
         log.info(f"synchronized comments for {issue}")
 
+rich_format = """
+[{issue.tracker.name}] [{issue.priority.name}]
+[{site.name}] [{site.zip}]
+[{issue.due_date}]
+[{issue.assigned_to.name}]
+[{issue.status.name}] *
+"""
+
+# NOTE: No site associated with ticket as custom data. 
+# Could attach as sub-project, and get zip from netbox or custom field on the sub-project.
+# "Lead Person" vs "Assigned Team" -> redmine has "assigned to", which can work for team or person.
+# but we need better description of what the requirements are. using just assigned to for now.
 
 # ----
 
