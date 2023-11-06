@@ -69,6 +69,9 @@ async def tickets_command(ctx: discord.ApplicationContext):
 
     for status in ["New", "In Progress", "Resolved"]:
         msg = client.format_section(tickets, status)
+        if len(msg) > 2000:
+            log.warning("message over 2000 chars. truncing.")
+            msg = msg[:2000]
         await ctx.respond(msg)
 
 # run the bot
