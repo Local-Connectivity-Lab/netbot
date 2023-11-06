@@ -5,7 +5,7 @@ LABEL maintainer="Paul Philion <philion@acmerocket.com>"
 COPY ./requirements.txt /requirements.txt
 RUN pip install --no-cache-dir -r /requirements.txt
 
-COPY ./netbot.py /netbot.py
+COPY ./*.py /
 RUN chmod +x /netbot.py
 
 ENV PYTHONPATH=/
