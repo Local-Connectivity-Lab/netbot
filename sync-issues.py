@@ -2,24 +2,37 @@
 
 import logging
 import discord
-import redmine
-from dotenv import load_dotenv
-
 import asyncio
+from dotenv import load_dotenv
 
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
+# these search for a thread by name
 ## note: these could go in a 'discord' module
-def get_channel(name: str) -> discord.TextChannel:
-    return discord.utils.get(discordClient.get_all_channels(), name=name)
+#def get_channel(name: str) -> discord.TextChannel:
+#    return discord.utils.get(discordClient.get_all_channels(), name=name)
+#def find_thread(channel, name: str) -> discord.Thread:
+#    ch = get_channel(channel)
+#    for thread in ch.threads:
+#        if name == thread.name:
+#            return thread
 
-def find_thread(channel, name: str) -> discord.Thread:
-    ch = get_channel(channel)
-    for thread in ch.threads:
-        if name == thread.name:
-            return thread
+async def all_threads(client:discord.Client):
+    #threads = []
+    print(client)
+    for chan in client.get_all_channels():
+        print(chan)
+
+    guilds = await client.fetch_guilds(limit=150).flatten()
+
+    for guild in client.guilds:
+        print(guild)
+        for thread in guild.threads:
+            print(thread)
+    #return threads
+
 
 async def send_message(message_str: str, channel_name: str) -> discord.Message:
     return await get_channel(channel_name).send(message_str)
@@ -62,19 +75,28 @@ rich_format = """
 # "Lead Person" vs "Assigned Team" -> redmine has "assigned to", which can work for team or person.
 # but we need better description of what the requirements are. using just assigned to for now.
 
-# ----
 
-# load security creds from the `.env` file
-load_dotenv()
-log.info('initialized environment')
+async def main():
+    # load credentials 
+    load_dotenv()
 
-redmineClient = redmine.Client()
-discordClient = discord.Client()
+    log.info('initialized environment')
 
-# query "open tickets with discord-thread=Yes modified in the last N minutes"
-## 'cf_1' stands for "custom field #1", and true is 1.
-threaded_issue_query = "/issues.json?status_id=open&cf_1=1&sort=category:desc,updated_on"
-channel_name = "admin-team"
+    #redmineClient = redmine.Client()
+    discordClient = discord.Client()
 
-# setup the async to send the message
-asyncio.run_coroutine_threadsafe(check_flagged_issues(channel_name, threaded_issue_query), discordClient.loop)
+    await all_threads(discordClient)
+    #for thread in all_threads(discordClient):
+    #    print(thread)
+
+    # query "open tickets with discord-thread=Yes modified in the last N minutes"
+    ## 'cf_1' stands for "custom field #1", and true is 1.
+    #threaded_issue_query = "/issues.json?status_id=open&cf_1=1&sort=category:desc,updated_on"
+    #channel_name = "admin-team"
+
+    # setup the async to send the message
+    #asyncio.run_coroutine_threadsafe(check_flagged_issues(channel_name, threaded_issue_query), discordClient.loop)
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
