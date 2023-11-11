@@ -18,10 +18,14 @@ from types import SimpleNamespace
 #logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
+## TODO Build a local user cache.
+## add a reindex command
+
 class Client(): ## redmine.Client()
     def __init__(self):
         self.url = os.getenv('REDMINE_URL')
         self.token = os.getenv('REDMINE_TOKEN')
+        self.reindex()
 
     def create_ticket(self, user_id, subject, body):
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
@@ -163,11 +167,50 @@ class Client(): ## redmine.Client()
 
         print(f"append_attachment response: {r}")
 
-    def find_user(self, email):
+    def find_group(self, name):
+        response = self.query(f"/groups.json")
+        for group in response.groups:
+            if group.name == name:
+                return group
+        # not found
+        return None
+        
+    def find_user(self, name):
+        # check the indicies
+        if name in self.user_emails:
+            id = self.user_emails[name]
+            return self.users[id]
+        elif name in self.users:
+            return self.users[name]
+        elif name in self.discord_users:
+            id = self.discord_users[name]
+            return self.users[id]
+        else:
+            return None
+
         response = self.query(f"/users.json?name={email}")
-        # TODO better error checking 
-        return response.users[0]
-    
+        if len(response.users) > 0:
+            # TODO better error checking 
+            return response.users[0]
+        else:
+            return None
+        
+    def find_discord_user(self, user_id):
+        if user_id == None:
+            return None
+        
+        return self.discord_users.get(user_id, None)
+        
+        #response = self.query(f"/users.json?limit=1000")
+        #for user in response.users:
+        #    #print(f"{user.id} {user.login} {user.custom_fields[0].value}")
+        #    for field in user.custom_fields:
+        #        if field.name == "Discord ID" and field.value == user_id:
+        #            return user
+        #else:
+        #    log.info(f"couldn't find user for Discord ID={user_id}")
+        #    return None
+        
     def get_ticket(self, ticket_num:int):
         response = self.query(f"/issues.json?issue_id={ticket_num}")
         if response.total_count > 0:
@@ -234,10 +277,13 @@ class Client(): ## redmine.Client()
         # run the query with the 
         r = requests.get(f"{self.url}{query_str}", headers=headers)
 
+        #print(r.request.url)
+
         # check 200 status code
         if r.status_code == 200:
             return json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
         else:
+            log.error(f"{r.status_code}: {r.request.url}")
             return None
     
 
@@ -262,6 +308,38 @@ class Client(): ## redmine.Client()
                 section += f"[**`{ticket.id:>4}`**]({url})`  {ticket.priority.name:<6}  {ticket.updated_on[:10]}  {assigned_to[:20]:<20}  {ticket.subject}`\n"
         #section += f"```\n"
         return section
+    
+    def get_discord_id(self, user):
+        for field in user.custom_fields:
+                if field.name == "Discord ID":
+                    return field.value
+        return None
+
+
+    # python method sync?
+    def reindex_users(self):
+        # reset the indices
+        self.users = {}
+        self.user_emails = {}
+        self.discord_users = {}
+
+        # rebuild the indicies
+        response = self.query(f"/users.json?limit=1000") ## fixme max limit? paging?
+        for user in response.users:
+            self.users[user.id] = user
+            self.user_emails[user.mail] = user.id
+
+            discord_id = self.get_discord_id(user)
+            if discord_id:
+                self.discord_users[discord_id] = user.id
+
+        log.info(f"indexed {len(self.users)} users")
+
+
+    def reindex(self):
+        log.info("reindixing")
+        self.reindex_users()
+
 
 if __name__ == '__main__':
     # load credentials 
