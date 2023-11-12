@@ -63,16 +63,36 @@ bot = NetBot()
 
 @bot.slash_command(name="tickets")
 async def tickets_command(ctx: discord.ApplicationContext):
-    # query issues
-    tickets = client.find_tickets()
-    log.info(f"found {len(tickets)} tickets")
+    # different options: none, me (default), [group-name], intake, tracker name
+    # buid index for trackers, groups
+    # add groups to users.
 
-    for status in ["New", "In Progress", "Resolved"]:
-        msg = client.format_section(tickets, status)
-        if len(msg) > 2000:
-            log.warning("message over 2000 chars. truncing.")
-            msg = msg[:2000]
-        await ctx.respond(msg)
+    param = "me" #ctx.value?
+
+    match param:
+        case "me":
+            # my kanban board
+            user = client.find_discord_user(ctx.author.name)
+            if user:
+                query = f"/issues.json?status_id=open&assigned_to=mesort=priority:desc,status,updated_on:desc&limit=100"
+                fields = ["id", "priority", "status", "assigned"] #["link", "priority", "status", "updated", "subject"]
+            else:
+                query = f"/issues.json?status_id=open&sort=priority:desc,status,updated_on:desc&limit=100"
+                fields = ["link", "priority", "status", "updated", "subject"]
+        case "intake":
+            team = client.find_group("ticket-intake")
+            query = f"/issues.json?status=New&assigned_to_id={team.id}&sort=priority:desc,updated_on:desc,id:desc&limit=100"
+            fields = ["link","subject"]
+
+    print(query)
+    response = client.query(query, user.id)
+    #print(response)
+    msg = client.format_tickets(response.issues, fields=fields)
+    if len(msg) > 2000:
+        log.warning("message over 2000 chars. truncing.")
+        msg = msg[:2000]
+    await ctx.respond(msg)
+
 
 @bot.slash_command(name="intake")
 async def intake(ctx: discord.ApplicationContext):
@@ -88,7 +108,7 @@ async def intake(ctx: discord.ApplicationContext):
     user = client.find_discord_user(ctx.author.name)
     print(f"user={user}")
 
-    msg = client.format_section(tickets, "New") # FIXME
+    msg = client.format_tickets(tickets, fields=["link","subject"])
     if len(msg) > 2000:
         log.warning("message over 2000 chars. truncing.")
         msg = msg[:2000]

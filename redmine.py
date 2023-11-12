@@ -199,7 +199,11 @@ class Client(): ## redmine.Client()
         if user_id == None:
             return None
         
-        return self.discord_users.get(user_id, None)
+        if user_id in self.discord_users:
+            id = self.discord_users[user_id]
+            return self.users[id]
+        else:
+            return None
         
         #response = self.query(f"/users.json?limit=1000")
         #for user in response.users:
@@ -266,18 +270,18 @@ class Client(): ## redmine.Client()
         return response.issues
 
 
-
-    def query(self, query_str: str):
+    def query(self, query_str:str, user_id:str=None):
         """run a query against a redmine instance"""
         headers = {
             'User-Agent': 'netbot/0.0.1', # TODO update to project version, and add version management
             'Content-Type': 'application/json',
             'X-Redmine-API-Key': self.token,
         }
+        if user_id:
+            headers['X-Redmine-Switch-User'] = user_id # Make sure the comment is noted by the correct user
+
         # run the query with the 
         r = requests.get(f"{self.url}{query_str}", headers=headers)
-
-        #print(r.request.url)
 
         # check 200 status code
         if r.status_code == 200:
@@ -297,7 +301,6 @@ class Client(): ## redmine.Client()
     def format_section(self, tickets, status):
         section = ""
         section += f"> {status}\n"
-        #section += f"```\n"
         for ticket in tickets:
             if ticket.status.name == status:
                 url = f"{self.url}/issues/{ticket.id}"
@@ -306,15 +309,46 @@ class Client(): ## redmine.Client()
                 except AttributeError:
                     assigned_to = ""
                 section += f"[**`{ticket.id:>4}`**]({url})`  {ticket.priority.name:<6}  {ticket.updated_on[:10]}  {assigned_to[:20]:<20}  {ticket.subject}`\n"
-        #section += f"```\n"
         return section
     
-    def get_discord_id(self, user):
-        for field in user.custom_fields:
-                if field.name == "Discord ID":
-                    return field.value
-        return None
+    def format_tickets(self, tickets, fields=["link","priority","updated","assigned", "subject"]):
+        section = ""
+        for ticket in tickets:
+            url = f"{self.url}/issues/{ticket.id}"
+            try: # hack to get around missing key
+                assigned_to = ticket.assigned_to.name
+            except AttributeError:
+                assigned_to = ""
 
+            for field in fields:
+                match field:
+                    case "id":
+                        section += f"{ticket.id}"
+                    case "url":
+                        section += url
+                    case "link":
+                        section += f"[{ticket.id}]({url})"
+                    case "priority":
+                        section += f"{ticket.priority.name}"
+                    case "updated":
+                        section += f"{ticket.updated_on[:10]}" # just the date, strip time
+                    case "assigned":
+                        section += f"{assigned_to}"
+                    case "status":
+                        section += f"{ticket.status.name}"
+                    case "subject":
+                        section += f"{ticket.subject}"
+                section += " " # spacer, one space
+            section += "\n" # end of line after each ticket
+        return section.strip() # remove trailing whitespace
+
+    
+    def get_discord_id(self, user):
+        if user:
+            for field in user.custom_fields:
+                    if field.name == "Discord ID":
+                        return field.value
+        return None
 
     # python method sync?
     def reindex_users(self):
