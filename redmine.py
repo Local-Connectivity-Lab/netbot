@@ -280,6 +280,8 @@ class Client(): ## redmine.Client()
         if user_id:
             headers['X-Redmine-Switch-User'] = user_id # Make sure the comment is noted by the correct user
 
+        print(headers)
+        
         # run the query with the 
         r = requests.get(f"{self.url}{query_str}", headers=headers)
 

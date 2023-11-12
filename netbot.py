@@ -74,8 +74,8 @@ async def tickets_command(ctx: discord.ApplicationContext):
             # my kanban board
             user = client.find_discord_user(ctx.author.name)
             if user:
-                query = f"/issues.json?status_id=open&assigned_to=mesort=priority:desc,status,updated_on:desc&limit=100"
-                fields = ["id", "priority", "status", "assigned"] #["link", "priority", "status", "updated", "subject"]
+                query = f"/issues.json?status_id=open&assigned_to_id=me&sort=priority:desc,status:desc,updated_on:desc&limit=100"
+                fields = ["link", "priority", "status", "updated", "subject"]
             else:
                 query = f"/issues.json?status_id=open&sort=priority:desc,status,updated_on:desc&limit=100"
                 fields = ["link", "priority", "status", "updated", "subject"]
@@ -85,7 +85,7 @@ async def tickets_command(ctx: discord.ApplicationContext):
             fields = ["link","subject"]
 
     print(query)
-    response = client.query(query, user.id)
+    response = client.query(query, user.login)
     #print(response)
     msg = client.format_tickets(response.issues, fields=fields)
     if len(msg) > 2000:
