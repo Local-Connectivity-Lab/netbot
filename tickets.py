@@ -2,7 +2,11 @@
 
 import sys
 import logging
+import humanize
+import datetime as dt
+
 from dotenv import load_dotenv
+
 import redmine
 
 # using https://pypi.org/project/rich/ for terminal formatting
@@ -36,7 +40,7 @@ class CLI():
                 return self.client.search_tickets(term)
 
     # the 'rich' version
-    def print_tickets(self, tickets, fields=["id","url","priority","updated","assigned","title"]):
+    def print_tickets(self, tickets, fields=["id","url","priority","age","assigned","title"]):
         if not tickets:
             print("no tickets found")
             return
@@ -75,7 +79,28 @@ class CLI():
                 if value in priority_colors:
                     color = priority_colors[value]
                     return f"[{color}]{value}[/{color}]"
+            case "age":
+                updated = dt.datetime.fromisoformat(ticket.updated_on)
+                age = dt.datetime.now(dt.timezone.utc) - updated
+                age_str = humanize.naturaldelta(age)
 
+                color = None
+                print(f"days={age.days}")
+
+                if age.days == 0:
+                    color = "green"
+                elif age.days > 0 and age.days <= 2:
+                    pass # no color
+                elif age.days > 2 and age.days <= 7:
+                    color = "bright_yellow"
+                elif age.days > 7 and age.days <= 15:
+                    color = "dark_orange"
+                else:
+                    color = "red"
+                if color:
+                    return f"[{color}]{age_str}[/{color}]"
+                else:
+                    return age_str
         return value
 
     
