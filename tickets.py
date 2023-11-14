@@ -40,7 +40,7 @@ class CLI():
                 return self.client.search_tickets(term)
 
     # the 'rich' version
-    def print_tickets(self, tickets, fields=["id","url","priority","age","assigned","title"]):
+    def print_tickets(self, tickets, fields=["id","status","priority","age","assigned","subject"]):
         if not tickets:
             print("no tickets found")
             return
@@ -73,7 +73,15 @@ class CLI():
             "Urgent": "orange",
             "Immediate": "red",
         }
-
+	
+        status_colors = {
+            "New": "white",
+            "In Progress": "green",
+            "Feedback": "yellow",
+            "Resolved": "dark_green",
+            "Closed": "dim",
+            "Rejected/Spam": "dim",
+        }
         match field:
             case "priority":
                 if value in priority_colors:
@@ -85,8 +93,6 @@ class CLI():
                 age_str = humanize.naturaldelta(age)
 
                 color = None
-                print(f"days={age.days}")
-
                 if age.days == 0:
                     color = "green"
                 elif age.days > 0 and age.days <= 2:
@@ -101,6 +107,10 @@ class CLI():
                     return f"[{color}]{age_str}[/{color}]"
                 else:
                     return age_str
+            case "status":
+                if value in status_colors:
+                    color = status_colors[value]
+                    return f"[{color}]{value}[/{color}]"
         return value
 
     
@@ -112,7 +122,7 @@ class CLI():
             console.print(f"[dim]{name}:[/dim] [bold]{value}[/bold]")
 
 
-def format_tickets(tickets, fields=["link","priority","updated","assigned", "subject"]):
+def format_tickets(tickets, fields=["link","priority","updated","assigned","subject"]):
         if len(tickets) == 1:
             format_ticket_details(ticket[0])
         else:

@@ -254,7 +254,7 @@ class Client(): ## redmine.Client()
         return response.issues
 
     def my_tickets(self):
-        response = self.query(f"/issues.json?assigned_to_id=me&status_id=open&sort=priority:desc,updated_on:desc,id:desc&limit=100")
+        response = self.query(f"/issues.json?assigned_to_id=me&status_id=open&sort=status:desc,priority:desc,updated_on:desc&limit=100")
 
         if response.total_count > 0:
             return response.issues
@@ -278,6 +278,7 @@ class Client(): ## redmine.Client()
     def search_tickets(self, term):
         # todo url-encode term?
         query = f"/search.json?q={term}&titles_only=1&open_issues=1&sort=priority:desc,updated_on:desc,id:desc&limit=100"
+
         response = self.query(query)
 
         # ug. search returns results that are significantly different from the "ticket" structure
@@ -292,13 +293,22 @@ class Client(): ## redmine.Client()
         # description='User story: As a Seattle Community Network volunteer and Discord user, I would like to be able to access the kanban board from Discord.', 
         # datetime='2023-10-31T23:42:27Z')
 
-        #for result in response.results:
-            #print(result)
+        regex = re.compile(r"(.+) #[\d]+ \((.+)\): (.+)")
 
-            ## FIXME ##
+        print(f"{response.results[0]}")
 
-            # parse the title
+        for result in response.results:
+            match = regex.match(result.title)
+            if match:
+                print(f"match={match.group(0)}")
+                result.tracker = {}
+                result.tracker['name'] = match.group(1)
+                result.status = {}
+                result.status['name'] = match.group(2)
+                result.subject = match.group(3)
+            result.updated_on = result.datetime
 
+        print(f"{response.results[0]}")
 
         if response.total_count > 0:
             return response.results
