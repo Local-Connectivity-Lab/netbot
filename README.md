@@ -1,4 +1,5 @@
 # netbot
+
 community **NET**work discord **BOT**, for integrating network management functions
 
 ## Deploy
@@ -25,6 +26,39 @@ to stop:
 ```
 sudo docker compose down
 ```
+
+## CLI
+
+A command-line interface version of the `tickets` Discord bot command provides the same capablities as the bot on Discord. This CLI was developed to help testing, which the asynchonous nature of Discord interactions adds a layer of complexity to.
+
+```
+tickets.py                   - List the new tickets assigned to me or teams I'm on
+tickets.py [user]            - List the tickets assigned to user
+tickets.py [n]               - List details for ticket n
+tickets.py [query]           - Search for tickets containing this term
+tickets.py [n] assign [user] - Assign ticket n to the specified user
+tickets.py [n] unassign      - Mark ticket n new and unassigned.
+tickets.py [n] progress      - Assign the ticket to yourself and set it yourself.
+tickets.py [n] resolve       - Mark the ticket resolved.
+```
+
+### Configuration
+
+To configure the API key needed for `tickets.py` to access the Redmine server, create a API key as per: https://www.redmine.org/projects/redmine/wiki/Rest_api#Authentication, notably:
+
+> You can find your API key on your account page ( /my/account ) when logged in, on the right-hand pane of the default layout.
+
+Once you have you API key, create a file in the local directoy named `.env`.
+
+In the new file, create entries for:
+
+    REDMINE_TOKEN=[your redmine api token]
+    REDMINE_URL=http://your.redmine.server
+
+Now you should be able to see a list of interesting tickets, specifically for the user with the supplied API key.
+
+    ./tickets.py
+	
 
 ## Development Log
 

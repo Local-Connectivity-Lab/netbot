@@ -253,6 +253,15 @@ class Client(): ## redmine.Client()
 
         return response.issues
 
+    def my_tickets(self):
+        response = self.query(f"/issues.json?assigned_to_id=me&status_id=open&sort=priority:desc,updated_on:desc,id:desc&limit=100")
+
+        if response.total_count > 0:
+            return response.issues
+        else:
+            log.info(f"No open ticket for me.")
+            return None
+
     def tickets_for_team(self, team_str:str):
         # validate team?
         team = self.find_user(team_str) # find_user is dsigned to be broad
@@ -268,12 +277,31 @@ class Client(): ## redmine.Client()
 
     def search_tickets(self, term):
         # todo url-encode term?
-        # GET /search.json?q=issue_keyword wiki_keyword&issues=1&wiki_pages=1
-        query = f"/search.json?q={term}&status_id=open&sort=updated_on:desc&limit=1"
+        query = f"/search.json?q={term}&titles_only=1&open_issues=1&sort=priority:desc,updated_on:desc,id:desc&limit=100"
         response = self.query(query)
 
+        # ug. search returns results that are significantly different from the "ticket" structure
+        # "title" instead of "subject", and it's overloaded with status:
+        #        Software Dev Task #129 (In Progress): Discord-based kanban board'
+        # regex: (.+) #[\d+] \((.+)\): (.+)
+        # and a datetime field instead of updated
+        # namespace(id=129, 
+        # title='Software Dev Task #129 (In Progress): Discord-based kanban board', 
+        # type='issue', 
+        # url='http://10.0.1.20/issues/129', 
+        # description='User story: As a Seattle Community Network volunteer and Discord user, I would like to be able to access the kanban board from Discord.', 
+        # datetime='2023-10-31T23:42:27Z')
+
+        #for result in response.results:
+            #print(result)
+
+            ## FIXME ##
+
+            # parse the title
+
+
         if response.total_count > 0:
-            return response.issues[0]
+            return response.results
         else:
             log.info(f"No tickets found for: {term}")
             return None
@@ -384,6 +412,8 @@ class Client(): ## redmine.Client()
                         return ticket.status.name
                     case "subject":
                         return ticket.subject
+                    case "title":
+                        return ticket.title
         except AttributeError:
             return "" # or None?
     

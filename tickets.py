@@ -36,7 +36,14 @@ class CLI():
                 return self.client.search_tickets(term)
 
     # the 'rich' version
-    def print_tickets(self, tickets, fields=["id","url","priority","updated","assigned","subject"]):
+    def print_tickets(self, tickets, fields=["id","url","priority","updated","assigned","title"]):
+        if not tickets:
+            print("no tickets found")
+            return
+        elif len(tickets) == 1:
+            self.print_ticket(tickets[0])
+            return
+
         console = Console()
 
         table = Table(show_header=True, header_style="bold magenta")
@@ -48,7 +55,6 @@ class CLI():
             row = []
             for field in fields:
                 row.append(self.get_formatted_field(ticket, field))
-            print(row)
             table.add_row(*row)
 
         console.print(table)
@@ -57,7 +63,7 @@ class CLI():
         value = self.client.get_field(ticket, field)
 
         priority_colors = {
-            "Low": "gray",
+            "Low": "dim",
             "Normal": "green",
             "High": "yellow",
             "Urgent": "orange",
@@ -127,20 +133,10 @@ def main():
     
     # parse args
     args = sys.argv
-    if len(args) < 2:
-        print("Missing required param")
-        exit(1)
+    if len(args) == 1:
+        cli.print_tickets(cli.client.my_tickets())
     elif len(args) == 2:
-        # query
-        term = args[1]
-        tickets = cli.resolve_query_term(term)
-
-        if not tickets or len(tickets) == 0:
-            print("no tickets found")
-        elif len(tickets) == 1:
-            cli.print_ticket(tickets[0])
-        else:
-            cli.print_tickets(tickets)
+        cli.print_tickets(cli.resolve_query_term(args[1]))
     elif len(args) == 3:
         # unassign and resolve
         try:
