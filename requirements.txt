@@ -8,10 +8,14 @@ frozenlist==1.4.0
 humanize==4.8.0
 idna==3.4
 IMAPClient==3.0.0
+markdown-it-py==3.0.0
+mdurl==0.1.2
 multidict==6.0.4
 py-cord==2.4.1
+Pygments==2.16.1
 pynetbox==7.0.1
 python-dotenv==1.0.0
 requests==2.31.0
+rich==13.6.0
 urllib3==2.0.4
 yarl==1.9.2

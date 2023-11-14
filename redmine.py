@@ -18,8 +18,6 @@ from types import SimpleNamespace
 #logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
-## TODO Build a local user cache.
-## add a reindex command
 
 class Client(): ## redmine.Client()
     def __init__(self):
@@ -179,19 +177,15 @@ class Client(): ## redmine.Client()
         # check the indicies
         if name in self.user_emails:
             id = self.user_emails[name]
-            return self.users[id]
+            return self.user_ids[id]
         elif name in self.users:
-            return self.users[name]
+            id = self.users[name]
+            return self.user_ids[id]
         elif name in self.discord_users:
             id = self.discord_users[name]
-            return self.users[id]
-        else:
-            return None
-
-        response = self.query(f"/users.json?name={email}")
-        if len(response.users) > 0:
-            # TODO better error checking 
-            return response.users[0]
+            return self.user_ids[id]
+        elif name in self.groups:
+            return self.groups[name] #ugly. put groups in user collection?
         else:
             return None
         
@@ -204,16 +198,6 @@ class Client(): ## redmine.Client()
             return self.users[id]
         else:
             return None
-        
-        #response = self.query(f"/users.json?limit=1000")
-        #for user in response.users:
-        #    #print(f"{user.id} {user.login} {user.custom_fields[0].value}")
-        #    for field in user.custom_fields:
-        #        if field.name == "Discord ID" and field.value == user_id:
-        #            return user
-        #else:
-        #    log.info(f"couldn't find user for Discord ID={user_id}")
-        #    return None
         
     def get_ticket(self, ticket_num:int):
         response = self.query(f"/issues.json?issue_id={ticket_num}")
@@ -269,6 +253,30 @@ class Client(): ## redmine.Client()
 
         return response.issues
 
+    def tickets_for_team(self, team_str:str):
+        # validate team?
+        team = self.find_user(team_str) # find_user is dsigned to be broad
+
+        query = f"/issues.json?assigned_to_id={team.id}&status_id=open&sort=priority:desc,updated_on:desc,id:desc&limit=100"
+        response = self.query(query)
+
+        if response.total_count > 0:
+            return response.issues
+        else:
+            log.info(f"No open ticket found for: {team}")
+            return None
+
+    def search_tickets(self, term):
+        # todo url-encode term?
+        # GET /search.json?q=issue_keyword wiki_keyword&issues=1&wiki_pages=1
+        query = f"/search.json?q={term}&status_id=open&sort=updated_on:desc&limit=1"
+        response = self.query(query)
+
+        if response.total_count > 0:
+            return response.issues[0]
+        else:
+            log.info(f"No tickets found for: {term}")
+            return None
 
     def query(self, query_str:str, user_id:str=None):
         """run a query against a redmine instance"""
@@ -279,8 +287,6 @@ class Client(): ## redmine.Client()
         }
         if user_id:
             headers['X-Redmine-Switch-User'] = user_id # Make sure the comment is noted by the correct user
-
-        print(headers)
         
         # run the query with the 
         r = requests.get(f"{self.url}{query_str}", headers=headers)
@@ -292,6 +298,17 @@ class Client(): ## redmine.Client()
             log.error(f"{r.status_code}: {r.request.url}")
             return None
     
+    def assign_ticket(self, id, target):
+        pass
+    
+    def progress_ticket(self, id, target):
+        pass
+
+    def unassign_ticket(self, id):
+        pass
+
+    def resolve_ticket(self, id):
+        pass 
 
     def format_report(self, tickets):
         # 3 passes: new, in progress, closed
@@ -316,34 +333,59 @@ class Client(): ## redmine.Client()
     def format_tickets(self, tickets, fields=["link","priority","updated","assigned", "subject"]):
         section = ""
         for ticket in tickets:
-            url = f"{self.url}/issues/{ticket.id}"
-            try: # hack to get around missing key
-                assigned_to = ticket.assigned_to.name
-            except AttributeError:
-                assigned_to = ""
+            section += self.format_ticket(ticket, fields) + "\n" # append each ticket
+        return section.strip()
 
-            for field in fields:
-                match field:
-                    case "id":
-                        section += f"{ticket.id}"
-                    case "url":
-                        section += url
-                    case "link":
-                        section += f"[{ticket.id}]({url})"
-                    case "priority":
-                        section += f"{ticket.priority.name}"
-                    case "updated":
-                        section += f"{ticket.updated_on[:10]}" # just the date, strip time
-                    case "assigned":
-                        section += f"{assigned_to}"
-                    case "status":
-                        section += f"{ticket.status.name}"
-                    case "subject":
-                        section += f"{ticket.subject}"
-                section += " " # spacer, one space
-            section += "\n" # end of line after each ticket
+    def format_ticket(self, ticket, fields):
+        url = f"{self.url}/issues/{ticket.id}"
+        try: # hack to get around missing key
+            assigned_to = ticket.assigned_to.name
+        except AttributeError:
+            assigned_to = ""
+
+        section = ""
+        for field in fields:
+            match field:
+                case "id":
+                    section += f"{ticket.id}"
+                case "url":
+                    section += url
+                case "link":
+                    section += f"[{ticket.id}]({url})"
+                case "priority":
+                    section += f"{ticket.priority.name}"
+                case "updated":
+                    section += f"{ticket.updated_on[:10]}" # just the date, strip time
+                case "assigned":
+                    section += f"{assigned_to}"
+                case "status":
+                    section += f"{ticket.status.name}"
+                case "subject":
+                    section += f"{ticket.subject}"
+            section += " " # spacer, one space
         return section.strip() # remove trailing whitespace
 
+    def get_field(self, ticket, fieldname):
+        try: 
+            match fieldname:
+                    case "id":
+                        return f"{ticket.id}"
+                    case "url":
+                        return f"{self.url}/issues/{ticket.id}"
+                    case "link":
+                        return f"[{ticket.id}]({self.url}/issues/{ticket.id})"
+                    case "priority":
+                        return ticket.priority.name
+                    case "updated":
+                        return ticket.updated_on
+                    case "assigned":
+                        return ticket.assigned_to.name
+                    case "status":
+                        return ticket.status.name
+                    case "subject":
+                        return ticket.subject
+        except AttributeError:
+            return "" # or None?
     
     def get_discord_id(self, user):
         if user:
@@ -352,29 +394,50 @@ class Client(): ## redmine.Client()
                         return field.value
         return None
 
+    def is_user_or_group(self, user:str) -> bool:
+        if user in self.users:
+            return True
+        elif user in self.groups:
+            return True
+        else:
+            return False
+
     # python method sync?
     def reindex_users(self):
         # reset the indices
         self.users = {}
+        self.user_ids = {}
         self.user_emails = {}
         self.discord_users = {}
 
         # rebuild the indicies
         response = self.query(f"/users.json?limit=1000") ## fixme max limit? paging?
         for user in response.users:
-            self.users[user.id] = user
+            self.users[user.login] = user.id
+            self.user_ids[user.id] = user
             self.user_emails[user.mail] = user.id
 
             discord_id = self.get_discord_id(user)
             if discord_id:
                 self.discord_users[discord_id] = user.id
-
         log.info(f"indexed {len(self.users)} users")
+
+    def reindex_groups(self):
+        # reset the indices
+        self.groups = {}
+
+        # rebuild the indicies
+        response = self.query(f"/groups.json?limit=1000") ## fixme max limit? paging?
+        for group in response.groups:
+            self.groups[group.name] = group
+
+        log.info(f"indexed {len(self.groups)} groups")
 
 
     def reindex(self):
         log.info("reindixing")
         self.reindex_users()
+        self.reindex_groups()
 
 
 if __name__ == '__main__':
