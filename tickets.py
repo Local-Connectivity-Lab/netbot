@@ -42,7 +42,7 @@ class CLI():
                 return self.client.search_tickets(term)
 
     # the 'rich' version
-    def print_tickets(self, tickets, fields=["id","status","priority","age","assigned","subject"]):
+    def print_tickets(self, tickets, fields=["link","status","priority","age","assigned","subject"]):
         if not tickets:
             print("no tickets found")
             return
@@ -85,6 +85,15 @@ class CLI():
             "Rejected/Spam": "dim",
         }
         match field:
+            case "link":
+                url = self.client.get_field(ticket, "url")
+                return f"[link={url}]{ticket.id}[/link]"
+            case "subject":
+                url = self.client.get_field(ticket, "url")
+                return f"[link={url}]{value}[/link]"
+            case "url":
+                url = self.client.get_field(ticket, "url")
+                return f"[link={url}]{value}[/link]"
             case "priority":
                 if value in priority_colors:
                     color = priority_colors[value]
