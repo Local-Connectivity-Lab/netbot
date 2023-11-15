@@ -274,8 +274,6 @@ class Client(): ## redmine.Client()
 
         r = requests.get(f"{self.url}{query_str}", headers=headers)
 
-        print(r.request.url)
-
         # check 200 status code
         if r.status_code == 200:
             return json.loads(r.text, object_hook=lambda x: SimpleNamespace(**x))
