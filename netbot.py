@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 import os
 import logging
 
@@ -60,84 +59,126 @@ bot = NetBot()
 #        
 #    await ctx.respond(msg)
 
+#def format_report(self, tickets):
+    #    # 3 passes: new, in progress, closed
+    #    
+    #    print(len(self.format_section(tickets, "New")))
+    #    print(self.format_section(tickets, "In Progress"))
+    #    print(self.format_section(tickets, "Resolved"))
+
+def format_section(tickets, status):
+    section = ""
+    section += f"> {status}\n"
+    for ticket in tickets:
+        if ticket.status.name == status:
+            url = client.get_field(ticket, "url")
+            assigned = client.get_field(ticket, "assigned")
+            section += f"[**`{ticket.id:>4}`**]({url})`  {ticket.priority.name:<6}  {ticket.updated_on[:10]}  {assigned[:20]:<20}  {ticket.subject}`\n"
+    return section
+
+def format_tickets(tickets, fields=["link","priority","updated","assigned","subject"]):
+    section = ""
+    for ticket in tickets:
+        section += format_ticket(ticket, fields) + "\n" # append each ticket
+    return section.strip()
+
+def format_ticket(ticket, fields):
+    section = ""
+    for field in fields:
+        section += client.get_field(ticket, field) + " " # spacer, one space
+    return section.strip() # remove trailing whitespace
+
+async def print_tickets(tickets, ctx):
+    msg = format_tickets(tickets)
+    if len(msg) > 2000:
+        log.warning("message over 2000 chars. truncing.")
+        msg = msg[:2000]
+    await ctx.respond(msg)
+
+async def print_ticket(ticket, ctx):
+    msg = format_ticket(ticket, fields=["link","priority","updated","assigned","subject"])
+
+    if len(msg) > 2000:
+        log.warning("message over 2000 chars. truncing.")
+        msg = msg[:2000]
+    await ctx.respond(msg)
+
+# figure out what the term refers to
+# better way? DRY
+def resolve_query_term(term):
+    # special cases: ticket num and team name
+    try:
+        id = int(term)
+        ticket = client.get_ticket(id)
+        return [ticket]
+    except ValueError:
+        # not a numeric id, check team
+        if client.is_user_or_group(term):
+            return client.tickets_for_team(term)
+        else:
+            # assume a search term
+            return client.search_tickets(term)
+
 
 @bot.slash_command(name="tickets")
-async def tickets_command(ctx: discord.ApplicationContext):
+async def tickets_command(ctx: discord.ApplicationContext, params: str):
     # different options: none, me (default), [group-name], intake, tracker name
     # buid index for trackers, groups
     # add groups to users.
 
-    param = "me" #ctx.value?
+    # lookup the user
+    user = client.find_discord_user(ctx.user.name)
+    log.info(f"found user mapping for {ctx.user.name}: {user}")
 
-    match param:
-        case "me":
-            # my kanban board
-            user = client.find_discord_user(ctx.author.name)
-            if user:
-                query = f"/issues.json?status_id=open&assigned_to_id=me&sort=priority:desc,status:desc,updated_on:desc&limit=100"
-                fields = ["link", "priority", "status", "updated", "subject"]
-            else:
-                query = f"/issues.json?status_id=open&sort=priority:desc,status,updated_on:desc&limit=100"
-                fields = ["link", "priority", "status", "updated", "subject"]
-        case "intake":
-            team = client.find_group("ticket-intake")
-            query = f"/issues.json?status=New&assigned_to_id={team.id}&sort=priority:desc,updated_on:desc,id:desc&limit=100"
-            fields = ["link","subject"]
+    args = params.split()
+    print(f"args={args}")
 
-    print(query)
-    response = client.query(query, user.login)
-    #print(response)
-    msg = client.format_tickets(response.issues, fields=fields)
-    if len(msg) > 2000:
-        log.warning("message over 2000 chars. truncing.")
-        msg = msg[:2000]
-    await ctx.respond(msg)
+    if len(args) == 0:
+        await print_tickets(client.my_tickets(), ctx)
+    elif len(args) == 1:
+        await print_tickets(resolve_query_term(args[0]), ctx)
+    elif len(args) == 2:
+        # unassign, progress, resolve
+        try:
+            id = int(args[0])
+            action = args[1]
 
+            if action not in ["unassign", "progress", "resolve"]:
+                print(f"unknown operation: {action}")
+                return
 
-@bot.slash_command(name="intake")
-async def intake(ctx: discord.ApplicationContext):
-    # query intake issues: new, assigned to the groups ticket-intake.
-    # looking up "ticket-intake", to make sure the ID is correct
-    team = client.find_group("ticket-intake")
+            match action:
+                case "unassign":
+                    client.unassign_ticket(id)
+                    await print_ticket(client.get_ticket(id), ctx)
+                case "resolve":
+                    client.resolve_ticket(id)
+                    await print_ticket(client.get_ticket(id), ctx)
+                case "progress":
+                    client.progress_ticket(id)
+                    await print_ticket(client.get_ticket(id), ctx)
+        except ValueError:
+            print(f"invalid ticket number: {args[0]}")
+            return
+    elif len(args) == 3:
+        try:
+            id = int(args[0])
+            action = args[1]
+            target = args[2]
 
-    response = client.query(f"/issues.json?status=New&assigned_to_id={team.id}&sort=priority:desc,updated_on:desc,id:desc&limit=100")
-    tickets = response.issues
-    log.debug(f"found {len(tickets)} intake tickets")
+            if action != "assign":
+                print(f"unknown operation: {action}")
+                return
 
-    print(f"author={ctx.author}, name={ctx.author.name}, display={ctx.author.display_name}")
-    user = client.find_discord_user(ctx.author.name)
-    print(f"user={user}")
+            client.assign_ticket(id, target)
+            await print_ticket(client.get_ticket(id), ctx)
+        except ValueError:
+            print(f"invalid ticket number: {args[0]}")
+            exit(1)
+    else:
+        print(f"invalid command: {args}")
+        return
 
-    msg = client.format_tickets(tickets, fields=["link","subject"])
-    if len(msg) > 2000:
-        log.warning("message over 2000 chars. truncing.")
-        msg = msg[:2000]
-    await ctx.respond(msg)
-
+    
 # run the bot
 bot.run()
-
-
-# namespace(id=1, name='New', is_closed=False)
-# There is no way to
-
-
-# http://10.0.1.20/projects/scn/issues?
-# c[]=tracker&c[]=status&c[]=priority&c[]=subject&c[]=assigned_to&c[]=updated_on&
-# f[]=status_id&f[]=assigned_to_id&f[]=&
-# group_by=
-# &op[assigned_to_id]==&op[status_id]==
-# &set_filter=1
-# &sort=updated_on:desc,priority:desc,id:desc&t[]=
-# &utf8=✓&
-# v[assigned_to_id][]=19&v[status_id][]=1
-
-
-# {'id': 126, 'project': namespace(id=1, name='Seattle Community Network'), 
-# 'tracker': namespace(id=6, name='Software Maintenance'), 
-# 'status': namespace(id=3, name='Resolved', is_closed=True), 
-# 'priority': namespace(id=4, name='Urgent'), 
-# 'author': namespace(id=7, name='Dan B'), 
-# 'assigned_to': namespace(id=7, name='Dan B'), 
-# 'category': namespace(id=6, name='tech-research'), 
-# 'subject': 'Investigate Log Activity on Jumpbox', 'description': 'Researching suspicious log activity reported by Kent on the weekend of 10.22.2023. ', 'start_date': '2023-10-23', 'due_date': None, 'done_ratio': 100, 'is_private': False, 'estimated_hours': 3.0, 'total_estimated_hours': 3.0, 'spent_hours': 3.0, 'total_spent_hours': 3.0, 'custom_fields': [namespace(id=1, name='Discord Thread', value='0')], 'created_on': '2023-10-23T20:42:03Z', 'updated_on': '2023-10-25T03:00:41Z', 'closed_on': '2023-10-25T03:00:41Z'}

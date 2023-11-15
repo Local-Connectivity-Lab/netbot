@@ -155,7 +155,7 @@ class Client(): ## redmine.Client()
         
         if user_id in self.discord_users:
             id = self.discord_users[user_id]
-            return self.users[id]
+            return self.user_ids[id]
         else:
             return None
         
@@ -304,61 +304,6 @@ class Client(): ## redmine.Client()
 
     def resolve_ticket(self, id):
         self.update_ticket(id, {"status_id": "Resolved"}) 
-
-    #def format_report(self, tickets):
-    #    # 3 passes: new, in progress, closed
-    #    
-    #    print(len(self.format_section(tickets, "New")))
-    #    print(self.format_section(tickets, "In Progress"))
-    #    print(self.format_section(tickets, "Resolved"))
-
-    def format_section(self, tickets, status):
-        section = ""
-        section += f"> {status}\n"
-        for ticket in tickets:
-            if ticket.status.name == status:
-                url = f"{self.url}/issues/{ticket.id}"
-                try: # hack to get around missing key
-                    assigned_to = ticket.assigned_to.name
-                except AttributeError:
-                    assigned_to = ""
-                section += f"[**`{ticket.id:>4}`**]({url})`  {ticket.priority.name:<6}  {ticket.updated_on[:10]}  {assigned_to[:20]:<20}  {ticket.subject}`\n"
-        return section
-    
-    def format_tickets(self, tickets, fields=["link","priority","updated","assigned", "subject"]):
-        section = ""
-        for ticket in tickets:
-            section += self.format_ticket(ticket, fields) + "\n" # append each ticket
-        return section.strip()
-
-    def format_ticket(self, ticket, fields):
-        url = f"{self.url}/issues/{ticket.id}"
-        try: # hack to get around missing key
-            assigned_to = ticket.assigned_to.name
-        except AttributeError:
-            assigned_to = ""
-
-        section = ""
-        for field in fields:
-            match field:
-                case "id":
-                    section += f"{ticket.id}"
-                case "url":
-                    section += url
-                case "link":
-                    section += f"[{ticket.id}]({url})"
-                case "priority":
-                    section += f"{ticket.priority.name}"
-                case "updated":
-                    section += f"{ticket.updated_on[:10]}" # just the date, strip time
-                case "assigned":
-                    section += f"{assigned_to}"
-                case "status":
-                    section += f"{ticket.status.name}"
-                case "subject":
-                    section += f"{ticket.subject}"
-            section += " " # spacer, one space
-        return section.strip() # remove trailing whitespace
 
     def get_field(self, ticket, fieldname):
         try: 
