@@ -252,10 +252,13 @@ def main():
             match action:
                 case "unassign":
                     cli.client.unassign_ticket(id)
+                    cli.print_ticket(cli.client.get_ticket(id))
                 case "resolve":
                     cli.client.resolve_ticket(id)
+                    cli.print_ticket(cli.client.get_ticket(id))
                 case "progress":
                     cli.client.progress_ticket(id)
+                    cli.print_ticket(cli.client.get_ticket(id))
         except ValueError:
             print(f"invalid ticket number: {args[1]}")
             exit(1)
@@ -270,6 +273,7 @@ def main():
                 exit(1)
 
             cli.client.assign_ticket(id, target)
+            cli.print_ticket(cli.client.get_ticket(id))
         except ValueError:
             print(f"invalid ticket number: {args[1]}")
             exit(1)

@@ -54,22 +54,17 @@ class Client(): ## redmine.Client()
 
         data['issue'] = fields
 
-        #print(data)
-
         r = requests.put(
             url=f"{self.url}/issues/{ticket_id}.json", 
             data=json.dumps(data),
             headers=self.get_headers(user_id))
-        
-        #print(vars(r))
-        
+                
         # check status
         if r.status_code != 204:
             root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
             log.error(f"append_message, status={r.status_code}: {root}")
             # throw exception?
 
-    # 93f22a73-8a12-41ef-a8fe-da7f163ee7e6
 
     def append_message(self, ticket_id:str, user_id:str, note:str, attachments):
         # PUT a simple JSON structure
