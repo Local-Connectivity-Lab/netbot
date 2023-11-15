@@ -67,25 +67,37 @@ class CLI():
 
         console.print(table)
 
+
+    color_map = {
+        "Low": "dim",
+        "Normal": "green",
+        "High": "yellow",
+        "Urgent": "orange",
+        "Immediate": "red",
+
+        "New": "hot_pink",
+        "In Progress": "green",
+        "Feedback": "yellow",
+        "Resolved": "dark_green",
+        "Closed": "dim",
+        "Rejected/Spam": "dim",
+    }
+
+    def lookup_color(self, term:str):
+        return self.color_map.get(term, None)
+    
+    def hash_color(self, value):
+        # consistently-hash the value into a color
+        # hash_val = hash(value) <-- this does it inconsistantly (for security reasons)
+        hash_val = int(hashlib.md5(value.encode('utf-8')).hexdigest(), 16)
+        r = (hash_val & 0xFF0000) >> 16;
+        g = (hash_val & 0x00FF00) >> 8;
+        b = hash_val & 0x0000FF;
+        return f"rgb({r},{g},{b})"
+
     def get_formatted_field(self, ticket, field):
         value = self.client.get_field(ticket, field)
 
-        priority_colors = {
-            "Low": "dim",
-            "Normal": "green",
-            "High": "yellow",
-            "Urgent": "orange",
-            "Immediate": "red",
-        }
-	
-        status_colors = {
-            "New": "hot_pink",
-            "In Progress": "green",
-            "Feedback": "yellow",
-            "Resolved": "dark_green",
-            "Closed": "dim",
-            "Rejected/Spam": "dim",
-        }
         match field:
             case "link":
                 url = self.client.get_field(ticket, "url")
@@ -97,9 +109,8 @@ class CLI():
                 url = self.client.get_field(ticket, "url")
                 return f"[link={url}]{value}[/link]"
             case "priority":
-                if value in priority_colors:
-                    color = priority_colors[value]
-                    return f"[{color}]{value}[/{color}]"
+                color = self.lookup_color(value)
+                return f"[{color}]{value}[/{color}]"
             case "age":
                 updated = dt.datetime.fromisoformat(ticket.updated_on)
                 age = dt.datetime.now(dt.timezone.utc) - updated
@@ -121,28 +132,58 @@ class CLI():
                 else:
                     return age_str
             case "status":
-                if value in status_colors:
-                    color = status_colors[value]
-                    return f"[{color}]{value}[/{color}]"
+                color = self.lookup_color(value)
+                return f"[{color}]{value}[/{color}]"
             case "assigned":
-                # consistently-hash the value into a color
-                # hash_val = hash(value) <-- this does it inconsistantly (for security reasons)
-                hash_val = int(hashlib.md5(value.encode('utf-8')).hexdigest(), 16)
-                r = (hash_val & 0xFF0000) >> 16;
-                g = (hash_val & 0x00FF00) >> 8;
-                b = hash_val & 0x0000FF;
-                #print(f"val={value}: {hash_val} - {r},{g},{b}")
-                return f"[rgb({r},{g},{b})]{value}[/rgb({r},{g},{b})]"
+                color = self.hash_color(value)
+                return f"[{color}]{value}[/{color}]"
         return value
 
-    
     def print_ticket(self, ticket):
         # print details for a single ticket
         console = Console()
+        url = self.client.get_field(ticket, "url")
 
-        for name, value in ticket.__dict__.items():
-            console.print(f"[dim]{name}:[/dim] [bold]{value}[/bold]")
+        console.print(f"[link={url}]{ticket.tracker.name} #{ticket.id}[/link]")
+        console.print(f"Added by {ticket.author.name}")
 
+        table = Table(show_header=False, box=box.SIMPLE_HEAD)
+        table.add_column("key1", justify="right", style="dim")
+        table.add_column("value1", justify="left")
+        table.add_column("key2", justify="right", style="dim")
+        table.add_column("value2", justify="left")
+        table.add_row("Status:", ticket.status.name, "Start date:", ticket.created_on)
+        table.add_row("Priority:", ticket.priority.name, "Due date:", ticket.due_date)
+        table.add_row("Assignee:", ticket.assigned_to.name, "% Done:", f"{ticket.done_ratio}%")
+        table.add_row("Category:", ticket.category.name, "Estimated time:", ticket.estimated_hours)
+        console.print(table)
+
+        console.print(ticket.description, width=80)
+
+"""
+id: 93
+project: namespace(id=1, name='Seattle Community Network')
+tracker: namespace(id=4, name='Software Dev Task')
+status: namespace(id=2, name='In Progress', is_closed=False)
+priority: namespace(id=2, name='Normal')
+author: namespace(id=15, name='Esther Jang')
+assigned_to: namespace(id=5, name='Paul Philion')
+category: namespace(id=4, name='feature request')
+subject: Threading with Emails
+description: Issue threading does not currently work when tickr
+start_date: 2023-10-16
+due_date: None
+done_ratio: 50
+is_private: False
+estimated_hours: None
+total_estimated_hours: 0.0
+spent_hours: 14.0
+total_spent_hours: 16.0
+custom_fields:
+created_on: 2023-10-10T02:38:33Z
+updated_on: 2023-11-15T04:36:39Z
+closed_on: None
+"""
 
 def format_tickets(tickets, fields=["link","priority","updated","assigned","subject"]):
         if len(tickets) == 1:
