@@ -147,6 +147,10 @@ class CLI():
         console.print(f"[link={url}]{ticket.tracker.name} #{ticket.id}[/link]")
         console.print(f"Added by {ticket.author.name}")
 
+        assigned_to = ""
+        if hasattr(ticket, 'assigned_to'):
+            assigned_to = ticket.assigned_to.name
+
         table = Table(show_header=False, box=box.SIMPLE_HEAD)
         table.add_column("key1", justify="right", style="dim")
         table.add_column("value1", justify="left")
@@ -154,7 +158,7 @@ class CLI():
         table.add_column("value2", justify="left")
         table.add_row("Status:", ticket.status.name, "Start date:", ticket.created_on)
         table.add_row("Priority:", ticket.priority.name, "Due date:", ticket.due_date)
-        table.add_row("Assignee:", ticket.assigned_to.name, "% Done:", f"{ticket.done_ratio}%")
+        table.add_row("Assignee:", assigned_to, "% Done:", f"{ticket.done_ratio}%")
         table.add_row("Category:", ticket.category.name, "Estimated time:", ticket.estimated_hours)
         console.print(table)
 
@@ -241,7 +245,7 @@ def main():
             id = int(args[1])
             action = args[2]
 
-            if action not in ["unassign", "resolve"]:
+            if action not in ["unassign", "progress", "resolve"]:
                 print(f"unknown operation: {action}")
                 exit(1)
 
@@ -250,6 +254,8 @@ def main():
                     cli.client.unassign_ticket(id)
                 case "resolve":
                     cli.client.resolve_ticket(id)
+                case "progress":
+                    cli.client.progress_ticket(id)
         except ValueError:
             print(f"invalid ticket number: {args[1]}")
             exit(1)
@@ -259,16 +265,11 @@ def main():
             action = args[2]
             target = args[3]
 
-            if action not in ["assign", "progress"]:
+            if action != "assign":
                 print(f"unknown operation: {action}")
                 exit(1)
 
-            match action:
-                case "assign":
-                    cli.client.assign_ticket(id, target)
-                case "progress":
-                    cli.client.progress_ticket(id, target)
-
+            cli.client.assign_ticket(id, target)
         except ValueError:
             print(f"invalid ticket number: {args[1]}")
             exit(1)

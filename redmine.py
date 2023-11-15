@@ -54,14 +54,14 @@ class Client(): ## redmine.Client()
 
         data['issue'] = fields
 
-        print(data)
+        #print(data)
 
         r = requests.put(
             url=f"{self.url}/issues/{ticket_id}.json", 
             data=json.dumps(data),
             headers=self.get_headers(user_id))
         
-        print(vars(r))
+        #print(vars(r))
         
         # check status
         if r.status_code != 204:
@@ -293,17 +293,17 @@ class Client(): ## redmine.Client()
         else:
             log.error(f"unknow user: {target}")
     
-    def progress_ticket(self, id, target): # TODO notes
+    def progress_ticket(self, id): # TODO notes
         fields = {
-            "assigned_to_id": target,
-            "status_id": "In Progress",
+            "assigned_to_id": "me",
+            "status_id": "2", # "In Progress"
         }
         self.update_ticket(id, fields)
 
     def unassign_ticket(self, id):
         fields = {
             "assigned_to_id": "",
-            "status_id": "New",
+            "status_id": "1", # New
         }
         self.update_ticket(id, fields)
 
