@@ -13,7 +13,7 @@ from types import SimpleNamespace
 #logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
-DEFAULT_SORT = "sort=status:desc,priority:desc,updated_on:desc"
+DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
 
 class Client(): ## redmine.Client()
     def __init__(self):
@@ -222,7 +222,7 @@ class Client(): ## redmine.Client()
         return response.issues
 
     def my_tickets(self):
-        response = self.query(f"/issues.json?assigned_to_id=me&status_id=open&sort={DEFAULT_SORT}limit=100")
+        response = self.query(f"/issues.json?assigned_to_id=me&status_id=open&sort={DEFAULT_SORT}&limit=100")
 
         if response.total_count > 0:
             return response.issues
@@ -273,6 +273,8 @@ class Client(): ## redmine.Client()
         headers = self.get_headers(user)
 
         r = requests.get(f"{self.url}{query_str}", headers=headers)
+
+        print(r.request.url)
 
         # check 200 status code
         if r.status_code == 200:
