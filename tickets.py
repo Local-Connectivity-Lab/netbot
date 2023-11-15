@@ -5,6 +5,8 @@ import logging
 import humanize
 import datetime as dt
 
+import hashlib
+
 from dotenv import load_dotenv
 
 import redmine
@@ -112,11 +114,13 @@ class CLI():
                     color = status_colors[value]
                     return f"[{color}]{value}[/{color}]"
             case "assigned":
-                # hash the value into a color
-                hash_val = hash(value)
+                # consistently-hash the value into a color
+                # hash_val = hash(value) <-- this does it inconsistantly (for security reasons)
+                hash_val = int(hashlib.md5(value.encode('utf-8')).hexdigest(), 16)
                 r = (hash_val & 0xFF0000) >> 16;
                 g = (hash_val & 0x00FF00) >> 8;
                 b = hash_val & 0x0000FF;
+                #print(f"val={value}: {hash_val} - {r},{g},{b}")
                 return f"[rgb({r},{g},{b})]{value}[/rgb({r},{g},{b})]"
         return value
 
