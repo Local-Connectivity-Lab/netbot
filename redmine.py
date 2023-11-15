@@ -6,18 +6,15 @@ import json
 import requests
 import logging
 import datetime as dt
-#import humanize
 
 from dotenv import load_dotenv
 from types import SimpleNamespace
 
 
-#from typing import TypedDict # see https://peps.python.org/pep-0589/
-#from dataclasses import dataclass
-
 #logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
+DEFAULT_SORT = "sort=status:desc,priority:desc,updated_on:desc"
 
 class Client(): ## redmine.Client()
     def __init__(self):
@@ -206,7 +203,16 @@ class Client(): ## redmine.Client()
         else:
             log.warning(f"Unknown ticket number: {ticket_num}")
             return None
-
+        
+    #GET /issues.xml?issue_id=1,2
+    def get_tickets(self, ticket_ids):
+        response = self.query(f"/issues.json?issue_id={','.join(ticket_ids)}&sort={DEFAULT_SORT}")
+        if response.total_count > 0:
+            return response.issues
+        else:
+            log.info(f"Unknown ticket numbers: {ticket_ids}")
+            return None
+    
     def find_ticket_from_str(self, str:str):
         # for now, this is a trivial REGEX to match '#nnn' in a string, and return ticket #nnn
         match = re.search(r'#(\d+)', str)
@@ -277,44 +283,16 @@ class Client(): ## redmine.Client()
 
     def search_tickets(self, term):
         # todo url-encode term?
-        query = f"/search.json?q={term}&titles_only=1&open_issues=1&sort=priority:desc,updated_on:desc,id:desc&limit=100"
+        # note: sort doesn't seem to be working for search
+        query = f"/search.json?q={term}&titles_only=1&open_issues=1&limit=100"
 
         response = self.query(query)
 
-        # ug. search returns results that are significantly different from the "ticket" structure
-        # "title" instead of "subject", and it's overloaded with status:
-        #        Software Dev Task #129 (In Progress): Discord-based kanban board'
-        # regex: (.+) #[\d+] \((.+)\): (.+)
-        # and a datetime field instead of updated
-        # namespace(id=129, 
-        # title='Software Dev Task #129 (In Progress): Discord-based kanban board', 
-        # type='issue', 
-        # url='http://10.0.1.20/issues/129', 
-        # description='User story: As a Seattle Community Network volunteer and Discord user, I would like to be able to access the kanban board from Discord.', 
-        # datetime='2023-10-31T23:42:27Z')
-
-        regex = re.compile(r"(.+) #[\d]+ \((.+)\): (.+)")
-
-        print(f"{response.results[0]}")
-
+        ids = []
         for result in response.results:
-            match = regex.match(result.title)
-            if match:
-                print(f"match={match.group(0)}")
-                result.tracker = {}
-                result.tracker['name'] = match.group(1)
-                result.status = {}
-                result.status['name'] = match.group(2)
-                result.subject = match.group(3)
-            result.updated_on = result.datetime
+            ids.append(str(result.id))
 
-        print(f"{response.results[0]}")
-
-        if response.total_count > 0:
-            return response.results
-        else:
-            log.info(f"No tickets found for: {term}")
-            return None
+        return self.get_tickets(ids)
 
     def query(self, query_str:str, user_id:str=None):
         """run a query against a redmine instance"""
