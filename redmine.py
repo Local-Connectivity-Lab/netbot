@@ -10,7 +10,6 @@ import datetime as dt
 from dotenv import load_dotenv
 from types import SimpleNamespace
 
-
 #logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
@@ -25,13 +24,6 @@ class Client(): ## redmine.Client()
     def create_ticket(self, user_id, subject, body):
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
 
-        headers = { # TODO DRY headers
-            'User-Agent': 'netbot/0.0.1', # TODO update to project version, and add version management
-            'Content-Type': 'application/json',
-            'X-Redmine-API-Key': self.token,
-            'X-Redmine-Switch-User': user_id, # Make sure the comment is noted by the correct user
-        }
-
         data = {
             'issue': {
                 'project_id': 1,
@@ -43,7 +35,7 @@ class Client(): ## redmine.Client()
         r = requests.post(
             url=f"{self.url}/issues.json", 
             data=json.dumps(data), 
-            headers=headers)
+            headers=self.get_headers(user_id))
         
         print(f"create_ticket response: {r}")
         
@@ -54,14 +46,32 @@ class Client(): ## redmine.Client()
         #ticket = root.ticket[0]
         #return ticket
 
-    def append_message(self, ticket_id:str, user_id:str, note:str, attachments):
-        headers = { # TODO DRY headers
-            'User-Agent': 'netbot/0.0.1', # TODO update to project version, and add version management
-            'Content-Type': 'application/json',
-            'X-Redmine-API-Key': self.token,
-            'X-Redmine-Switch-User': user_id, # Make sure the comment is noted by the correct user
+    def update_ticket(self, ticket_id:str, fields:dict, user_id:str=None):
+        # PUT a simple JSON structure
+        data = {
+            'issue': {}
         }
 
+        data['issue'] = fields
+
+        print(data)
+
+        r = requests.put(
+            url=f"{self.url}/issues/{ticket_id}.json", 
+            data=json.dumps(data),
+            headers=self.get_headers(user_id))
+        
+        print(vars(r))
+        
+        # check status
+        if r.status_code != 204:
+            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
+            log.error(f"append_message, status={r.status_code}: {root}")
+            # throw exception?
+
+    # 93f22a73-8a12-41ef-a8fe-da7f163ee7e6
+
+    def append_message(self, ticket_id:str, user_id:str, note:str, attachments):
         # PUT a simple JSON structure
         data = {
             'issue': {
@@ -82,7 +92,7 @@ class Client(): ## redmine.Client()
         r = requests.put(
             url=f"{self.url}/issues/{ticket_id}.json", 
             data=json.dumps(data),
-            headers=headers)
+            headers=self.get_headers(user_id))
         
         # check status
         if r.status_code != 204:
@@ -95,18 +105,10 @@ class Client(): ## redmine.Client()
         # POST /uploads.json?filename=image.png
         # Content-Type: application/octet-stream
         # (request body is the file content)
-        
-        headers = { # TODO DRY headers
-            'User-Agent': 'netbot/0.0.1', # TODO update to project version, and add version management
-            'Content-Type': 'application/octet-stream',
-            'X-Redmine-API-Key': self.token,
-            'X-Redmine-Switch-User': user_id, # Make sure the comment is noted by the correct user
-        }
-
         r = requests.post(
             url=f"{self.url}/uploads.json?filename={filename}", 
             files={ 'upload_file': (filename, data, content_type) },
-            headers=headers
+            headers=self.get_headers(user_id)
         )
         
         # 201 response: {"upload":{"token":"7167.ed1ccdb093229ca1bd0b043618d88743"}}
@@ -127,40 +129,6 @@ class Client(): ## redmine.Client()
         for a in attachments:
             token = self.upload_file(user_id, a.payload, a.name, a.content_type)
             a.set_token(token)
-
-    ### OLD REMOVE
-    def xxx_append_attachment(self, ticket_id, user_id, data, filename, content_type):
-        # upload the data as a new file
-        upload_token = self.upload_file(user_id, data, filename, content_type)
-
-        # then PUT the upload to the issue API
-        headers = { # TODO DRY headers
-            'User-Agent': 'netbot/0.0.1', # TODO update to project version, and add version management
-            'Content-Type': 'application/json',
-            'X-Redmine-API-Key': self.token,
-            'X-Redmine-Switch-User': user_id, # Make sure the comment is noted by the correct user
-        }
-
-        # PUT a simple JSON structure with the uploaded file info
-        data = {
-            'issue': {
-                'notes': f"Uploading attachment {filename} to ticket #{ticket_id}.",
-                'uploads': [
-                    { 
-                        "token": upload_token, 
-                        "filename": filename,
-                        "content_type": content_type,
-                    }
-                ]
-            }
-        }
-
-        r = requests.put(
-            url=f"{self.url}/issues/{ticket_id}.json", 
-            data=json.dumps(data),
-            headers=headers)
-
-        print(f"append_attachment response: {r}")
 
     def find_group(self, name):
         response = self.query(f"/groups.json")
@@ -207,7 +175,7 @@ class Client(): ## redmine.Client()
     #GET /issues.xml?issue_id=1,2
     def get_tickets(self, ticket_ids):
         response = self.query(f"/issues.json?issue_id={','.join(ticket_ids)}&sort={DEFAULT_SORT}")
-        if response.total_count > 0:
+        if response != None and response.total_count > 0:
             return response.issues
         else:
             log.info(f"Unknown ticket numbers: {ticket_ids}")
@@ -249,18 +217,17 @@ class Client(): ## redmine.Client()
             log.warning(f"Unknown email: {email}")
             return None
         
-    # project_id=1&tracker_id=4&sort=priority:desc,updated_on:desc,id:desc
     def find_tickets(self):
         # "kanban" query: all ticket open or closed recently
         project=1
         tracker=4
-        response = self.query(f"/issues.json?project_id={project}&tracker_id={tracker}\
-                              &status_id=*&sort=priority:desc,updated_on:desc,id:desc&limit=100")
+        query = f"/issues.json?project_id={project}&tracker_id={tracker}&status_id=*&sort={DEFAULT_SORT}&limit=100"
+        response = self.query(query)
 
         return response.issues
 
     def my_tickets(self):
-        response = self.query(f"/issues.json?assigned_to_id=me&status_id=open&sort=status:desc,priority:desc,updated_on:desc&limit=100")
+        response = self.query(f"/issues.json?assigned_to_id=me&status_id=open&sort={DEFAULT_SORT}limit=100")
 
         if response.total_count > 0:
             return response.issues
@@ -272,7 +239,7 @@ class Client(): ## redmine.Client()
         # validate team?
         team = self.find_user(team_str) # find_user is dsigned to be broad
 
-        query = f"/issues.json?assigned_to_id={team.id}&status_id=open&sort=priority:desc,updated_on:desc,id:desc&limit=100"
+        query = f"/issues.json?assigned_to_id={team.id}&status_id=open&sort={DEFAULT_SORT}&limit=100"
         response = self.query(query)
 
         if response.total_count > 0:
@@ -294,44 +261,61 @@ class Client(): ## redmine.Client()
 
         return self.get_tickets(ids)
 
-    def query(self, query_str:str, user_id:str=None):
-        """run a query against a redmine instance"""
+    def get_headers(self, impersonate_id:str=None):
         headers = {
             'User-Agent': 'netbot/0.0.1', # TODO update to project version, and add version management
             'Content-Type': 'application/json',
             'X-Redmine-API-Key': self.token,
         }
-        if user_id:
-            headers['X-Redmine-Switch-User'] = user_id # Make sure the comment is noted by the correct user
-        
-        # run the query with the 
+        # insert the impersonate_id to impersonate another user
+        if impersonate_id:
+            headers['X-Redmine-Switch-User'] = impersonate_id # Make sure the comment is noted by the correct user
+        return headers
+
+    def query(self, query_str:str, user:str=None):
+        """run a query against a redmine instance"""
+
+        headers = self.get_headers(user)
+
         r = requests.get(f"{self.url}{query_str}", headers=headers)
 
         # check 200 status code
         if r.status_code == 200:
-            return json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
+            return json.loads(r.text, object_hook=lambda x: SimpleNamespace(**x))
         else:
             log.error(f"{r.status_code}: {r.request.url}")
             return None
     
     def assign_ticket(self, id, target):
-        pass
+        user = self.find_user(target)
+        if user:
+            self.update_ticket(id, {"assigned_to_id": user.id})
+        else:
+            log.error(f"unknow user: {target}")
     
-    def progress_ticket(self, id, target):
-        pass
+    def progress_ticket(self, id, target): # TODO notes
+        fields = {
+            "assigned_to_id": target,
+            "status_id": "In Progress",
+        }
+        self.update_ticket(id, fields)
 
     def unassign_ticket(self, id):
-        pass
+        fields = {
+            "assigned_to_id": "",
+            "status_id": "New",
+        }
+        self.update_ticket(id, fields)
 
     def resolve_ticket(self, id):
-        pass 
+        self.update_ticket(id, {"status_id": "Resolved"}) 
 
-    def format_report(self, tickets):
-        # 3 passes: new, in progress, closed
-        
-        print(len(self.format_section(tickets, "New")))
-        print(self.format_section(tickets, "In Progress"))
-        print(self.format_section(tickets, "Resolved"))
+    #def format_report(self, tickets):
+    #    # 3 passes: new, in progress, closed
+    #    
+    #    print(len(self.format_section(tickets, "New")))
+    #    print(self.format_section(tickets, "In Progress"))
+    #    print(self.format_section(tickets, "Resolved"))
 
     def format_section(self, tickets, status):
         section = ""
@@ -430,15 +414,18 @@ class Client(): ## redmine.Client()
 
         # rebuild the indicies
         response = self.query(f"/users.json?limit=1000") ## fixme max limit? paging?
-        for user in response.users:
-            self.users[user.login] = user.id
-            self.user_ids[user.id] = user
-            self.user_emails[user.mail] = user.id
+        if response.users:
+            for user in response.users:
+                self.users[user.login] = user.id
+                self.user_ids[user.id] = user
+                self.user_emails[user.mail] = user.id
 
-            discord_id = self.get_discord_id(user)
-            if discord_id:
-                self.discord_users[discord_id] = user.id
-        log.info(f"indexed {len(self.users)} users")
+                discord_id = self.get_discord_id(user)
+                if discord_id:
+                    self.discord_users[discord_id] = user.id
+            log.info(f"indexed {len(self.users)} users")
+        else:
+            log.error(f"No users: {response}")
 
     def reindex_groups(self):
         # reset the indices
