@@ -14,6 +14,8 @@ import redmine
 # using https://pypi.org/project/rich/ for terminal formatting
 from rich.console import Console
 from rich.table import Table
+from rich import box
+
 
 #logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
@@ -52,7 +54,7 @@ class CLI():
 
         console = Console()
 
-        table = Table(show_header=True, header_style="bold magenta")
+        table = Table(show_header=True, box=box.SIMPLE_HEAD, collapse_padding=True, header_style="bold magenta")
         for field in fields:
             #table.add_column("Date", style="dim", width=12)
             table.add_column(field)
