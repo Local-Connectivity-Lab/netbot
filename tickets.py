@@ -75,7 +75,7 @@ class CLI():
         }
 	
         status_colors = {
-            "New": "white",
+            "New": "hot_pink",
             "In Progress": "green",
             "Feedback": "yellow",
             "Resolved": "dark_green",
@@ -111,6 +111,13 @@ class CLI():
                 if value in status_colors:
                     color = status_colors[value]
                     return f"[{color}]{value}[/{color}]"
+            case "assigned":
+                # hash the value into a color
+                hash_val = hash(value)
+                r = (hash_val & 0xFF0000) >> 16;
+                g = (hash_val & 0x00FF00) >> 8;
+                b = hash_val & 0x0000FF;
+                return f"[rgb({r},{g},{b})]{value}[/rgb({r},{g},{b})]"
         return value
 
     
