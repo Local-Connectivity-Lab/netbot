@@ -116,35 +116,33 @@ class Client(): ## imap.Client()
             # New user means no old ticket to append to , so create a new ticket
             log.info(f"Unknow user: {addr}, creating new account.")
             user = redmine.create_user(addr, first, last)
-            log.info(f"Creating new ticket for: {addr}, crea")
-            self.redmine.create_ticket(user.login, message.subject, message.body)
-            return
- 
-        # find ticket using the subject, if possible
-        # this uses a simple REGEX '#\d+' to match ticket numbers
-        ticket = self.redmine.find_ticket_from_str(message.subject)
+            #log.info(f"Creating new ticket {addr}: {message.subject}")
+            #self.redmine.create_ticket(user.login, message.subject, message.body)
+            ticket = None
+        else:
+            # find ticket using the subject, if possible
+            # this uses a simple REGEX '#\d+' to match ticket numbers
+            ticket = self.redmine.find_ticket_from_str(message.subject)
         
         # if there is not ticket number found,
         # query "most recently updated open ticket by userid", if any
         if user and (ticket is None):
             ticket = self.redmine.most_recent_ticket_for(user.login)
 
+        # first, upload any attachments
+        for attachment in message.attachments:
+            # uploading the attachment this way
+            # puts the token in the attachment
+            attachment.upload(self.redmine, user.login)
+
         if ticket:
             # found a ticket, append the message
-
-            # first, upload any attachments
-            for attachment in message.attachments:
-                # uploading the attachment this way
-                # puts the token in the attachment
-                attachment.upload(self.redmine, user.login)
-
             self.redmine.append_message(ticket.id, user.login, message.note, message.attachments)
-            log.info(f"Updated ticket #{ticket.id} with message from {user.login}")
+            log.info(f"Updated ticket #{ticket.id} with message from {user.login} and {len(message.attachments)} attachments")
         else:
             # no open tickets, create new ticket for the email message
-            self.redmine.create_ticket(user.login, message.subject, message.body)
-            ## FIXME get ticket #, add attachments
-            log.info(f"Created new ticket from: {user.login}")
+            self.redmine.create_ticket(user.login, message.subject, message.body, message.attachments)
+            log.info(f"Created new ticket for: {user.login}, with {len(message.attachments)} attachments")
 
 
     def check_unseen(self):
