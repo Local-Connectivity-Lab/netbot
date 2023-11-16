@@ -152,13 +152,13 @@ async def tickets_command(ctx: discord.ApplicationContext, params: str):
 
             match action:
                 case "unassign":
-                    client.unassign_ticket(id)
+                    client.unassign_ticket(id, user.id)
                     await print_ticket(client.get_ticket(id), ctx)
                 case "resolve":
-                    client.resolve_ticket(id)
+                    client.resolve_ticket(id, user.id)
                     await print_ticket(client.get_ticket(id), ctx)
                 case "progress":
-                    client.progress_ticket(id)
+                    client.progress_ticket(id, user.id)
                     await print_ticket(client.get_ticket(id), ctx)
         except ValueError:
             print(f"invalid ticket number: {args[0]}")

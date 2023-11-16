@@ -288,22 +288,22 @@ class Client(): ## redmine.Client()
         else:
             log.error(f"unknow user: {target}")
     
-    def progress_ticket(self, id): # TODO notes
+    def progress_ticket(self, id, user_id): # TODO notes
         fields = {
             "assigned_to_id": "me",
             "status_id": "2", # "In Progress"
         }
-        self.update_ticket(id, fields)
+        self.update_ticket(id, fields, user_id)
 
-    def unassign_ticket(self, id):
+    def unassign_ticket(self, id, user_id):
         fields = {
             "assigned_to_id": "",
             "status_id": "1", # New
         }
-        self.update_ticket(id, fields)
+        self.update_ticket(id, fields, user_id)
 
-    def resolve_ticket(self, id):
-        self.update_ticket(id, {"status_id": "Resolved"}) 
+    def resolve_ticket(self, ticket_id, user_id):
+        self.update_ticket(ticket_id, {"status_id": "Resolved"}, user_id=user_id) 
 
     def get_field(self, ticket, fieldname):
         try: 
