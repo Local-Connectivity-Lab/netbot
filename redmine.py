@@ -10,7 +10,6 @@ import datetime as dt
 from dotenv import load_dotenv
 from types import SimpleNamespace
 
-logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
@@ -59,7 +58,8 @@ class Client(): ## redmine.Client()
             data=json.dumps(data),
             headers=self.get_headers(user_id))
         
-        log.debug(f"response={r}, request={r.request.url}")
+        log.debug(f"UPDATE: url={r.request.url}, headers={r.request.headers}")
+        log.debug(f"UPDATE: fields={data}")
                 
         # check status
         if r.status_code != 204:
@@ -223,7 +223,7 @@ class Client(): ## redmine.Client()
 
         return response.issues
 
-    def my_tickets(self, user):
+    def my_tickets(self, user=None):
         response = self.query(f"/issues.json?assigned_to_id=me&status_id=open&sort={DEFAULT_SORT}&limit=100", user)
 
         if response.total_count > 0:
@@ -267,7 +267,9 @@ class Client(): ## redmine.Client()
         # insert the impersonate_id to impersonate another user
         if impersonate_id:
             headers['X-Redmine-Switch-User'] = impersonate_id # Make sure the comment is noted by the correct user
+            log.debug(f"setting redmine impersonation flag for user={impersonate_id}")
         return headers
+
 
     def query(self, query_str:str, user:str=None):
         """run a query against a redmine instance"""
@@ -283,29 +285,38 @@ class Client(): ## redmine.Client()
             log.error(f"{r.status_code}: {r.request.url}")
             return None
     
-    def assign_ticket(self, id, target):
+
+    def assign_ticket(self, id, target, user_id=None):
         user = self.find_user(target)
         if user:
-            self.update_ticket(id, {"assigned_to_id": user.id})
+            fields = {
+                "assigned_to_id": user.id,
+                "status_id": "1", # New
+            }
+            self.update_ticket(id, fields, user_id)
         else:
             log.error(f"unknow user: {target}")
     
-    def progress_ticket(self, id, user_id): # TODO notes
+
+    def progress_ticket(self, id, user_id=None): # TODO notes
         fields = {
             "assigned_to_id": "me",
             "status_id": "2", # "In Progress"
         }
         self.update_ticket(id, fields, user_id)
 
-    def unassign_ticket(self, id, user_id):
+
+    def unassign_ticket(self, id, user_id=None):
         fields = {
-            "assigned_to_id": "",
+            "assigned_to_id": "", # FIXME this *should* be the team it was assigned to, but there's no way to calculate.
             "status_id": "1", # New
         }
         self.update_ticket(id, fields, user_id)
 
-    def resolve_ticket(self, ticket_id, user_id):
-        self.update_ticket(ticket_id, {"status_id": "Resolved"}, user_id=user_id) 
+
+    def resolve_ticket(self, ticket_id, user_id=None):
+        self.update_ticket(ticket_id, {"status_id": "Resolved"}, user_id) 
+
 
     def get_field(self, ticket, fieldname):
         try: 

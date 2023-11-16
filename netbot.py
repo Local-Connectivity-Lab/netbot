@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 from discord.ext import commands
 
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 log.info('initializing bot')
