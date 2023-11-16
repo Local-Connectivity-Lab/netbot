@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 from discord.ext import commands
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 log.info('initializing bot')
@@ -152,13 +152,13 @@ async def tickets_command(ctx: discord.ApplicationContext, params: str):
 
             match action:
                 case "unassign":
-                    client.unassign_ticket(id, user.id)
+                    client.unassign_ticket(id, user.login)
                     await print_ticket(client.get_ticket(id), ctx)
                 case "resolve":
-                    client.resolve_ticket(id, user.id)
+                    client.resolve_ticket(id, user.login)
                     await print_ticket(client.get_ticket(id), ctx)
                 case "progress":
-                    client.progress_ticket(id, user.id)
+                    client.progress_ticket(id, user.login)
                     await print_ticket(client.get_ticket(id), ctx)
         except ValueError:
             print(f"invalid ticket number: {args[0]}")

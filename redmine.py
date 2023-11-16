@@ -10,7 +10,7 @@ import datetime as dt
 from dotenv import load_dotenv
 from types import SimpleNamespace
 
-#logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
@@ -58,6 +58,8 @@ class Client(): ## redmine.Client()
             url=f"{self.url}/issues/{ticket_id}.json", 
             data=json.dumps(data),
             headers=self.get_headers(user_id))
+        
+        log.debug(f"response={r}, request={r.request.url}")
                 
         # check status
         if r.status_code != 204:
