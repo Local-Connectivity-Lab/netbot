@@ -131,9 +131,9 @@ async def tickets_command(ctx: discord.ApplicationContext, params: str):
     log.info(f"found user mapping for {ctx.user.name}: {user}")
 
     args = params.split()
-    print(f"args={args}")
+    #print(f"args={args}")
 
-    if len(args) == 0:
+    if len(args) == 0 or args[0] == "me":
         await print_tickets(client.my_tickets(), ctx)
     elif len(args) == 1:
         await print_tickets(resolve_query_term(args[0]), ctx)
