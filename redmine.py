@@ -7,6 +7,8 @@ import requests
 import logging
 import datetime as dt
 
+import humanize
+
 from dotenv import load_dotenv
 from types import SimpleNamespace
 
@@ -339,6 +341,10 @@ class Client(): ## redmine.Client()
                         return ticket.subject
                     case "title":
                         return ticket.title
+                    case "age":
+                        updated = dt.datetime.fromisoformat(ticket.updated_on)
+                        age = dt.datetime.now(dt.timezone.utc) - updated
+                        return humanize.naturaldelta(age) 
         except AttributeError:
             return "" # or None?
     

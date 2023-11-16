@@ -112,11 +112,12 @@ class Client(): ## imap.Client()
         user = self.redmine.find_user(addr)
         if user == None:
             log.error(f"Unknown email address, no user found: {addr}, {message.from_address}")
-            # TODO throw EX or create user
-            # create new user if needed -> always new ticket
-            # TODO try parsing first and last from from_address
-            # user = redmine.create_user(addr, first, last)
-            # self.redmine.create_ticket(user.login, subject, body)
+            # create new user if needed.
+            # New user means no old ticket to append to , so create a new ticket
+            log.info(f"Unknow user: {addr}, creating new account.")
+            user = redmine.create_user(addr, first, last)
+            log.info(f"Creating new ticket for: {addr}, crea")
+            self.redmine.create_ticket(user.login, message.subject, message.body)
             return
  
         # find ticket using the subject, if possible

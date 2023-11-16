@@ -2,7 +2,6 @@
 
 import sys
 import logging
-import humanize
 import datetime as dt
 
 import hashlib
@@ -114,7 +113,6 @@ class CLI():
             case "age":
                 updated = dt.datetime.fromisoformat(ticket.updated_on)
                 age = dt.datetime.now(dt.timezone.utc) - updated
-                age_str = humanize.naturaldelta(age)
 
                 color = None
                 if age.days == 0:
@@ -128,9 +126,9 @@ class CLI():
                 else:
                     color = "red"
                 if color:
-                    return f"[{color}]{age_str}[/{color}]"
+                    return f"[{color}]{value}[/{color}]"
                 else:
-                    return age_str
+                    return value
             case "status":
                 color = self.lookup_color(value)
                 return f"[{color}]{value}[/{color}]"
