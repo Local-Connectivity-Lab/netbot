@@ -221,8 +221,8 @@ class Client(): ## redmine.Client()
 
         return response.issues
 
-    def my_tickets(self):
-        response = self.query(f"/issues.json?assigned_to_id=me&status_id=open&sort={DEFAULT_SORT}&limit=100")
+    def my_tickets(self, user):
+        response = self.query(f"/issues.json?assigned_to_id=me&status_id=open&sort={DEFAULT_SORT}&limit=100", user)
 
         if response.total_count > 0:
             return response.issues

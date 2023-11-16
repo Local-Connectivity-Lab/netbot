@@ -77,6 +77,9 @@ def format_section(tickets, status):
     return section
 
 def format_tickets(tickets, fields=["link","priority","updated","assigned","subject"]):
+    if tickets is None:
+        return "No tickets found."
+    
     section = ""
     for ticket in tickets:
         section += format_ticket(ticket, fields) + "\n" # append each ticket
@@ -134,7 +137,7 @@ async def tickets_command(ctx: discord.ApplicationContext, params: str):
     #print(f"args={args}")
 
     if len(args) == 0 or args[0] == "me":
-        await print_tickets(client.my_tickets(), ctx)
+        await print_tickets(client.my_tickets(user.login), ctx)
     elif len(args) == 1:
         await print_tickets(resolve_query_term(args[0]), ctx)
     elif len(args) == 2:
