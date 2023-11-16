@@ -317,7 +317,7 @@ class Client(): ## redmine.Client()
 
 
     def resolve_ticket(self, ticket_id, user_id=None):
-        self.update_ticket(ticket_id, {"status_id": "Resolved"}, user_id) 
+        self.update_ticket(ticket_id, {"status_id": "3"}, user_id) # '3' is the status_id, it doesn't accept "Resolve"
 
 
     def get_field(self, ticket, fieldname):
