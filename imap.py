@@ -173,7 +173,9 @@ class Client(): ## imap.Client()
                     traceback.print_exc()
                     server.add_flags(uid, [SEEN])
             log.info(f"processed {len(messages)} new messages")
-
+    
+    def synchronize(self):
+        self.check_unseen()
 
 # this behavior mirrors that of threader.py, for now.
 # in the furute, this will run the imap threading, while
