@@ -41,8 +41,7 @@ and add the following entry to the bottom:
 
 This cron job uses the Python venv to execute, and captures std and err output to syslog (tagged "threader").
 
-Logs from the runs are stored in the `logs` folder, with timestamps for each job.
-
+Logs from the runs are stored in `/home/scn/github/netbot/logs` folder, one per cron jon with timestamps.
 
 
 ## CLI

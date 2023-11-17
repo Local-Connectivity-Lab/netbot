@@ -173,6 +173,7 @@ class Client(): ## imap.Client()
                     log.error(f"Message {uid} can not be processed: {e}")
                     traceback.print_exc()
                     server.add_flags(uid, [SEEN])
+            log.info(f"processed {len(messages)} new messages")
 
 
 # this behavior mirrors that of threader.py, for now.
