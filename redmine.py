@@ -113,11 +113,18 @@ class Client(): ## redmine.Client()
         # POST /uploads.json?filename=image.png
         # Content-Type: application/octet-stream
         # (request body is the file content)
+
+        headers = { 
+            'User-Agent': 'netbot/0.0.1', # TODO update to project version, and add version management
+            'Content-Type': 'application/octet-stream', # <-- VERY IMPORTANT
+            'X-Redmine-API-Key': self.token,
+            'X-Redmine-Switch-User': user_id, # Make sure the comment is noted by the correct user
+        }
+
         r = requests.post(
             url=f"{self.url}/uploads.json?filename={filename}", 
             files={ 'upload_file': (filename, data, content_type) },
-            headers=self.get_headers(user_id)
-        )
+            headers=headers)
         
         # 201 response: {"upload":{"token":"7167.ed1ccdb093229ca1bd0b043618d88743"}}
         if r.status_code == 201:

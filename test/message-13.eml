@@ -1,0 +1,194 @@
+MIME-Version: 1.0
+Date: Wed, 1 Nov 2023 17:07:16 -0700
+References: <redmine.issue-93.20231010023833.5@seattlecommunitynetwork.org>
+	<redmine.journal-137.20231101025137.5@seattlecommunitynetwork.org>
+In-Reply-To: <redmine.journal-137.20231101025137.5@seattlecommunitynetwork.org>
+Message-ID: <CANgxLuuRuA1a7mWJReC_tS05O2T-qrsKcJP7die1LV7VdNKisA@mail.gmail.com>
+Subject: Fwd: [Seattle Community Network - Software Dev Task #93] Threading
+ with Emails
+From: Paul Philion <philion@seattlecommunitynetwork.org>
+To: Paul Philion <redmine@seattlecommunitynetwork.org>
+Content-Type: multipart/alternative; boundary="000000000000b0bae80609202b20"
+
+--000000000000b0bae80609202b20
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+Another forward test
+
+---------- Forwarded message ---------
+From: Paul Philion <support@seattlecommunitynetwork.org>
+Date: Tue, Oct 31, 2023 at 7:51=E2=80=AFPM
+Subject: [Seattle Community Network - Software Dev Task #93] Threading with
+Emails
+To: <philion@seattlecommunitynetwork.org>
+
+
+Issue #93 <http://10.0.1.20/issues/93#change-137> has been updated by Paul
+Philion.
+------------------------------
+
+
+Looking over the redmine source code (
+https://github.com/redmine/redmine/blob/63188014b0c084319839b34e5dffe8a6d35=
+1cdd0/app/models/mail_handler.rb#L93)
+there doesn't seem any way to hook into the "receive" function with redmine=
+.
+
+(also, my Ruby is terrible. if anyone sees a way to do it, please speak up!=
+)
+
+However, there is an API hook for the email, as implied by
+https://github.com/redmine/redmine/blob/63188014b0c084319839b34e5dffe8a6d35=
+1cdd0/extra/mail_handler/rdm-mailhandler.rb#L152C1-L153C1
+
+Specifically:
+
+/mail_handler
+
+This implies that it should be possible to extend the redmine email
+handling by forcing the ticket number onto a subject line for email that
+don't have one.
+
+Instead of using the current cron job, a new job would be written to:
+1) Grab IMAP email from the specified accounts
+2) If the email already has a ticket #, just forward to /mail_hander
+3) If no ticket #, lookup sender email (forwarded-by backup), look for most
+recent open ticket from that email and add that # to the Subject line, then
+forward to /mail_handler
+4) If no open tickets, open for that user, forward unchanged email to open
+new ticket. (note: verify behavior)
+------------------------------
+Software Dev Task #93: Threading with Emails
+<http://10.0.1.20/issues/93#change-137> open
+
+   - *Author: *Esther Jang
+   - *Status: *In Progress
+   - *Priority: *Normal
+   - *Assignee: *Paul Philion
+   - *Category: *feature request
+   - *Start date: *2023-10-16
+   - *Discord Thread: *No
+
+Issue threading does not currently work when tickets are created via emails
+that fwded into redmine by copying the support@ email. This is
+understandable given that the sender is different and the subject line
+doesn't contain the ticket number if it's on an email thread that isn't the
+one created by redmine.
+We should either figure out how to send emails into redmine "correctly" so
+that threading works, or make our fwding scenario work via our code.
+------------------------------
+
+You have received this notification because you have either subscribed to
+it, or are involved in it.
+To change your notification preferences, please click here:
+http://10.0.1.20/my/account
+
+--000000000000b0bae80609202b20
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr">Another forward test<br><br><div class=3D"gmail_quote"><di=
+v dir=3D"ltr" class=3D"gmail_attr">---------- Forwarded message ---------<b=
+r>From: <strong class=3D"gmail_sendername" dir=3D"auto">Paul Philion</stron=
+g> <span dir=3D"auto">&lt;<a href=3D"mailto:support@seattlecommunitynetwork=
+.org">support@seattlecommunitynetwork.org</a>&gt;</span><br>Date: Tue, Oct =
+31, 2023 at 7:51=E2=80=AFPM<br>Subject: [Seattle Community Network - Softwa=
+re Dev Task #93] Threading with Emails<br>To:  &lt;<a href=3D"mailto:philio=
+n@seattlecommunitynetwork.org">philion@seattlecommunitynetwork.org</a>&gt;<=
+br></div><br><br><div class=3D"msg-1886214825971040105"><u></u>
+
+
+
+
+<div style=3D"font-family:Verdana,sans-serif;font-size:14px;line-height:1.4=
+em;color:#222">
+Issue <a href=3D"http://10.0.1.20/issues/93#change-137" style=3D"color:#169=
+" target=3D"_blank">#93</a> has been updated by Paul Philion.
+<hr style=3D"width:100%;height:1px;background:#ccc;border:0;margin:1.2em 0"=
+>
+
+<ul style=3D"color:#959595;margin-bottom:1.5em">
+</ul>
+
+<p>Looking over the redmine source code (<a href=3D"https://github.com/redm=
+ine/redmine/blob/63188014b0c084319839b34e5dffe8a6d351cdd0/app/models/mail_h=
+andler.rb#L93" style=3D"color:#169" target=3D"_blank">https://github.com/re=
+dmine/redmine/blob/63188014b0c084319839b34e5dffe8a6d351cdd0/app/models/mail=
+_handler.rb#L93</a>) there doesn&#39;t seem any way to hook into the &quot;=
+receive&quot; function with redmine.</p>
+
+
+	<p>(also, my Ruby is terrible. if anyone sees a way to do it, please speak=
+ up!)</p>
+
+
+	<p>However, there is an API hook for the email, as implied by <a href=3D"h=
+ttps://github.com/redmine/redmine/blob/63188014b0c084319839b34e5dffe8a6d351=
+cdd0/extra/mail_handler/rdm-mailhandler.rb#L152C1-L153C1" style=3D"color:#1=
+69" target=3D"_blank">https://github.com/redmine/redmine/blob/63188014b0c08=
+4319839b34e5dffe8a6d351cdd0/extra/mail_handler/rdm-mailhandler.rb#L152C1-L1=
+53C1</a></p>
+
+
+	<p>Specifically:<br></p><pre style=3D"font-family:Consolas,Menlo,&quot;Lib=
+eration Mono&quot;,Courier,monospace;margin:1em 1em 1em 1.6em;padding:8px;b=
+ackground-color:#fafafa;border:1px solid #e2e2e2;border-radius:3px;width:au=
+to;overflow-x:auto;overflow-y:hidden">/mail_handler
+</pre>
+
+
+	<p>This implies that it should be possible to extend the redmine email han=
+dling by forcing the ticket number onto a subject line for email that don&#=
+39;t have one.</p>
+
+
+	<p>Instead of using the current cron job, a new job would be written to:<b=
+r>1) Grab IMAP email from the specified accounts<br>2) If the email already=
+ has a ticket #, just forward to /mail_hander<br>3) If no ticket #, lookup =
+sender email (forwarded-by backup), look for most recent open ticket from t=
+hat email and add that # to the Subject line, then forward to /mail_handler=
+<br>4) If no open tickets, open for that user, forward unchanged email to o=
+pen new ticket. (note: verify behavior)</p>
+<hr style=3D"width:100%;height:1px;background:#ccc;border:0;margin:1.2em 0"=
+>
+<h1 style=3D"font-family:&quot;Trebuchet MS&quot;,Verdana,sans-serif;margin=
+:0px;font-size:1.3em;line-height:1.4em">
+  <a href=3D"http://10.0.1.20/issues/93#change-137" style=3D"color:#169" ta=
+rget=3D"_blank">Software Dev Task #93: Threading with Emails</a>
+  <span style=3D"font-weight:bold;font-size:10px;padding:1px 3px;margin-rig=
+ht:2px;margin-left:2px;border-radius:2px;text-transform:uppercase;text-deco=
+ration:none;color:#205d86;border:1px solid #205d86">open</span>
+</h1>
+
+<ul style=3D"color:#959595;margin-bottom:1.5em"><li><strong>Author: </stron=
+g>Esther Jang</li>
+<li><strong>Status: </strong>In Progress</li>
+<li><strong>Priority: </strong>Normal</li>
+<li><strong>Assignee: </strong>Paul Philion</li>
+<li><strong>Category: </strong>feature request</li>
+<li><strong>Start date: </strong>2023-10-16</li>
+<li><strong>Discord Thread: </strong>No</li></ul>
+
+<p>Issue threading does not currently work when tickets are created via ema=
+ils that fwded into redmine by copying the support@ email. This is understa=
+ndable given that the sender is different and the subject line doesn&#39;t =
+contain the ticket number if it&#39;s on an email thread that isn&#39;t the=
+ one created by redmine.<br>We should either figure out how to send emails =
+into redmine &quot;correctly&quot; so that threading works, or make our fwd=
+ing scenario work via our code.</p>
+
+
+
+<hr style=3D"width:100%;height:1px;background:#ccc;border:0;margin:1.2em 0"=
+>
+<span style=3D"font-size:0.8em;font-style:italic"><p>You have received this=
+ notification because you have either subscribed to it, or are involved in =
+it.<br>To change your notification preferences, please click here: <a href=
+=3D"http://10.0.1.20/my/account" style=3D"color:#169" target=3D"_blank">htt=
+p://10.0.1.20/my/account</a></p></span>
+</div>
+
+</div></div></div>
+
+--000000000000b0bae80609202b20--

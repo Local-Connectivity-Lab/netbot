@@ -65,6 +65,7 @@ def parse_message(data):
 
     for part in root.walk():
         content_type = part.get_content_type()
+        print(f"### type={content_type}: {len(part.as_string())}")
         if part.is_attachment():
             message.add_attachment( Attachment(
                 name=part.get_filename(), 
@@ -103,9 +104,9 @@ class Client(): ## imap.Client()
         self.redmine = redmine.Client()
 
 
-    def handle_message(self, uid:str, message:Message):
+    def handle_message(self, msg_id:str, message:Message):
         first, last, addr = parse_email_address(message.from_address)
-        log.info(f'uid:{uid} - from:{last}, {first}, email:{addr}, subject:{message.subject}')
+        log.info(f'uid:{msg_id} - from:{last}, {first}, email:{addr}, subject:{message.subject}')
 
         # get user id from from_address
         user = self.redmine.find_user(addr)
@@ -115,8 +116,6 @@ class Client(): ## imap.Client()
             # New user means no old ticket to append to , so create a new ticket
             log.info(f"Unknow user: {addr}, creating new account.")
             user = redmine.create_user(addr, first, last)
-            #log.info(f"Creating new ticket {addr}: {message.subject}")
-            #self.redmine.create_ticket(user.login, message.subject, message.body)
             ticket = None
         else:
             # find ticket using the subject, if possible
@@ -155,8 +154,8 @@ class Client(): ## imap.Client()
                 data = message_data[b"RFC822"]
                 
                 # log the file
-                #with open(f"message-{uid}.eml", "wb") as file:
-                #    file.write(data)
+                with open(f"message-{uid}.eml", "wb") as file:
+                    file.write(data)
 
                 # process each message returned by the query
                 try:
