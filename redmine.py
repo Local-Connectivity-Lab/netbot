@@ -33,7 +33,7 @@ class Client(): ## redmine.Client()
             }
         }
 
-        if len(attachments) > 0:
+        if attachments and len(attachments) > 0:
             data['issue']['uploads'] = []
             for a in attachments:
                 data['issue']['uploads'].append({
@@ -47,14 +47,17 @@ class Client(): ## redmine.Client()
             data=json.dumps(data), 
             headers=self.get_headers(user_id))
         
-        print(f"create_ticket response: {r}")
+        #print(f"create_ticket response: {vars(r)}")
         
+        # create_ticket response: {'_content': b'{"issue":{"id":185,"project":{"id":1,"name":"Seattle Community Network"},"tracker":{"id":8,"name":"External Comms Intake"},"status":{"id":1,"name":"New","is_closed":false},"priority":{"id":2,"name":"Normal"},"author":{"id":5,"name":"Paul Philion"},"assigned_to":{"id":19,"name":"ticket-intake"},"subject":"this is a test","description":"ticket created by Discord user acmerocket -\\u003e philion, with the text: this is a test, and the thread flag=False","start_date":"2023-11-17","due_date":null,"done_ratio":0,"is_private":false,"estimated_hours":null,"total_estimated_hours":null,"custom_fields":[{"id":1,"name":"Discord Thread","value":"0"}],"created_on":"2023-11-17T23:01:37Z","updated_on":"2023-11-17T23:01:37Z","closed_on":null}}', '_content_consumed': True, '_next': None, 'status_code': 201, 'headers': {'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '735', 'Connection': 'keep-alive', 'Status': '201 Created', 'Cache-Control': 'max-age=0, private, must-revalidate', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-Permitted-Cross-Domain-Policies': 'none', 'X-XSS-Protection': '1; mode=block', 'X-Request-Id': '6e029869-5212-438a-8032-44dce884da9a', 'Location': 'http://10.0.1.20/issues/185', 'X-Download-Options': 'noopen', 'ETag': 'W/"b7aa8507e4b795e7f075be5584cdf4f7"', 'X-Frame-Options': 'SAMEORIGIN', 'X-Runtime': '0.055561', 'X-Content-Type-Options': 'nosniff', 'Date': 'Fri, 17 Nov 2023 23:01:37 GMT', 'X-Powered-By': 'Phusion Passenger(R) 6.0.18', 'Server': 'nginx/1.24.0 + Phusion Passenger(R) 6.0.18'}, 'raw': <urllib3.response.HTTPResponse object at 0x104f859f0>, 'url': 'http://10.0.1.20/issues.json', 'encoding': 'utf-8', 'history': [], 'reason': 'Created', 'cookies': <RequestsCookieJar[]>, 'elapsed': datetime.timedelta(microseconds=88966), 'request': <PreparedRequest [POST]>, 'connection': <requests.adapters.HTTPAdapter object at 0x104f95e10>}
+
         # check status
-        #if r.status_code != 201:
-        # check 201 status
-        #root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-        #ticket = root.ticket[0]
-        #return ticket
+        if r.status_code == 201:
+            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
+            return root.issue
+        else:
+            log.error(f"Error creating ticket. status={r.status_code}: {r}")
+            return None
 
     def update_ticket(self, ticket_id:str, fields:dict, user_id:str=None):
         # PUT a simple JSON structure

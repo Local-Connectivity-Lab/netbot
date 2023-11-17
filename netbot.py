@@ -13,7 +13,9 @@ from dotenv import load_dotenv
 
 from discord.ext import commands
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, 
+    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+
 log = logging.getLogger(__name__)
 
 log.info('initializing bot')
@@ -34,12 +36,50 @@ class NetBot(commands.Bot):
     async def on_ready(self):
         log.info(f"Logged in as {self.user} (ID: {self.user.id})")
 
+    async def on_thread_join(self, thread):
+        await thread.join()
+        log.info(f"Joined thread: {thread}")
+
+    async def on_message(self, message: discord.Message):
+        # Make sure we won't be replying to ourselves.
+        #if message.author.id == bot.user.id:
+        #    return
+        print(message)
+        if isinstance(message.channel, discord.Thread):
+            print(f"found a thread: {message.channel}")
+        else:
+            print(f"boring text channel: {message.channel}")
+
 
 log.info(f"initializing {__name__}")
 load_dotenv()
 #netbox_client = netbox.Client()
 client = redmine.Client()
 bot = NetBot()
+
+@bot.slash_command(name="new") 
+@option("title", description="Title of the new SCN ticket")
+@option("add_thread", description="Create a Discord thread for the new ticket", default=False)
+async def create_new_ticket(ctx: discord.ApplicationContext, title:str, add_thread=False):
+    user = client.find_discord_user(ctx.user.name)
+    # text templating
+    text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
+    ticket = client.create_ticket(user.login, title, text)
+    if ticket:
+        if add_thread:
+            # todo set thread flag in discord
+            thread = await create_thread(ticket, ctx)
+            await ctx.respond("Created thread: {thread}")
+
+        await print_ticket(ticket, ctx)
+
+    # error handling? exception? 
+
+
+async def create_thread(ticket, ctx):
+    log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
+    name = f"SCN ticket #{ticket.id}: {ticket.subject[:20]}"
+    return await ctx.channel.create_thread(name=name)
 
 
 #async def complete_sites(ctx: discord.AutocompleteContext):
@@ -73,7 +113,8 @@ def format_section(tickets, status):
         if ticket.status.name == status:
             url = client.get_field(ticket, "url")
             assigned = client.get_field(ticket, "assigned")
-            section += f"[**`{ticket.id:>4}`**]({url})`  {ticket.priority.name:<6}  {ticket.updated_on[:10]}  {assigned[:20]:<20}  {ticket.subject}`\n"
+            section += f"[**`{ticket.id:>4}`**]({url})`  {ticket.priority.name:<6}  {ticket.updated_on[:10]}\
+                    {assigned[:20]:<20}  {ticket.subject}`\n"
     return section
 
 def format_tickets(tickets, fields=["link","priority","updated","assigned","subject"]):
