@@ -13,7 +13,6 @@ import imap
 logpath = Path("logs")
 logpath.mkdir(parents=True, exist_ok=True)
 logfile = logpath.joinpath("threader-" + dt.datetime.now().strftime('%Y%m%d-%H%M') + ".log")
-print(logfile)
 logging.basicConfig(filename=logfile, filemode='a',
     format="{asctime} {levelname:<8s} {name:<16} {message}", style='{',
     level=logging.INFO) # TODO Add cmdline switch for log level.

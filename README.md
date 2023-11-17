@@ -2,7 +2,7 @@
 
 community **NET**work discord **BOT**, for integrating network management functions
 
-## Deploy
+## Deploy netbot
 To mangage authorization, security tokens and other credentials are stored in a local `.env` file and read by the code. The following credentials are needed for full integrarion:
 ```
 DISCORD_TOKEN=someToken1234
@@ -26,6 +26,24 @@ to stop:
 ```
 sudo docker compose down
 ```
+
+## Deploy threader
+The threader functionality, managed by `threader.py`, needs to be registered as a cron job to run every 5 minutes.
+
+```
+sudo crontab -e
+```
+
+and add the following entry to the bottom:
+```
+*/5 * * * * /home/scn/github/netbot/threader_job.sh | /usr/bin/logger -t threader
+```
+
+This cron job uses the Python venv to execute, and captures std and err output to syslog (tagged "threader").
+
+Logs from the runs are stored in the `logs` folder, with timestamps for each job.
+
+
 
 ## CLI
 
