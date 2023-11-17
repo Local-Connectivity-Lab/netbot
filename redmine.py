@@ -22,7 +22,7 @@ class Client(): ## redmine.Client()
         self.token = os.getenv('REDMINE_TOKEN')
         self.reindex()
 
-    def create_ticket(self, user_id, subject, body):
+    def create_ticket(self, user_id, subject, body, attachments=None):
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
 
         data = {
@@ -32,6 +32,15 @@ class Client(): ## redmine.Client()
                 'description': body,
             }
         }
+
+        if len(attachments) > 0:
+            data['issue']['uploads'] = []
+            for a in attachments:
+                data['issue']['uploads'].append({
+                    "token": a.token, 
+                    "filename": a.name,
+                    "content_type": a.content_type,
+                })
 
         r = requests.post(
             url=f"{self.url}/issues.json", 
@@ -70,7 +79,7 @@ class Client(): ## redmine.Client()
             # throw exception?
 
 
-    def append_message(self, ticket_id:str, user_id:str, note:str, attachments):
+    def append_message(self, ticket_id:str, user_id:str, note:str, attachments=None):
         # PUT a simple JSON structure
         data = {
             'issue': {
