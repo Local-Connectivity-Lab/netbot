@@ -21,11 +21,19 @@ log = logging.getLogger(__name__)
 
 log.info('initializing bot')
 
+def parse_thread_title(title:str) -> int:
+    match = re.match(r'^Ticket #(\d+):', title)
+    if match:
+        return int(match.group(1))
+
 class NetBot(commands.Bot):
-    def __init__(self):
+    def __init__(self, redmine: redmine.Client):
         log.info(f'initializing {self}')
         intents = discord.Intents.default()
         intents.message_content = True
+
+        self.redmine = redmine
+
         super().__init__(
             command_prefix=commands.when_mentioned_or("!"), intents=intents
         )
@@ -45,18 +53,64 @@ class NetBot(commands.Bot):
         # Make sure we won't be replying to ourselves.
         #if message.author.id == bot.user.id:
         #    return
-        print(message)
         if isinstance(message.channel, discord.Thread):
-            print(f"found a thread: {message.channel}")
+            # get the ticket id from the thread name
+            ticket_id = parse_thread_title(message.channel.name)
+            if ticket_id:
+                await self.sync_new_message(ticket_id, message)
+            # else just a normal thread, do nothing
+            
+    async def sync_new_message(self, ticket_id:int, message: discord.Message):
+        #ticket = redmine.get_ticket(ticket_id, include_journals=True)
+        # create a note with translated discord user id with the update (or one big one?)
+        # double-check that self.id <> author.id?
+        user = self.redmine.find_discord_user(message.author.name)
+        if user:
+            client.append_message(ticket_id, user.login, message.content)
+            log.debug(f"SYNCED: ticket={ticket_id}, user={user.login}, msg={message.content}")
         else:
-            print(f"boring text channel: {message.channel}")
+            log.error("Unknown discord user: {message.author.name}, skipping message")
+
+    async def synchronize_ticket(self, ticket, thread, ctx: discord.ApplicationContext):
+        last_sync = self.redmine.get_field(ticket, "sync")
+        
+        # start of the process, will become "last update"
+        timestamp = dt.datetime.utcnow().astimezone(dt.timezone.utc)
+
+        notes = client.get_notes_since(ticket.id, last_sync)
+        log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread}")
+
+        for note in notes:
+            msg = f"> **{note.user.name}** at *{note.created_on}*\n\n{note.notes}"
+            await thread.send(msg)
+
+        # query discord for updates to thread since last-update
+        # see https://docs.pycord.dev/en/stable/api/models.html#discord.Thread.history
+        async for message in thread.history(after=last_sync):
+            # ignore bot messages!
+            if message.author.id != bot.user.id:
+                # for each, create a note with translated discord user id with the update (or one big one?)
+                user = client.find_discord_user(message.author.name)
+                if user:
+                    log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
+                    client.append_message(ticket.id, user.login, message.content)
+                else:
+                    log.error("Unknown discord user: {message.author.name}, skipping message")
+        else:
+            log.debug(f"No new discord messages found since {last_sync}")
+
+        # update the SYNC timestamp
+        client.update_syncdata(ticket.id, timestamp)
+        log.info(f"completed sync for {ticket.id} <--> {thread}")
+
+
 
 
 log.info(f"initializing {__name__}")
 load_dotenv()
 #netbox_client = netbox.Client()
 client = redmine.Client()
-bot = NetBot()
+bot = NetBot(client)
 
 @bot.slash_command(name="new", description="Create a new ticket") 
 @option("title", description="Title of the new SCN ticket")
@@ -90,7 +144,7 @@ async def thread_ticket(ctx: discord.ApplicationContext, ticket_id:int):
         client.enable_discord_sync(ticket.id, user.login, note)
 
         # sync the ticket, so everything is up to date
-        synchronize_ticket(ticket.id, thread, ctx)
+        await bot.synchronize_ticket(ticket.id, thread, ctx)
 
         # TODO format command for single ticket
         await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
@@ -103,15 +157,11 @@ async def create_thread(ticket, ctx):
     name = f"Ticket #{ticket.id}: {ticket.subject[:20]}"
     return await ctx.channel.create_thread(name=name)
 
-def discord_messages_since(ctx: discord.ApplicationContext, thread_id, last_update:dt.datetime):
-    # get the messages since the last update
-    # FIXME
-    return []
 
 # datetime.fromisoformat('2011-11-04T00:05:23')
 #datetime.isoformat
 # 
-async def synchronize_ticket(ticket, thread, ctx: discord.ApplicationContext):
+async def XXXXsynchronize_ticket(ticket, thread, ctx: discord.ApplicationContext):
     last_update = None
     try:
         # Parse into TS, if none, assume never
@@ -133,22 +183,24 @@ async def synchronize_ticket(ticket, thread, ctx: discord.ApplicationContext):
         await thread.send(msg)
 
     # query discord for updates to thread since last-update
-    for discord_msg in discord_messages_since(ctx, thread.id, last_update):
-        # for each, create a note with translated discord user id with the update (or one big one?)
-        print(discord_msg)
-        # dis_id = msg.get_author
-        # user = client.get_discord_user()
-        # client.append_message(ticket.id, user.id, message)
+    # see https://docs.pycord.dev/en/stable/api/models.html#discord.Thread.history
+    async for message in thread.history(after=last_update):
+        # ignore bot messages!
+        if message.author.id != bot.user.id:
+            # for each, create a note with translated discord user id with the update (or one big one?)
+            user = client.find_discord_user(message.author.name)
+            if user:
+                log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
+                client.append_message(ticket.id, user.login, message.content)
+            else:
+                log.error("Unknown discord user: {message.author.name}, skipping message")
+    else:
+        log.debug(f"No new discord messages found since {last_update}")
 
     # update the SYNC timestamp
     client.update_syncdata(ticket.id, timestamp)
     log.info(f"completed sync for {ticket.id} <--> {thread}")
 
-
-def parse_thread_title(title:str) -> int:
-    match = re.match(r'^Ticket #(\d+):', title)
-    if match:
-        return int(match.group(1))
 
 @bot.slash_command(name="disync") 
 async def sync_command(ctx: discord.ApplicationContext):
@@ -157,12 +209,13 @@ async def sync_command(ctx: discord.ApplicationContext):
         ticket_id = parse_thread_title(ctx.channel.name)
         ticket = client.get_ticket(ticket_id, include_journals=True)
         if ticket:
-            await synchronize_ticket(ticket, ctx.channel, ctx)
+            await bot.synchronize_ticket(ticket, ctx.channel, ctx)
             await ctx.respond(f"SYNC ticket {ticket.id} to thread id: {ctx.channel.id} complete")
         else:
             await ctx.respond(f"cant find ticket# in thread name: {ctx.channel.name}") # error
     else:
         await ctx.respond(f"not a thread") # error
+
 
 #async def complete_sites(ctx: discord.AutocompleteContext):
 #    """Returns a list of sites that begin with the characters entered so far."""

@@ -82,7 +82,7 @@ class Client(): ## redmine.Client()
             # throw exception?
 
 
-    def append_message(self, ticket_id:str, user_id:str, note:str, attachments=None):
+    def append_message(self, ticket_id:str, user_login:str, note:str, attachments=None):
         # PUT a simple JSON structure
         data = {
             'issue': {
@@ -103,7 +103,7 @@ class Client(): ## redmine.Client()
         r = requests.put(
             url=f"{self.url}/issues/{ticket_id}.json", 
             data=json.dumps(data),
-            headers=self.get_headers(user_id))
+            headers=self.get_headers(user_login))
         
         # check status
         if r.status_code != 204:
@@ -396,28 +396,37 @@ class Client(): ## redmine.Client()
     def get_field(self, ticket, fieldname):
         try: 
             match fieldname:
-                    case "id":
-                        return f"{ticket.id}"
-                    case "url":
-                        return f"{self.url}/issues/{ticket.id}"
-                    case "link":
-                        return f"[{ticket.id}]({self.url}/issues/{ticket.id})"
-                    case "priority":
-                        return ticket.priority.name
-                    case "updated":
-                        return ticket.updated_on
-                    case "assigned":
-                        return ticket.assigned_to.name
-                    case "status":
-                        return ticket.status.name
-                    case "subject":
-                        return ticket.subject
-                    case "title":
-                        return ticket.title
-                    case "age":
-                        updated = dt.datetime.fromisoformat(ticket.updated_on)
-                        age = dt.datetime.now(dt.timezone.utc) - updated
-                        return humanize.naturaldelta(age) 
+                case "id":
+                    return f"{ticket.id}"
+                case "url":
+                    return f"{self.url}/issues/{ticket.id}"
+                case "link":
+                    return f"[{ticket.id}]({self.url}/issues/{ticket.id})"
+                case "priority":
+                    return ticket.priority.name
+                case "updated":
+                    return ticket.updated_on # string, or dt?
+                case "assigned":
+                    return ticket.assigned_to.name
+                case "status":
+                    return ticket.status.name
+                case "subject":
+                    return ticket.subject
+                case "title":
+                    return ticket.title
+                case "age":
+                    updated = dt.datetime.fromisoformat(ticket.updated_on) ## UTC
+                    age = dt.datetime.now(dt.timezone.utc) - updated
+                    return humanize.naturaldelta(age)  
+                case "sync":
+                    try:
+                        # Parse custom_field into datetime
+                        # FIXME: this is fragile, add custom field lookup
+                        timestr = ticket.custom_fields[1].value 
+                        return dt.datetime.fromisoformat(timestr).astimezone(dt.timezone.utc) ## UTC?
+                    except Exception as e:
+                        log.info(f"no sync tag available, {e}")
+                        return None
         except AttributeError:
             return "" # or None?
     
