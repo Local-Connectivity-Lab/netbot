@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import logging
+import datetime as dt
 
 import discord
-
 import redmine
 #import netbox
 
@@ -57,7 +58,7 @@ load_dotenv()
 client = redmine.Client()
 bot = NetBot()
 
-@bot.slash_command(name="new") 
+@bot.slash_command(name="new", description="Create a new ticket") 
 @option("title", description="Title of the new SCN ticket")
 @option("add_thread", description="Create a Discord thread for the new ticket", default=False)
 async def create_new_ticket(ctx: discord.ApplicationContext, title:str, add_thread=False):
@@ -69,18 +70,118 @@ async def create_new_ticket(ctx: discord.ApplicationContext, title:str, add_thre
         if add_thread:
             # todo set thread flag in discord
             thread = await create_thread(ticket, ctx)
-            await ctx.respond("Created thread: {thread}")
+            await ctx.respond(f"Created thread: {thread}")
 
         await print_ticket(ticket, ctx)
-
     # error handling? exception? 
+
+@bot.slash_command(name="disthread") 
+@option("ticket_id", description="ID of tick to create thread for")
+async def thread_ticket(ctx: discord.ApplicationContext, ticket_id:int):
+    ticket = client.get_ticket(ticket_id)
+    if ticket:
+        # create the thread...
+        thread = await create_thread(ticket, ctx)
+
+        # update the discord flag on tickets, add a note with url of thread; thread.jump_url
+        # TODO message templates
+        note = f"Created Discord thread: {thread.name}: {thread.jump_url}"
+        user = client.find_discord_user(ctx.user.name)
+        client.enable_discord_sync(ticket.id, user.login, note)
+
+        # sync the ticket, so everything is up to date
+        synchronize_ticket(ticket.id, thread, ctx)
+
+        # TODO format command for single ticket
+        await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
+    else:
+        await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") # todo add some fancy formatting
 
 
 async def create_thread(ticket, ctx):
     log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
-    name = f"SCN ticket #{ticket.id}: {ticket.subject[:20]}"
+    name = f"Ticket #{ticket.id}: {ticket.subject[:20]}"
     return await ctx.channel.create_thread(name=name)
 
+def discord_messages_since(ctx: discord.ApplicationContext, thread_id, last_update:dt.datetime):
+    # get the messages since the last update
+    # FIXME
+    return []
+
+# datetime.fromisoformat('2011-11-04T00:05:23')
+#datetime.isoformat
+# 
+async def synchronize_ticket(ticket, thread, ctx: discord.ApplicationContext):
+    last_update = None
+    try:
+        # Parse into TS, if none, assume never
+        last_update = dt.datetime.fromisoformat(ticket.cf_4.split('|',1)[1])
+    except Exception as e:
+        log.info(f"no sync tag available, {e}")
+    
+    # start of the process, will become "last update"
+    timestamp = dt.datetime.utcnow()
+
+    notes = get_notes_since(ticket, last_update)
+    log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread}")
+
+    for note in notes:
+        msg = f"{note.user.name} at {note.created_on}: {note.notes}"
+        await thread.send(msg)
+
+    # query discord for updates to thread since last-update
+    for discord_msg in discord_messages_since(ctx, thread.id, last_update):
+        # for each, create a note with translated discord user id with the update (or one big one?)
+        print(discord_msg)
+        # dis_id = msg.get_author
+        # user = client.get_discord_user()
+        # client.append_message(ticket.id, user.id, message)
+
+    # update the SYNC timestamp
+    client.update_syncdata(ticket.id, timestamp)
+    log.info(f"completed sync for {ticket.id} <--> {thread}")
+
+
+
+
+# get the 
+def get_notes_since(ticket, timestamp):
+    notes = []
+
+    print(vars(ticket))
+
+    try:
+        for note in ticket.journals:
+            # note.notes is a text field with notes, or empty. if there are no notes, ignore the journal
+            if note.notes and timestamp:
+                created = dt.datetime.fromisoformat(note.created_on)
+                if created > timestamp:
+                    notes.append(note)
+            elif note.notes:
+                notes.append(note) # append all notes when there's no timestamp
+    except Exception as e:
+        log.error(f"oops: {e}")
+
+    return notes
+
+def parse_thread_title(title:str) -> int:
+    match = re.match(r'^Ticket #(\d+):', title)
+    if match:
+        return int(match.group(1))
+
+@bot.slash_command(name="disync") 
+async def sync_command(ctx: discord.ApplicationContext):
+    if isinstance(ctx.channel, discord.Thread):
+        # get the ticket id from the thread name
+        ticket_id = parse_thread_title(ctx.channel.name)
+        ticket = client.get_ticket(ticket_id, include_journals=True)
+        if ticket:
+            await synchronize_ticket(ticket, ctx.channel, ctx)
+            await ctx.respond(f"SYNC ticket {ticket.id} to thread id: {ctx.channel.id} complete")
+        else:
+            await ctx.respond(f"cant find ticket# in thread name: {ctx.channel.name}") # error
+    else:
+        await ctx.respond(f"not a thread") # error
 
 #async def complete_sites(ctx: discord.AutocompleteContext):
 #    """Returns a list of sites that begin with the characters entered so far."""

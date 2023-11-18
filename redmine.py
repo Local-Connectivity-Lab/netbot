@@ -72,8 +72,8 @@ class Client(): ## redmine.Client()
             data=json.dumps(data),
             headers=self.get_headers(user_id))
         
-        log.debug(f"UPDATE: url={r.request.url}, headers={r.request.headers}")
-        log.debug(f"UPDATE: fields={data}")
+        log.debug(f"UPDATE: status code: {r.status_code}, url: {r.request.url}")
+        log.debug(f"UPDATE: fields: {data}, headers: {r.request.headers}")
                 
         # check status
         if r.status_code != 204:
@@ -87,12 +87,12 @@ class Client(): ## redmine.Client()
         data = {
             'issue': {
                 'notes': note,
-                'uploads': []
             }
         }
 
         # add the attachments
-        if len(attachments) > 0:
+        if attachments and len(attachments) > 0:
+            data['issue']['uploads'] = []
             for a in attachments:
                 data['issue']['uploads'].append({
                     "token": a.token, 
@@ -181,13 +181,17 @@ class Client(): ## redmine.Client()
             return self.user_ids[id]
         else:
             return None
-        
-    def get_ticket(self, ticket_num:int):
-        response = self.query(f"/issues.json?issue_id={ticket_num}&status_id=*")
-        if response.total_count > 0:
-            return response.issues[0]
+
+    def get_ticket(self, ticket_id:int, include_journals:bool = False):
+        query = f"/issues/{ticket_id}.json"
+        if include_journals:
+            query += "?include=journals" # as per https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
+
+        response = self.query(query)
+        if response:
+            return response.issue
         else:
-            log.warning(f"Unknown ticket number: {ticket_num}")
+            log.warning(f"Unknown ticket number: {ticket_id}")
             return None
         
     #GET /issues.xml?issue_id=1,2
@@ -278,6 +282,53 @@ class Client(): ## redmine.Client()
             ids.append(str(result.id))
 
         return self.get_tickets(ids)
+
+    # get the 
+    def get_notes_since(self, ticket_id, timestamp=None):
+        notes = []
+
+        ticket = self.get_ticket(ticket_id, include_journals=True)
+
+        try:
+            for note in ticket.journals:
+                # note.notes is a text field with notes, or empty. if there are no notes, ignore the journal
+                if note.notes and timestamp:
+                    created = dt.datetime.fromisoformat(note.created_on)
+                    if created > timestamp:
+                        notes.append(note)
+                elif note.notes:
+                    notes.append(note) # append all notes when there's no timestamp
+        except Exception as e:
+            log.error(f"oops: {e}")
+
+        return notes
+
+    def discord_tickets(self):
+        # todo: check updated field and track what's changed
+        threaded_issue_query = "/issues.json?status_id=open&cf_1=1&sort=updated_on:desc"
+        response = self.redmine.query(threaded_issue_query)
+
+        if response.total_count > 0:
+            return response.issues
+        else:
+            log.info(f"No open tickets found for: {response.request.url}")
+            return None
+
+    def enable_discord_sync(self, ticket_id, user_id, note):
+        fields = {
+            "note": note, #f"Created Discord thread: {thread.name}: {thread.jump_url}",
+            "cf_1": "1",
+        }
+        
+        self.update_ticket(ticket_id, fields, user_id)
+        # currently doesn't return or throw anything
+        # todo: better error reporting back to discord
+
+    def update_syncdata(self, ticket_id:int, timestamp:dt.datetime):
+        fields = {
+            "cf_4": timestamp.isoformat(),
+        }
+        self.update_ticket(ticket_id, fields)
 
     def get_headers(self, impersonate_id:str=None):
         headers = {

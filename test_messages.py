@@ -2,15 +2,12 @@
 
 import unittest
 import logging
-import os, glob, io
+import os, glob
 
 from dotenv import load_dotenv
 
 import imap
 import redmine
-
-from PIL import Image
-
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -51,6 +48,14 @@ class TestMessages(unittest.TestCase):
         ticket = client.most_recent_ticket_for("philion")
         self.assertIsNotNone(ticket)
         #print(ticket)
+
+    def test_recent_notes(self):
+        load_dotenv()
+        client = redmine.Client()
+
+        notes = client.get_notes_since(106)
+        for note in notes:
+            print(note)
 
 
 if __name__ == '__main__':
