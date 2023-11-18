@@ -115,18 +115,21 @@ async def synchronize_ticket(ticket, thread, ctx: discord.ApplicationContext):
     last_update = None
     try:
         # Parse into TS, if none, assume never
-        last_update = dt.datetime.fromisoformat(ticket.cf_4.split('|',1)[1])
+        timestr = ticket.custom_fields[1].value ## FIXME: this is fragile search for fieldname
+        print(f"2:{timestr}")
+
+        last_update = dt.datetime.fromisoformat(timestr).astimezone(dt.timezone.utc)
     except Exception as e:
         log.info(f"no sync tag available, {e}")
     
     # start of the process, will become "last update"
-    timestamp = dt.datetime.utcnow()
+    timestamp = dt.datetime.utcnow().astimezone(dt.timezone.utc)
 
-    notes = get_notes_since(ticket, last_update)
+    notes = client.get_notes_since(ticket.id, last_update)
     log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread}")
 
     for note in notes:
-        msg = f"{note.user.name} at {note.created_on}: {note.notes}"
+        msg = f"> **{note.user.name}** at *{note.created_on}*\n\n{note.notes}"
         await thread.send(msg)
 
     # query discord for updates to thread since last-update
@@ -141,28 +144,6 @@ async def synchronize_ticket(ticket, thread, ctx: discord.ApplicationContext):
     client.update_syncdata(ticket.id, timestamp)
     log.info(f"completed sync for {ticket.id} <--> {thread}")
 
-
-
-
-# get the 
-def get_notes_since(ticket, timestamp):
-    notes = []
-
-    print(vars(ticket))
-
-    try:
-        for note in ticket.journals:
-            # note.notes is a text field with notes, or empty. if there are no notes, ignore the journal
-            if note.notes and timestamp:
-                created = dt.datetime.fromisoformat(note.created_on)
-                if created > timestamp:
-                    notes.append(note)
-            elif note.notes:
-                notes.append(note) # append all notes when there's no timestamp
-    except Exception as e:
-        log.error(f"oops: {e}")
-
-    return notes
 
 def parse_thread_title(title:str) -> int:
     match = re.match(r'^Ticket #(\d+):', title)

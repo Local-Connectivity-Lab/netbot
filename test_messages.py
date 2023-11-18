@@ -3,16 +3,15 @@
 import unittest
 import logging
 import os, glob
+import datetime as dt
 
 from dotenv import load_dotenv
 
 import imap
 import redmine
 
-
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 #log = logging.getLogger(__name__)
-
 
 class TestMessages(unittest.TestCase):
 
@@ -53,10 +52,12 @@ class TestMessages(unittest.TestCase):
         load_dotenv()
         client = redmine.Client()
 
-        notes = client.get_notes_since(106)
-        for note in notes:
-            print(note)
+        now = dt.datetime.utcnow().astimezone(dt.timezone.utc)
+        notes = client.get_notes_since(106, now)
+        self.assertEqual(0, len(notes))
 
+        notes = client.get_notes_since(106)
+        self.assertEqual(2, len(notes))
 
 if __name__ == '__main__':
     unittest.main()

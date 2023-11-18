@@ -326,8 +326,11 @@ class Client(): ## redmine.Client()
 
     def update_syncdata(self, ticket_id:int, timestamp:dt.datetime):
         fields = {
-            "cf_4": timestamp.isoformat(),
+            "custom_fields": [
+                { "id": 4, "value": timestamp.isoformat() } # cf_4, custom field syncdata
+            ]
         }
+
         self.update_ticket(ticket_id, fields)
 
     def get_headers(self, impersonate_id:str=None):
