@@ -116,6 +116,55 @@ class TicketsCog(commands.Cog):
             await ctx.respond(msg)
 
 
+    @commands.slash_command(name="new", description="Create a new ticket") 
+    @option("title", description="Title of the new SCN ticket")
+    @option("add_thread", description="Create a Discord thread for the new ticket", default=False)
+    async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str, add_thread=False):
+        user = self.redmine.find_discord_user(ctx.user.name)
+        # text templating
+        text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
+        ticket = self.redmine.create_ticket(user.login, title, text)
+        if ticket:
+            if add_thread:
+                # todo set thread flag in discord
+                thread = await self.create_thread(ticket, ctx)
+                await ctx.respond(f"Created thread: {thread}")
+
+            await self.print_ticket(ticket, ctx)
+        # error handling? exception? 
+
+
+    async def create_thread(self, ticket, ctx):
+        log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
+        name = f"Ticket #{ticket.id}: {ticket.subject[:20]}"
+        return await ctx.channel.create_thread(name=name)
+
+
+    @commands.slash_command() 
+    @option("ticket_id", description="ID of tick to create thread for")
+    async def thread(self, ctx: discord.ApplicationContext, ticket_id:int):
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            # create the thread...
+            thread = await self.create_thread(ticket, ctx)
+
+            # update the discord flag on tickets, add a note with url of thread; thread.jump_url
+            # TODO message templates
+            note = f"Created Discord thread: {thread.name}: {thread.jump_url}"
+            user = self.redmine.find_discord_user(ctx.user.name)
+            self.redmine.enable_discord_sync(ticket.id, user.login, note)
+
+            # sync the ticket, so everything is up to date
+            await self.bot.synchronize_ticket(ticket.id, thread, ctx)
+
+            # TODO format command for single ticket
+            await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
+        else:
+            await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") # todo add some fancy formatting
+
+
+### FORMATTING ###
+
     async def print_tickets(self, tickets, ctx):
         msg = self.format_tickets(tickets)
         if len(msg) > 2000:
@@ -137,3 +186,14 @@ class TicketsCog(commands.Cog):
         for field in fields:
             section += self.redmine.get_field(ticket, field) + " " # spacer, one space
         return section.strip() # remove trailing whitespace
+
+    def format_section(self, tickets, status):
+        section = ""
+        section += f"> {status}\n"
+        for ticket in tickets:
+            if ticket.status.name == status:
+                url = self.redmine.get_field(ticket, "url")
+                assigned = self.redmine.get_field(ticket, "assigned")
+                section += f"[**`{ticket.id:>4}`**]({url})`  {ticket.priority.name:<6}  {ticket.updated_on[:10]}\
+                        {assigned[:20]:<20}  {ticket.subject}`\n"
+        return section
