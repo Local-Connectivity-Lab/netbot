@@ -55,17 +55,21 @@ scn reindex        - rebuild the bot's index of users, teams and other metadata.
 
 tickets me         - (default) tickets assigned to me or my teams
 tickets [team]     - tickets assigned to team [team]
+tickets [user]     - tickets assigned to a specific [user]
 tickets [query]    - tickets that match the term [query]
+
+ticket new [title] - create a new ticket with the title [title]
 
 ticket # show      - (default) show ticket info for ticket #
 ticket # details   - show ticket # with all notes (in a decent format)
 
-ticket # note      - add a note to the specific ticket. same as commenting in the ticket thread (if there is one, works without)
-ticket # sync      - creates new synced thread for ticket in the current text channel, or errors
-
-ticket new [title] - create a new ticket with the title [title]
+ticket # assign    - Assign ticket n to the specified user
+ticket # unassign  - Mark ticket n new and unassigned.
+ticket # progress  - Assign the ticket to yourself and set it yourself.
+ticket # resolve   - Mark the ticket resolved.
+ticket # note      - Add a note to the specific ticket. same as commenting in the ticket thread (if there is a ticket-thread, works without)
+ticket # thread    - Creates new synced thread for ticket in the current text channel, or errors
 ```
-
 
 ## CLI
 
