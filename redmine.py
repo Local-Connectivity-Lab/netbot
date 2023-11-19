@@ -162,7 +162,7 @@ class Client(): ## redmine.Client()
             token = self.upload_file(user_id, a.payload, a.name, a.content_type)
             a.set_token(token)
 
-    def find_group(self, name):
+    def find_team(self, name):
         response = self.query(f"/groups.json")
         for group in response.groups:
             if group.name == name:
@@ -359,43 +359,50 @@ class Client(): ## redmine.Client()
         }
         self.update_user(user.id, fields)
 
-    def join_team(self, user, teamname:str):
+    def join_team(self, username, teamname:str):
+        # look up user ID
+        user = self.find_user(username)
+        if user == None:
+            log.warning(f"Unknown user name: {username}")
+            return None
+        
         # map teamname to team
         team = self.find_team(teamname)
         if team == None:
             log.warning(f"Unknown team name: {teamname}")
             return None
-
+        
         # POST to /group/ID/users.json
         data = {
             "user_id": user.id
         }
 
         r = requests.post(
-            url=f"{self.url}/group/{team.id}/users.json", 
+            url=f"{self.url}/groups/{team.id}/users.json", 
             data=json.dumps(data), 
             headers=self.get_headers())
 
         # check status
-        if r.status_code == 201:
-            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-            print(root)
-            return root
-        else:
-            log.error(f"Error creating ticket. status={r.status_code}: {r}")
-            return None
+        if r.status_code != 204:
+            log.error(f"Error joining group. status={r.status_code}: {r.request.url}, data={data}")
+            
 
-    def leave_team(self, user, teamname:str):
+    def leave_team(self, username:int, teamname:str):
+        # look up user ID
+        user = self.find_user(username)
+        if user == None:
+            log.warning(f"Unknown user name: {username}")
+            return None
+        
         # map teamname to team
         team = self.find_team(teamname)
         if team == None:
             log.warning(f"Unknown team name: {teamname}")
             return None
 
-        # DELETE to /group/{team-id}/users/{user_id}.json
-
+        # DELETE to /groups/{team-id}/users/{user_id}.json
         r = requests.delete(
-            url=f"{self.url}/group/{team.id}/users/{user.id}.json", 
+            url=f"{self.url}/groups/{team.id}/users/{user.id}.json", 
             headers=self.get_headers())
 
         # check status
@@ -404,7 +411,7 @@ class Client(): ## redmine.Client()
             print(root)
             return root
         else:
-            log.error(f"Error creating ticket. status={r.status_code}: {r}")
+            log.error(f"Error removing user from group status={r.status_code}, url={r.request.url}")
             return None
 
     def get_headers(self, impersonate_id:str=None):
@@ -466,6 +473,17 @@ class Client(): ## redmine.Client()
     def resolve_ticket(self, ticket_id, user_id=None):
         self.update_ticket(ticket_id, {"status_id": "3"}, user_id) # '3' is the status_id, it doesn't accept "Resolved"
 
+
+    def get_team(self, teamname:str):
+        team = self.find_team(teamname)
+        # as per https://www.redmine.org/projects/redmine/wiki/Rest_Groups#GET-2
+        # GET /groups/20.json?include=users
+        response = self.query(f"/groups/{team.id}.json?include=users")
+        if response:
+            return response.group
+        else:
+            log.warning(f"Unknown team name: {teamname}")
+            return None
 
     def get_field(self, ticket, fieldname):
         try: 
@@ -542,16 +560,27 @@ class Client(): ## redmine.Client()
         else:
             log.error(f"No users: {response}")
 
+
     def reindex_groups(self):
         # reset the indices
         self.groups = {}
 
         # rebuild the indicies
-        response = self.query(f"/groups.json?limit=1000") ## fixme max limit? paging?
+        response = self.query(f"/groups.json?limit=1000") ## FIXME max limit? paging?
         for group in response.groups:
             self.groups[group.name] = group
 
         log.info(f"indexed {len(self.groups)} groups")
+
+
+    def is_user_in_team(self, username:str, teamname:str) -> bool:
+        user_id = self.find_user(username).id
+        team = self.get_team(teamname) # requires an API call, could be cashed? only used for testing
+
+        for user in team.users:
+            if user.id == user_id:
+                return True
+        return False
 
 
     def reindex(self):

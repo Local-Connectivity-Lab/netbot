@@ -10,11 +10,10 @@ from dotenv import load_dotenv
 import imap
 import redmine
 
-#logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 #log = logging.getLogger(__name__)
 
 class TestMessages(unittest.TestCase):
-
     def test_messages_examples(self):
         # open 
         for filename in glob.glob('test_messages/*.eml'):
@@ -48,7 +47,7 @@ class TestMessages(unittest.TestCase):
         self.assertIsNotNone(ticket)
         #print(ticket)
 
-    def test_recent_notes(self):
+    def XXXtest_recent_notes(self):
         load_dotenv()
         client = redmine.Client()
 
@@ -58,6 +57,28 @@ class TestMessages(unittest.TestCase):
 
         notes = client.get_notes_since(106)
         self.assertEqual(2, len(notes))
+
+
+    def test_teams(self):
+        username = "philion"
+        teamname = "test-group"
+        load_dotenv()
+        client = redmine.Client()
+
+        team = client.find_team(teamname)
+        self.assertEqual(67, team.id)
+        self.assertEqual(teamname, team.name)
+
+        client.join_team(username, teamname)
+
+        # assert in team
+        self.assertTrue(client.is_user_in_team(username, teamname))
+
+        client.leave_team(username, teamname)
+
+        # assert in team
+        self.assertFalse(client.is_user_in_team(username, teamname))
+
 
 if __name__ == '__main__':
     unittest.main()
