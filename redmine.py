@@ -171,6 +171,7 @@ class Client(): ## redmine.Client()
         return None
         
     def find_user(self, name):
+        # check if name is int, raw user id. then look up in userids
         # check the indicies
         if name in self.user_emails:
             id = self.user_emails[name]
