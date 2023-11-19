@@ -105,3 +105,33 @@ class SCNCog(commands.Cog):
         else:
             await ctx.respond(f"Unknown Discord user: {discord_name}.")
         pass
+
+
+    @scn.command()
+    async def teams(self, ctx:discord.ApplicationContext, teamname:str=None):
+        # list all teams, with members
+
+        if teamname:
+            team = self.redmine.get_team(teamname)
+            if team:
+                await self.print_team(ctx, team)
+                await ctx.respond("-")
+            else:
+                await ctx.respond(f"Unknown team name: {teamname}") # error
+        else:
+            # all teams
+            teams = self.redmine.get_teams()
+            for teamname in teams:
+                team = self.redmine.get_team(teamname)
+                await self.print_team(ctx, team)
+            await ctx.respond("-")
+
+    async def print_team(self, ctx, team):
+        msg = f"> **{team.name}**\n"
+        for user_rec in team.users:
+            user = self.redmine.get_user(user_rec.id)
+            #discord_user = user.custom_fields[0].value or ""  # FIXME cf_* lookup
+            msg += f"{user_rec.name}, " 
+            #msg += f"[{user.id}] **{user_rec.name}** {user.login} {user.mail} {user.custom_fields[0].value}\n"
+        msg = msg[:-2] + '\n\n'
+        await ctx.channel.send(msg)

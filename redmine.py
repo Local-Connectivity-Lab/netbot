@@ -170,18 +170,19 @@ class Client(): ## redmine.Client()
         # not found
         return None
         
+    def get_user(self, id:int):
+        if id:
+            return self.user_ids[id]
+    
     def find_user(self, name):
         # check if name is int, raw user id. then look up in userids
         # check the indicies
         if name in self.user_emails:
-            id = self.user_emails[name]
-            return self.user_ids[id]
+            return self.get_user(self.user_emails[name])
         elif name in self.users:
-            id = self.users[name]
-            return self.user_ids[id]
+            return self.get_user(self.users[name])
         elif name in self.discord_users:
-            id = self.discord_users[name]
-            return self.user_ids[id]
+            return self.get_user(self.discord_users[name])
         elif name in self.groups:
             return self.groups[name] #ugly. put groups in user collection?
         else:
@@ -561,6 +562,9 @@ class Client(): ## redmine.Client()
         else:
             log.error(f"No users: {response}")
 
+
+    def get_teams(self):
+        return self.groups.keys()
 
     def reindex_groups(self):
         # reset the indices
