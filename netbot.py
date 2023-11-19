@@ -7,7 +7,7 @@ import datetime as dt
 
 import discord
 import redmine
-#import netbox
+import humanize
 
 from discord.commands import option
 from dotenv import load_dotenv
@@ -69,13 +69,14 @@ class NetBot(commands.Bot):
             self.redmine.append_message(ticket_id, user.login, message.content)
             log.debug(f"SYNCED: ticket={ticket_id}, user={user.login}, msg={message.content}")
         else:
-            log.error("Unknown discord user: {message.author.name}, skipping message")
+            log.warning(f"Unknown discord user: {message.author.name}, skipping message")
 
     async def synchronize_ticket(self, ticket, thread, ctx: discord.ApplicationContext):
         last_sync = self.redmine.get_field(ticket, "sync")
+        log.debug(f"ticket {ticket.id} last sync: {last_sync} {age(last_sync)} ")
         
         # start of the process, will become "last update"
-        timestamp = dt.datetime.utcnow().astimezone(dt.timezone.utc)
+        timestamp = dt.datetime.now(dt.timezone.utc) ### UTC
 
         notes = self.redmine.get_notes_since(ticket.id, last_sync)
         log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread}")
@@ -91,11 +92,12 @@ class NetBot(commands.Bot):
             if message.author.id != self.user.id:
                 # for each, create a note with translated discord user id with the update (or one big one?)
                 user = self.redmine.find_discord_user(message.author.name)
+
                 if user:
                     log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
                     self.redmine.append_message(ticket.id, user.login, message.content)
                 else:
-                    log.error("Unknown discord user: {message.author.name}, skipping message")
+                    log.warning(f"Unknown discord user: {message.author.name}, skipping message")
         else:
             log.debug(f"No new discord messages found since {last_sync}")
 
@@ -123,6 +125,10 @@ def main():
     # run the bot
     bot.run()
 
+
+def age(time:dt.datetime):
+    age = dt.datetime.utcnow().astimezone(dt.timezone.utc) - time
+    return humanize.naturaldelta(age)  
 
 if __name__ == '__main__':
     main()

@@ -16,6 +16,8 @@ log = logging.getLogger(__name__)
 
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
 
+
+
 class Client(): ## redmine.Client()
     def __init__(self):
         self.url = os.getenv('REDMINE_URL')
@@ -256,7 +258,22 @@ class Client(): ## redmine.Client()
         else:
             log.warning(f"Unknown email: {email}")
             return None
-        
+
+    def new_tickets_since(self, timestamp:dt.datetime):
+        # query for new tickets since date
+        # To fetch issues created after a certain timestamp (uncrypted filter is ">=2014-01-02T08:12:32Z") :
+        # GET /issues.xml?created_on=%3E%3D2014-01-02T08:12:32Z
+        timestr = dt.datetime.isoformat(timestamp) ###time
+        query = f"/issues.json?created_on=%3E%3D{timestr}&sort={DEFAULT_SORT}&limit=100"
+        response = self.query(query)
+
+        if response.total_count > 0:
+            return response.issues
+        else:
+            log.debug(f"No tickets created since {timestamp}")
+            return None
+
+    
     def find_tickets(self):
         # "kanban" query: all ticket open or closed recently
         project=1
@@ -306,20 +323,24 @@ class Client(): ## redmine.Client()
         notes = []
 
         ticket = self.get_ticket(ticket_id, include_journals=True)
+        log.debug(f"got ticket {ticket_id} with {len(ticket.journals)} notes")
 
-        try:
-            for note in ticket.journals:
-                # note.notes is a text field with notes, or empty. if there are no notes, ignore the journal
-                if note.notes and timestamp:
-                    created = dt.datetime.fromisoformat(note.created_on)
-                    if created > timestamp:
-                        notes.append(note)
-                elif note.notes:
-                    notes.append(note) # append all notes when there's no timestamp
-        except Exception as e:
-            log.error(f"oops: {e}")
+        #try:
+        for note in ticket.journals:
+            # note.notes is a text field with notes, or empty. if there are no notes, ignore the journal
+            if note.notes and timestamp:
+                log.debug(f"### get_notes_since - fromisoformat: {note.created_on}")
+                created = dt.datetime.fromisoformat(note.created_on) ## creates UTC
+                log.debug(f"note {note.id} created {created} {age(created)} <--> {timestamp} {age(timestamp)}")
+                if created > timestamp:
+                    notes.append(note)
+            elif note.notes:
+                notes.append(note) # append all notes when there's no timestamp
+        #except Exception as e:
+        #    log.error(f"oops: {e}")
 
         return notes
+    
 
     def discord_tickets(self):
         # todo: check updated field and track what's changed
@@ -343,9 +364,12 @@ class Client(): ## redmine.Client()
         # todo: better error reporting back to discord
 
     def update_syncdata(self, ticket_id:int, timestamp:dt.datetime):
+        log.debug(f"Setting ticket {ticket_id} update_syncdata to: {timestamp} {age(timestamp)}")
+        # 2023-11-19T20:42:09Z
+        timestr = timestamp.strftime("%Y-%m-%dT%H:%M:%SZ") # timestamp.isoformat()
         fields = {
             "custom_fields": [
-                { "id": 4, "value": timestamp.isoformat() } # cf_4, custom field syncdata
+                { "id": 4, "value": timestr } # cf_4, custom field syncdata, #TODO search for it
             ]
         }
         self.update_ticket(ticket_id, fields)
@@ -408,11 +432,7 @@ class Client(): ## redmine.Client()
             headers=self.get_headers())
 
         # check status
-        if r.status_code == 201:
-            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-            print(root)
-            return root
-        else:
+        if r.status_code != 204:
             log.error(f"Error removing user from group status={r.status_code}, url={r.request.url}")
             return None
 
@@ -509,7 +529,8 @@ class Client(): ## redmine.Client()
                 case "title":
                     return ticket.title
                 case "age":
-                    updated = dt.datetime.fromisoformat(ticket.updated_on) ## UTC
+                    log.debug(f"### fromisoformat: {ticket.updated_on}")
+                    updated = dt.datetime.fromisoformat(ticket.updated_on) ###
                     age = dt.datetime.now(dt.timezone.utc) - updated
                     return humanize.naturaldelta(age)  
                 case "sync":
@@ -517,7 +538,8 @@ class Client(): ## redmine.Client()
                         # Parse custom_field into datetime
                         # FIXME: this is fragile, add custom field lookup
                         timestr = ticket.custom_fields[1].value 
-                        return dt.datetime.fromisoformat(timestr).astimezone(dt.timezone.utc) ## UTC?
+                        log.debug(f"### fromisoformat: {timestr}")
+                        return dt.datetime.fromisoformat(timestr) ### UTC
                     except Exception as e:
                         log.info(f"no sync tag available, {e}")
                         return None
@@ -593,6 +615,14 @@ class Client(): ## redmine.Client()
         self.reindex_users()
         self.reindex_groups()
 
+def age(time:dt.datetime):
+    #updated = dt.datetime.fromisoformat(time).astimezone(dt.timezone.utc)
+    now = dt.datetime.now().astimezone(dt.timezone.utc)
+    
+    log.debug(f"### now tz: {now.tzinfo}, time tz: {time.tzinfo}")
+
+    age = now - time
+    return humanize.naturaldelta(age)  
 
 if __name__ == '__main__':
     # load credentials 

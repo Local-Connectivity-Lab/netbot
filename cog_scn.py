@@ -59,7 +59,7 @@ class SCNCog(commands.Cog):
             # get the ticket id from the thread name
             # FIXME: notice the series of calls to "self.bot": could be better encapsulated
             ticket_id = self.bot.parse_thread_title(ctx.channel.name)
-            ticket = self.bot.get_ticket(ticket_id, include_journals=True)
+            ticket = self.redmine.get_ticket(ticket_id, include_journals=True)
             if ticket:
                 await self.bot.synchronize_ticket(ticket, ctx.channel, ctx)
                 await ctx.respond(f"SYNC ticket {ticket.id} to thread id: {ctx.channel.id} complete")
