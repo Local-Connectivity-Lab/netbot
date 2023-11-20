@@ -9,19 +9,20 @@ import discord
 import redmine
 import humanize
 
-from discord.commands import option
 from dotenv import load_dotenv
 
 from discord.ext import commands
 
-logging.basicConfig(level=logging.DEBUG, 
-    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+logging.basicConfig(level=logging.DEBUG,
+                    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
 
-logging.getLogger("discord.gateway").setLevel(logging.INFO)
+logging.getLogger("discord.gateway").setLevel(logging.WARNING)
 logging.getLogger("discord.http").setLevel(logging.INFO)
 logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 logging.getLogger("discord.client").setLevel(logging.INFO)
 logging.getLogger("discord.webhook.async_").setLevel(logging.INFO)
+
+
 log = logging.getLogger(__name__)
 
 log.info('initializing bot')
@@ -33,9 +34,17 @@ class NetBot(commands.Bot):
         intents.message_content = True
 
         self.redmine = redmine
+        #guilds = os.getenv('DISCORD_GUILDS').split(', ')
+        #if guilds:
+        #    log.info(f"setting guilds: {guilds}")
+        #else:
+        #    log.error("No guild restriction set.")
+        #    # exit?
 
         super().__init__(
-            command_prefix=commands.when_mentioned_or("!"), intents=intents
+            command_prefix=commands.when_mentioned_or("!"), 
+            intents=intents,
+        #    debug_guilds = guilds
         )
 
     def run(self):
@@ -44,39 +53,47 @@ class NetBot(commands.Bot):
 
     async def on_ready(self):
         log.info(f"Logged in as {self.user} (ID: {self.user.id})")
+        
+    async def on_guild_join(self, guild):
+        log.info(f"Joined guild: {guild}, id={guild.id}")
 
     async def on_thread_join(self, thread):
         await thread.join()
         log.info(f"Joined thread: {thread}")
+        
 
     async def on_message(self, message: discord.Message):
         # Make sure we won't be replying to ourselves.
-        #if message.author.id == bot.user.id:
+        # if message.author.id == bot.user.id:
         #    return
         if isinstance(message.channel, discord.Thread):
             # get the ticket id from the thread name
             ticket_id = self.parse_thread_title(message.channel.name)
+            
             if ticket_id:
                 await self.sync_new_message(ticket_id, message)
             # else just a normal thread, do nothing
-            
-    async def sync_new_message(self, ticket_id:int, message: discord.Message):
-        #ticket = redmine.get_ticket(ticket_id, include_journals=True)
+
+    async def sync_new_message(self, ticket_id: int, message: discord.Message):
+        # ticket = redmine.get_ticket(ticket_id, include_journals=True)
         # create a note with translated discord user id with the update (or one big one?)
         # double-check that self.id <> author.id?
         user = self.redmine.find_discord_user(message.author.name)
         if user:
             self.redmine.append_message(ticket_id, user.login, message.content)
-            log.debug(f"SYNCED: ticket={ticket_id}, user={user.login}, msg={message.content}")
+            log.debug(
+                f"SYNCED: ticket={ticket_id}, user={user.login}, msg={message.content}")
         else:
-            log.warning(f"Unknown discord user: {message.author.name}, skipping message")
+            log.warning(
+                f"Unknown discord user: {message.author.name}, skipping message")
 
     async def synchronize_ticket(self, ticket, thread, ctx: discord.ApplicationContext):
         last_sync = self.redmine.get_field(ticket, "sync")
-        log.debug(f"ticket {ticket.id} last sync: {last_sync} {age(last_sync)} ")
-        
+        log.debug(
+            f"ticket {ticket.id} last sync: {last_sync} {age(last_sync)} ")
+
         # start of the process, will become "last update"
-        timestamp = dt.datetime.now(dt.timezone.utc) ### UTC
+        timestamp = dt.datetime.now(dt.timezone.utc)  # UTC
 
         notes = self.redmine.get_notes_since(ticket.id, last_sync)
         log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread}")
@@ -94,10 +111,13 @@ class NetBot(commands.Bot):
                 user = self.redmine.find_discord_user(message.author.name)
 
                 if user:
-                    log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
-                    self.redmine.append_message(ticket.id, user.login, message.content)
+                    log.debug(
+                        f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
+                    self.redmine.append_message(
+                        ticket.id, user.login, message.content)
                 else:
-                    log.warning(f"Unknown discord user: {message.author.name}, skipping message")
+                    log.warning(
+                        f"Unknown discord user: {message.author.name}, skipping message")
         else:
             log.debug(f"No new discord messages found since {last_sync}")
 
@@ -105,7 +125,7 @@ class NetBot(commands.Bot):
         self.redmine.update_syncdata(ticket.id, timestamp)
         log.info(f"completed sync for {ticket.id} <--> {thread}")
 
-    def parse_thread_title(self, title:str) -> int:
+    def parse_thread_title(self, title: str) -> int:
         match = re.match(r'^Ticket #(\d+):', title)
         if match:
             return int(match.group(1))
@@ -126,9 +146,10 @@ def main():
     bot.run()
 
 
-def age(time:dt.datetime):
+def age(time: dt.datetime):
     age = dt.datetime.utcnow().astimezone(dt.timezone.utc) - time
-    return humanize.naturaldelta(age)  
+    return humanize.naturaldelta(age)
+
 
 if __name__ == '__main__':
     main()

@@ -6,7 +6,7 @@ import asyncio
 from dotenv import load_dotenv
 
 
-logging.basicConfig(level=logging.INFO)
+#logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 # these search for a thread by name

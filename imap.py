@@ -65,7 +65,7 @@ def parse_message(data):
 
     for part in root.walk():
         content_type = part.get_content_type()
-        print(f"### type={content_type}: {len(part.as_string())}")
+        #print(f"### type={content_type}: {len(part.as_string())}")
         if part.is_attachment():
             message.add_attachment( Attachment(
                 name=part.get_filename(), 

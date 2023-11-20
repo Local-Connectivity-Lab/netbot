@@ -5,11 +5,13 @@ community **NET**work discord **BOT**, for integrating network management functi
 ## Deploy netbot
 To mangage authorization, security tokens and other credentials are stored in a local `.env` file and read by the code. The following credentials are needed for full integrarion:
 ```
-DISCORD_TOKEN=someToken1234
-NETBOX_TOKEN=anotherToken5678
-NETBOX_URL=https://netbox.example.com/
-REDMINE_TOKEN=yoToken9012
-REDMINE_URL=https://redmine.example.com/
+DISCORD_TOKEN=ABC
+REDMINE_TOKEN=123
+REDMINE_URL=http://do/re/mi
+
+IMAP_HOST=imap.example.com
+IMAP_USER=redmine@example.org
+IMAP_PASSWORD=u&me
 ```
 
 `netbot` uses standard Docker compose:
@@ -26,6 +28,20 @@ to stop:
 ```
 sudo docker compose down
 ```
+
+
+## Discord Token & Invite Bot
+To enable netbot on your Discord server, you need to generate a valid `DISCORD_TOKEN` and then invite the bot to your Discord instance.
+
+1. Go to https://discord.com/developers/applications and create a **New Application** (top-right button).
+2. Fill in the name and descript in General Information
+3. Capture the TOKEN to set in the `.env` file.
+3. In the "Bot" section, *unset* the **Public Bot** switch.
+4. In the OAuth2/URL Generator setion, generate a URL for a **bot** with **Administrator** permissions.
+5. That URL will look something like:
+    https://discord.com/api/oauth2/authorize?client_id=[client-id]&permissions=8&scope=bot
+6. Go to that URL and you'll be presented with a window to add your bot to a server, any server you have admin permissions for.
+
 
 ## Deploy threader
 The threader functionality, managed by `threader.py`, needs to be registered as a cron job to run every 5 minutes.

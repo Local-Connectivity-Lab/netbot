@@ -17,7 +17,6 @@ log = logging.getLogger(__name__)
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
 
 
-
 class Client(): ## redmine.Client()
     def __init__(self):
         self.url = os.getenv('REDMINE_URL')
@@ -263,7 +262,7 @@ class Client(): ## redmine.Client()
         # query for new tickets since date
         # To fetch issues created after a certain timestamp (uncrypted filter is ">=2014-01-02T08:12:32Z") :
         # GET /issues.xml?created_on=%3E%3D2014-01-02T08:12:32Z
-        timestr = dt.datetime.isoformat(timestamp) ###time
+        timestr = dt.datetime.isoformat(timestamp) # time-format.
         query = f"/issues.json?created_on=%3E%3D{timestr}&sort={DEFAULT_SORT}&limit=100"
         response = self.query(query)
 
@@ -329,9 +328,9 @@ class Client(): ## redmine.Client()
         for note in ticket.journals:
             # note.notes is a text field with notes, or empty. if there are no notes, ignore the journal
             if note.notes and timestamp:
-                log.debug(f"### get_notes_since - fromisoformat: {note.created_on}")
+                #log.debug(f"### get_notes_since - fromisoformat: {note.created_on}")
                 created = dt.datetime.fromisoformat(note.created_on) ## creates UTC
-                log.debug(f"note {note.id} created {created} {age(created)} <--> {timestamp} {age(timestamp)}")
+                #log.debug(f"note {note.id} created {created} {age(created)} <--> {timestamp} {age(timestamp)}")
                 if created > timestamp:
                     notes.append(note)
             elif note.notes:
@@ -529,7 +528,7 @@ class Client(): ## redmine.Client()
                 case "title":
                     return ticket.title
                 case "age":
-                    log.debug(f"### fromisoformat: {ticket.updated_on}")
+                    #log.debug(f"### fromisoformat: {ticket.updated_on}")
                     updated = dt.datetime.fromisoformat(ticket.updated_on) ###
                     age = dt.datetime.now(dt.timezone.utc) - updated
                     return humanize.naturaldelta(age)  
@@ -538,7 +537,7 @@ class Client(): ## redmine.Client()
                         # Parse custom_field into datetime
                         # FIXME: this is fragile, add custom field lookup
                         timestr = ticket.custom_fields[1].value 
-                        log.debug(f"### fromisoformat: {timestr}")
+                        #log.debug(f"### fromisoformat: {timestr}")
                         return dt.datetime.fromisoformat(timestr) ### UTC
                     except Exception as e:
                         log.info(f"no sync tag available, {e}")
@@ -619,7 +618,7 @@ def age(time:dt.datetime):
     #updated = dt.datetime.fromisoformat(time).astimezone(dt.timezone.utc)
     now = dt.datetime.now().astimezone(dt.timezone.utc)
     
-    log.debug(f"### now tz: {now.tzinfo}, time tz: {time.tzinfo}")
+    #log.debug(f"### now tz: {now.tzinfo}, time tz: {time.tzinfo}")
 
     age = now - time
     return humanize.naturaldelta(age)  
