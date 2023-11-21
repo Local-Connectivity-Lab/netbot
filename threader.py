@@ -19,7 +19,7 @@ logging.basicConfig(filename=logfile, filemode='a',
 
 log = logging.getLogger(__name__)
 
-async def main():
+def main():
     log.info(f"starting threader")
     # load credentials 
     load_dotenv()
@@ -32,7 +32,7 @@ async def main():
 
     for name, service in services.items():
         log.info(f"synchronizing {name}")
-        await service.synchronize()
+        service.synchronize()
 
     #asyncio.sleep(4)
 

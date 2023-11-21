@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import io
 import sys
 import logging
 import datetime as dt
@@ -65,6 +66,36 @@ class CLI():
             table.add_row(*row)
 
         console.print(table)
+
+    def print_tickets2(self, tickets, fields=["link","status","priority","age","assigned","subject"]):
+        if not tickets:
+            print("no tickets found")
+            return
+        elif len(tickets) == 1:
+            self.print_ticket(tickets[0])
+            return
+
+        print(f"found {len(tickets)} tickets")
+        console = Console(file=io.StringIO(), color_system=None)
+
+        table = Table(show_header=True, box=box.SIMPLE_HEAD, collapse_padding=True, header_style="bold magenta")
+        for field in fields:
+            #table.add_column("Date", style="dim", width=12)
+            table.add_column(field)
+
+        for ticket in tickets:
+            row = []
+            for field in fields:
+                row.append(self.client.get_field(ticket, field))
+            table.add_row(*row)
+
+        console.print(table)
+        
+        buffer = io.StringIO(console.file.getvalue())
+        
+        for line in buffer:
+            print(f"{line.strip()}")
+
 
 
     color_map = {
@@ -234,7 +265,7 @@ def main():
     # parse args
     args = sys.argv
     if len(args) == 1:
-        cli.print_tickets(cli.client.my_tickets())
+        cli.print_tickets2(cli.client.my_tickets())
     elif len(args) == 2:
         cli.print_tickets(cli.resolve_query_term(args[1]))
     elif len(args) == 3:

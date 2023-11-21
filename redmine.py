@@ -122,8 +122,8 @@ class Client(): ## redmine.Client()
         
         # check status
         if r.status_code != 204:
-            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-            log.error(f"append_message, status={r.status_code}: {root}")
+            #root = json.loads(r, object_hook= lambda x: SimpleNamespace(**x))
+            log.error(f"append_message, status={r.status_code}: {r}")
             # throw exception?
 
 

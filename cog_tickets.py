@@ -161,39 +161,3 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") # todo add some fancy formatting
-
-
-### FORMATTING ###
-
-    async def print_tickets(self, tickets, ctx):
-        msg = self.format_tickets(tickets)
-        if len(msg) > 2000:
-            log.warning("message over 2000 chars. truncing.")
-            msg = msg[:2000]
-        await ctx.respond(msg)
-
-    def format_tickets(self, tickets, fields=["link","priority","updated","assigned","subject"]):
-        if tickets is None:
-            return "No tickets found."
-        
-        section = ""
-        for ticket in tickets:
-            section += self.format_ticket(ticket, fields) + "\n" # append each ticket
-        return section.strip()
-
-    def format_ticket(self, ticket, fields):
-        section = ""
-        for field in fields:
-            section += self.redmine.get_field(ticket, field) + " " # spacer, one space
-        return section.strip() # remove trailing whitespace
-
-    def format_section(self, tickets, status):
-        section = ""
-        section += f"> {status}\n"
-        for ticket in tickets:
-            if ticket.status.name == status:
-                url = self.redmine.get_field(ticket, "url")
-                assigned = self.redmine.get_field(ticket, "assigned")
-                section += f"[**`{ticket.id:>4}`**]({url})`  {ticket.priority.name:<6}  {ticket.updated_on[:10]}\
-                        {assigned[:20]:<20}  {ticket.subject}`\n"
-        return section
