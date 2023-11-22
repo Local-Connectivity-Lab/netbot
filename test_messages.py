@@ -76,6 +76,19 @@ class TestMessages(unittest.TestCase):
         self.assertFalse(client.is_user_in_team(username, teamname))
 
 
+    def test_subject_threading(self):
+        # find expected tickets, based on subject
+        items = [
+            {"subject": "Search for subject match in email threading", "id": "193"}
+        ]
+        
+        for item in items:
+            tickets = client.search_tickets(item["subject"])
+            
+            self.assertEqual(1, len(tickets))
+            self.assertEqual(int(item["id"]), tickets[0].id)
+
+
     # note about python date time and utc: Stop using utcnow and utcfromtimestamp
     # https://blog.ganssle.io/articles/2019/11/utcnow.html
     def test_datetime(self):
