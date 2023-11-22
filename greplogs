@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# is an error handler needed? for usage?
+#trap 'handle_error $LINENO' ERR
+
+# A simple script to grep logs in docker
+
+# NOTE: remembering to type sudo gets me often.
+DOCKER="sudo docker"
+
+
+#sudo docker ps --format='{{.ID}}' | grep redmine | xargs -P0 -d '\n' -n1 sh -c 'sudo docker logs "$1" | sed "s/^/$1: /"' _
+
+
+for container_id in `$DOCKER ps --format='{{.Names}}'`
+do
+	# check log age?
+	$DOCKER logs "$container_id" 2>&1 | grep --color "$@"
+done
+
