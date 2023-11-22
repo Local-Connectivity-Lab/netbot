@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import os
 import logging
@@ -49,50 +50,16 @@ class Message():
 
     def add_attachment(self, attachment:Attachment):
         self.attachments.append(attachment)
-
+        
+    def subject_cleaned(self) -> str:
+        # strip any re: and forwarded from a subject line
+        # from: https://stackoverflow.com/questions/9153629/regex-code-for-removing-fwd-re-etc-from-email-subject
+        p = re.compile(r'^([\[\(] *)?(RE?S?|FYI|RIF|I|FS|VB|RV|ENC|ODP|PD|YNT|ILT|SV|VS|VL|AW|WG|ΑΠ|ΣΧΕΤ|ΠΡΘ|תגובה|הועבר|主题|转发|FWD?) *([-:;)\]][ :;\])-]*|$)|\]+ *$', re.IGNORECASE)
+        return p.sub('', self.subject).strip()
+        
     def __str__(self):
         return f"from:{self.from_address}, subject:{self.subject}, attached:{len(self.attachments)}; {self.note[0:20]}" 
 
-
-def parse_message(data):
-    # NOTE this policy setting is important, default is "compat-mode"
-    root = email.message_from_bytes(data, policy=email.policy.default)
-
-    from_address = root.get("From")
-    subject = root.get("Subject")
-
-    message = Message(from_address, subject)
-
-    for part in root.walk():
-        content_type = part.get_content_type()
-        #print(f"### type={content_type}: {len(part.as_string())}")
-        if part.is_attachment():
-            message.add_attachment( Attachment(
-                name=part.get_filename(), 
-                type=content_type,
-                payload=part.get_payload(decode=True)))
-            log.debug(f"Added attachment: {part.get_filename()} {content_type}")
-        elif content_type == 'text/plain': # FIXME std const?
-            payload = part.get_payload(decode=True).decode('UTF-8')
-            message.set_note(payload)
-            log.debug(f"Set note, size={len(payload)}: {payload[0:20]}...")
-
-    return message
-
-# note: not happy with this method of dealing with complex email address
-# but I don't see a better way. open to suggestions
-def parse_email_address(email_addr):
-    #regex_str = r"(.*)<(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)>"
-    regex_str = r"(.*)<(.*)>"
-    m = re.match(regex_str, email_addr)
-    first = last = addr = ""
-    if m:
-        first, last = m.group(1).strip().rsplit(' ', 1)
-        addr = m.group(2)
-    else:
-        log.error(f"Unable to parse email str: {email_addr}")
-
-    return first, last, addr
 
 
 class Client(): ## imap.Client()
@@ -103,9 +70,50 @@ class Client(): ## imap.Client()
         self.port = 993
         self.redmine = redmine.Client()
 
+    # note: not happy with this method of dealing with complex email address
+    # but I don't see a better way. open to suggestions
+    def parse_email_address(self, email_addr):
+        #regex_str = r"(.*)<(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)>"
+        regex_str = r"(.*)<(.*)>"
+        m = re.match(regex_str, email_addr)
+        first = last = addr = ""
+        if m:
+            first, last = m.group(1).strip().rsplit(' ', 1)
+            addr = m.group(2)
+        else:
+            log.error(f"Unable to parse email str: {email_addr}")
+
+        return first, last, addr
+
+
+    def parse_message(self, data):
+        # NOTE this policy setting is important, default is "compat-mode"
+        root = email.message_from_bytes(data, policy=email.policy.default)
+
+        from_address = root.get("From")
+        subject = root.get("Subject")
+
+        message = Message(from_address, subject)
+
+        for part in root.walk():
+            content_type = part.get_content_type()
+            #print(f"### type={content_type}: {len(part.as_string())}")
+            if part.is_attachment():
+                message.add_attachment( Attachment(
+                    name=part.get_filename(), 
+                    type=content_type,
+                    payload=part.get_payload(decode=True)))
+                log.debug(f"Added attachment: {part.get_filename()} {content_type}")
+            elif content_type == 'text/plain': # FIXME std const?
+                payload = part.get_payload(decode=True).decode('UTF-8')
+                message.set_note(payload)
+                log.debug(f"Set note, size={len(payload)}: {payload[0:20]}...")
+
+        return message
+
 
     def handle_message(self, msg_id:str, message:Message):
-        first, last, addr = parse_email_address(message.from_address)
+        first, last, addr = self.parse_email_address(message.from_address)
         log.info(f'uid:{msg_id} - from:{last}, {first}, email:{addr}, subject:{message.subject}')
 
         # get user id from from_address
@@ -121,11 +129,16 @@ class Client(): ## imap.Client()
             # find ticket using the subject, if possible
             # this uses a simple REGEX '#\d+' to match ticket numbers
             ticket = self.redmine.find_ticket_from_str(message.subject)
+            
+        if ticket == None:
+            # if the ticket is still none, search for a matching subject
+            ticket = self.redmine.search_tickets(message.subject_cleaned())
         
+        # this has been disabled. found not productive
         # if there is not ticket number found,
         # query "most recently updated open ticket by userid", if any
-        if user and (ticket is None):
-            ticket = self.redmine.most_recent_ticket_for(user.login)
+        #if user and (ticket is None):
+        #    ticket = self.redmine.most_recent_ticket_for(user.login)
 
         # first, upload any attachments
         for attachment in message.attachments:
@@ -160,7 +173,7 @@ class Client(): ## imap.Client()
                 # process each message returned by the query
                 try:
                     # decode the message
-                    message = parse_message(data)
+                    message = self.parse_message(data)
 
                     # handle the message
                     self.handle_message(uid, message)

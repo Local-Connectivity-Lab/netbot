@@ -230,17 +230,30 @@ class Client(): ## redmine.Client()
             log.warning(f"Unable to match ticket number in: {str}")
             return None
     
-    def create_user(self, email, first, last):
+    
+    def create_user(self, email:str, first:str, last:str):
         user = {
             'login': email,
-            'firstname': 'test-first',
-            'lastname': 'test-last',
+            'firstname': first,
+            'lastname': last,
             'mail': email,
         }
-        # on create, assign watcher: sender.
-        # FIXME
-        log.error("I just realized create_user is not impletmented!")
-
+        # on create, assign watcher: sender?
+        
+        r = requests.post(
+            url=f"{self.url}/issues.json", 
+            data=json.dumps(user), 
+            headers=self.get_headers())
+                
+        # check status
+        if r.status_code == 201:
+            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
+            return root.user
+        else:
+            log.error(f"Error creating ticket. status={r.status_code}: {r}")
+            return None
+        
+        
     def most_recent_ticket_for(self, email):
         # get the user record for the email
         user = self.find_user(email)

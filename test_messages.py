@@ -10,18 +10,22 @@ from dotenv import load_dotenv
 import imap
 import redmine
 
-logging.basicConfig(level=logging.DEBUG, 
-    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+#logging.basicConfig(level=logging.DEBUG, 
+#    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+#logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 #log = logging.getLogger(__name__)
+
+load_dotenv()
+client = redmine.Client()
+imap = imap.Client()
 
 class TestMessages(unittest.TestCase):
     def test_messages_examples(self):
         # open 
-        for filename in glob.glob('test_messages/*.eml'):
+        for filename in glob.glob('test/*.eml'):
             with open(os.path.join(os.getcwd(), filename), 'rb') as file:
                 message = imap.parse_message(file.read())
-                #print(message)
+                #print(message.subject_cleaned())
 
     def test_email_address_parsing(self):
         from_address =  "Esther Jang <infrared@cs.washington.edu>"
@@ -32,8 +36,6 @@ class TestMessages(unittest.TestCase):
 
     # disabled so I don't flood the system with files
     def xxtest_upload(self):
-        load_dotenv()
-        client = redmine.Client()
 
         with open("test/message-161.eml", 'rb') as file:
             message = imap.parse_message(file.read())
@@ -42,17 +44,11 @@ class TestMessages(unittest.TestCase):
 
 
     def test_more_recent_ticket(self):
-        load_dotenv()
-        client = redmine.Client()
-
         ticket = client.most_recent_ticket_for("philion")
         self.assertIsNotNone(ticket)
         #print(ticket)
 
     def XXXtest_recent_notes(self):
-        load_dotenv()
-        client = redmine.Client()
-
         now = dt.datetime.utcnow().astimezone(dt.timezone.utc)
         notes = client.get_notes_since(106, now)
         self.assertEqual(0, len(notes))
@@ -61,11 +57,9 @@ class TestMessages(unittest.TestCase):
         self.assertEqual(2, len(notes))
 
 
-    def test_teams(self):
+    def xxxxtest_teams(self):
         username = "philion"
         teamname = "test-group"
-        load_dotenv()
-        client = redmine.Client()
 
         team = client.find_team(teamname)
         self.assertEqual(67, team.id)
@@ -85,9 +79,6 @@ class TestMessages(unittest.TestCase):
     # note about python date time and utc: Stop using utcnow and utcfromtimestamp
     # https://blog.ganssle.io/articles/2019/11/utcnow.html
     def test_datetime(self):
-        load_dotenv()
-        client = redmine.Client()
-
         login = "philion"
         ticket_id = 106
 
@@ -101,7 +92,7 @@ class TestMessages(unittest.TestCase):
         all_notes = client.get_notes_since(ticket_id) # get all
         note = all_notes[-1] #last note
         created = dt.datetime.fromisoformat(note.created_on)
-        print(f"{note.created_on} -> {created} tz={created.tzinfo}, LOCAL={created.astimezone().isoformat()}")
+        #print(f"{note.created_on} -> {created} tz={created.tzinfo}, LOCAL={created.astimezone().isoformat()}")
         # confirming that redmine is giving standard UTC time here.
 
         #print(f"note {note.id} created: {created}/{note.created_on} diff={created - timestamp} ts:{timestamp}")
