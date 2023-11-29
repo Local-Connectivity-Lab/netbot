@@ -78,7 +78,12 @@ class Client(): ## imap.Client()
         m = re.match(regex_str, email_addr)
         first = last = addr = ""
         if m:
-            first, last = m.group(1).strip().rsplit(' ', 1)
+            name = m.group(1).strip()
+            if ' ' in name:
+                first, last = name.rsplit(None, 1)
+            else:
+                first = name
+                last = ""
             addr = m.group(2)
         else:
             log.error(f"Unable to parse email str: {email_addr}")
@@ -107,7 +112,7 @@ class Client(): ## imap.Client()
             elif content_type == 'text/plain': # FIXME std const?
                 payload = part.get_payload(decode=True).decode('UTF-8')
                 message.set_note(payload)
-                log.debug(f"Set note, size={len(payload)}: {payload[0:20]}...")
+                log.debug(f"Set note, size={len(payload)}")
 
         return message
 
@@ -123,7 +128,8 @@ class Client(): ## imap.Client()
             # create new user if needed.
             # New user means no old ticket to append to , so create a new ticket
             log.info(f"Unknow user: {addr}, creating new account.")
-            user = redmine.create_user(addr, first, last)
+            user = self.redmine.create_user(addr, first, last)
+            print(f"#### created user: {user}")
             ticket = None
         else:
             # find ticket using the subject, if possible
@@ -132,7 +138,15 @@ class Client(): ## imap.Client()
             
         if ticket == None:
             # if the ticket is still none, search for a matching subject
-            ticket = self.redmine.search_tickets(message.subject_cleaned())
+            tickets = self.redmine.search_tickets(message.subject_cleaned())
+            if len(tickets) == 1:
+                # as expected
+                ticket = tickets[0]
+                log.debug(f"found ticket id={ticket.id} for subject: {message.subject}")
+            elif len(tickets) >= 2:
+                # more than expected
+                log.warning(f"subject query returned {len(tickets)} results: {message.subject_cleaned()}")
+                ticket = tickets[0]
         
         # this has been disabled. found not productive
         # if there is not ticket number found,
@@ -167,8 +181,8 @@ class Client(): ## imap.Client()
                 data = message_data[b"RFC822"]
                 
                 # log the file
-                with open(f"message-{uid}.eml", "wb") as file:
-                    file.write(data)
+                #with open(f"message-{uid}.eml", "wb") as file:
+                #    file.write(data)
 
                 # process each message returned by the query
                 try:
