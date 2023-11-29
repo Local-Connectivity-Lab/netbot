@@ -93,7 +93,7 @@ class Client(): ## redmine.Client()
         # check status
         if r.status_code != 204:
             root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-            log.error(f"append_message, status={r.status_code}: {root}")
+            log.error(f"update_ticket, status={r.status_code}: {root}")
             # throw exception?
 
 
@@ -121,9 +121,15 @@ class Client(): ## redmine.Client()
             headers=self.get_headers(user_login))
         
         # check status
-        if r.status_code != 204:
-            #root = json.loads(r, object_hook= lambda x: SimpleNamespace(**x))
-            log.error(f"append_message, status={r.status_code}: {r}")
+        if r.status_code == 204:
+            # all good
+            pass
+        elif r.status_code == 403:
+            # no access
+            print(f"#### {vars(r)}")
+            log.error(f"{user_login} has no access to add note to ticket #{ticket_id}, req-id={r.headers['X-Request-Id']}")
+        else:
+            log.error(f"append_message, status={r.status_code}: {vars(r)}, req-id={r.headers['X-Request-Id']}")
             # throw exception?
 
 
@@ -227,20 +233,64 @@ class Client(): ## redmine.Client()
             ticket_num = int(match.group(1))
             return self.get_ticket(ticket_num)
         else:
-            log.warning(f"Unable to match ticket number in: {str}")
+            log.debug(f"Unable to match ticket number in: {str}")
             return None
     
-    def create_user(self, email, first, last):
-        user = {
-            'login': email,
-            'firstname': 'test-first',
-            'lastname': 'test-last',
-            'mail': email,
+    
+    def create_user(self, email:str, first:str, last:str):
+        data = {
+            'user': {
+                'login': email,
+                'firstname': first,
+                'lastname': last,
+                'mail': email,                
+            }
         }
-        # on create, assign watcher: sender.
-        # FIXME
-        log.error("I just realized create_user is not impletmented!")
+        # on create, assign watcher: sender?
+        
+        r = requests.post(
+            url=f"{self.url}/users.json", 
+            data=json.dumps(data), 
+            headers=self.get_headers())
+                
+        # check status
+        if r.status_code == 201:
+            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
+            user = root.user
+            
+            log.info(f"created user: {user.id} {user.login} {user.mail}")
+            self.reindex_users() # new user!
+            
+            # add user to User group and SCN project
+                        
+            #self.join_project(user.login, "scn") ### scn project key
+            #log.info("joined scn project")
+            
+            self.join_team(user.login, "users") ### FIXME move default team name to defaults somewhere
+            log.info("joined users group")
+            
+            return user
+        elif r.status_code == 403:
+            # can't create existing user. log err, but return from cache
+            user = self.find_user(email)
+            log.error(f"Trying to create existing user email: email={email}, user={user}")
+            return user
+        else:
+            log.error(f"Error creating user. status={r.status_code}: {r}")
+            return None
+        
+    # used only in testing
+    def remove_user(self, user_id:int):
+        # DELETE to /users/{user_id}.json
+        r = requests.delete(
+            url=f"{self.url}/users/{user_id}.json", 
+            headers=self.get_headers())
 
+        # check status
+        if r.status_code != 204:
+            log.error(f"Error removing user status={r.status_code}, url={r.request.url}")
+            
+        
     def most_recent_ticket_for(self, email):
         # get the user record for the email
         user = self.find_user(email)
@@ -384,6 +434,36 @@ class Client(): ## redmine.Client()
         }
         self.update_user(user.id, fields)
 
+    def join_project(self, username, project:str):
+        # look up user ID
+        user = self.find_user(username)
+        if user == None:
+            log.warning(f"Unknown user name: {username}")
+            return None
+        
+        # check project name? just assume for now
+
+        # POST /projects/{project}/memberships.json
+        data = {
+            "membership": {
+                "user_id": user.id,
+                "role_ids": [ 5 ], # this is the "User" role. need a mapping table, could be default for param    
+            }
+        }
+
+        r = requests.post(
+            url=f"{self.url}/projects/{project}/memberships.json", 
+            data=json.dumps(data), 
+            headers=self.get_headers())
+        
+        # check status
+        if r.status_code == 204:
+            log.info(f"joined project {username}, {project}, {r.request.url}, data={data}")
+        else:
+            resp = json.loads(r.text, object_hook=lambda x: SimpleNamespace(**x))
+            log.error(f"Error joining group: {resp.errors}, status={r.status_code}: {r.request.url}, data={data}")
+            
+
     def join_team(self, username, teamname:str):
         # look up user ID
         user = self.find_user(username)
@@ -406,6 +486,8 @@ class Client(): ## redmine.Client()
             url=f"{self.url}/groups/{team.id}/users.json", 
             data=json.dumps(data), 
             headers=self.get_headers())
+        
+        log.info(f"join_team {username}, {teamname}, {r}")
 
         # check status
         if r.status_code != 204:
