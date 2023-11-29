@@ -21,14 +21,19 @@ client = redmine.Client()
 imap = imap.Client()
 
 class TestMessages(unittest.TestCase):
-    @unittest.skip
+    #@unittest.skip
     def test_messages_examples(self):
         # open 
         for filename in glob.glob('test/*.eml'):
             with open(os.path.join(os.getcwd(), filename), 'rb') as file:
                 message = imap.parse_message(file.read())
                 #print(message.subject_cleaned())
-
+                #if "Forwarded message" in message.note:
+                #    print(f"Found: {filename}")
+                tag = "------ Forwarded message ---------"
+                idx = message.note.find(tag)
+                self.assertEquals(-1, idx)
+                
     @unittest.skip
     def test_email_address_parsing(self):
         from_address =  "Esther Jang <infrared@cs.washington.edu>"
@@ -146,7 +151,7 @@ class TestMessages(unittest.TestCase):
         self.assertEqual("Philion", last)
         self.assertEqual("philion@acmerocket.com", email)
 
-    #@unittest.skip
+    @unittest.skip
     def test_new_account(self):
         test_email = "philion@acmerocket.com"
         

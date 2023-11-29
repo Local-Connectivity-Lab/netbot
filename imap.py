@@ -92,12 +92,11 @@ class Client(): ## imap.Client()
 
 
     def parse_message(self, data):
-        # NOTE this policy setting is important, default is "compat-mode"
+        # NOTE this policy setting is important, default is "compat-mode" amd we need "default"
         root = email.message_from_bytes(data, policy=email.policy.default)
-
+        
         from_address = root.get("From")
         subject = root.get("Subject")
-
         message = Message(from_address, subject)
 
         for part in root.walk():
@@ -111,6 +110,13 @@ class Client(): ## imap.Client()
                 log.debug(f"Added attachment: {part.get_filename()} {content_type}")
             elif content_type == 'text/plain': # FIXME std const?
                 payload = part.get_payload(decode=True).decode('UTF-8')
+                
+                # strip any forwarded messages
+                forward_tag = "------ Forwarded message ---------"
+                idx = payload.find(forward_tag)
+                if idx > -1:
+                    payload = payload[0:idx]
+                
                 message.set_note(payload)
                 log.debug(f"Set note, size={len(payload)}")
 
