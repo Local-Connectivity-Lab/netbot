@@ -11,9 +11,9 @@ import imap
 import redmine
 
 #logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG, 
-    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+#logging.basicConfig(level=logging.DEBUG, 
+#    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+#logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 log = logging.getLogger(__name__)
 
 load_dotenv()
@@ -32,9 +32,9 @@ class TestMessages(unittest.TestCase):
                 #    print(f"Found: {filename}")
                 tag = "------ Forwarded message ---------"
                 idx = message.note.find(tag)
-                self.assertEquals(-1, idx)
+                self.assertEqual(-1, idx)
                 
-    @unittest.skip
+    #@unittest.skip
     def test_email_address_parsing(self):
         from_address =  "Esther Jang <infrared@cs.washington.edu>"
         first, last, addr = imap.parse_email_address(from_address)
@@ -51,7 +51,7 @@ class TestMessages(unittest.TestCase):
             #print(message)
             client.upload_attachments("philion", message.attachments)
 
-    @unittest.skip
+    #@unittest.skip
     def test_more_recent_ticket(self):
         ticket = client.most_recent_ticket_for("philion")
         self.assertIsNotNone(ticket)
@@ -186,9 +186,15 @@ class TestMessages(unittest.TestCase):
         self.assertIsNotNone(user)
         
         client.join_project(user.login, "scn")
-        
-        
         #self.assertTrue(client.is_user_in_team(user.login, "users"))
+         
+    @unittest.skip
+    def test_empty_message(self):
+        with open("test/message-err-205.eml", 'rb') as file:
+            message = imap.parse_message(file.read())
+            imap.handle_message("test-err-205", message)
+            #print(message.note)
+        
 
 if __name__ == '__main__':
     unittest.main()

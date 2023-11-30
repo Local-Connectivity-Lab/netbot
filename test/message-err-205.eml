@@ -1,0 +1,197 @@
+Delivered-To: redmine@seattlecommunitynetwork.org
+Received: by 2002:a05:7022:6285:b0:6f:ed48:a9ba with SMTP id e5csp97733dle;
+        Wed, 29 Nov 2023 16:56:40 -0800 (PST)
+X-Received: by 2002:ac8:5c04:0:b0:412:c2a:eaef with SMTP id i4-20020ac85c04000000b004120c2aeaefmr21300518qti.11.1701305800197;
+        Wed, 29 Nov 2023 16:56:40 -0800 (PST)
+ARC-Seal: i=2; a=rsa-sha256; t=1701305800; cv=pass;
+        d=google.com; s=arc-20160816;
+        b=yt9jTEUlqNanvB3yAEu3NxesCij4GVIHzE4GO3C031vQ+O2O6Kby7jKk/QAAFIHkEO
+         ht9qkhTfgVHQe/5VWbZiTPKBOIGZ7XU7IHH0c7x40rqIyo5tBhfKj5g0FbYnakV6dPKB
+         ulJTvKu0oGTylMjTuCQhnhWKClw6Ymm8B4IRZNbDJFhhv5+Xw/pSnb+KHsoLs4zUYKBh
+         TXBZ7UzjshfP6AvjYSTWbtxoFVHuwM6uGSninjJMmHYoeRkv7phnVWgb2KTZRW3ZgZP7
+         lCjlhj/WUuBwN5EkwsqwPTa6o+luNSAQIF2uZDofigzYxVL5SS/9Ockitu5VE6AFm4BP
+         mY4g==
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:dkim-signature:delivered-to;
+        bh=i4iUGHoOEs6nM8xA+Xz0cSDONekIedusvrpnQPJIk04=;
+        fh=kYxA6Ix7xEz0t51E7hV/jeFpjdPj2MSJWgh46MG095Q=;
+        b=mVT1z7C7kWse0jcgmcCh7/uddEyjXLRSwq9E8gRSs5ER6ym0/qZCSjPWpMfa/XzOfc
+         mj0q3NPvtOoIipvGdiz90d0TIWoui9LJicS1xXwijs5ru1086l2Y/rC+1RgBf/qAOqwx
+         zTny+sjlP0NMiAZrbsulwZ6t9ubxq7sAcU1middJfks+R56GbIYf9pdOEXks64iAjTcs
+         PMfJBcP43XFYuei9NJvR9bsQS+DS+qlTVc4yRzT4VU/Hn2sjBLazNAVkI2TgGSDPfzia
+         1QVQCjT0oBjpfQ1H/djCtonEs1e/LcjxkRCmZvnU3Q003xc/29CxJn3Ju1gW4ZL7Yo6R
+         2Cmg==
+ARC-Authentication-Results: i=2; mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20230601 header.b=JfsvAniw;
+       arc=pass (i=1 spf=pass spfdomain=gmail.com dkim=pass dkdomain=gmail.com dmarc=pass fromdomain=gmail.com);
+       spf=neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org) smtp.mailfrom="support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org";
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com
+Return-Path: <support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id v16-20020ac873d0000000b00417de370a08sor4422qtp.6.2023.11.29.16.56.39
+        for <redmine@seattlecommunitynetwork.org>
+        (Google Transport Security);
+        Wed, 29 Nov 2023 16:56:40 -0800 (PST)
+Received-SPF: neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20230601 header.b=JfsvAniw;
+       arc=pass (i=1 spf=pass spfdomain=gmail.com dkim=pass dkdomain=gmail.com dmarc=pass fromdomain=gmail.com);
+       spf=neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org) smtp.mailfrom="support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org";
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1701305799; x=1701910599;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:dkim-signature:delivered-to:x-forwarded-for
+         :x-forwarded-to:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=i4iUGHoOEs6nM8xA+Xz0cSDONekIedusvrpnQPJIk04=;
+        b=a3ic2653CHSyVUFJAnEbM4Rv2920AijZZ5ooz4zI5zLUhBqrr1GuQTnU7uGiptUZNx
+         bEeB/g+P4d2ZQiTCNcZac7yWLPjCwH78uLxSy00FpuihzGbHND5DMcbnEiroq5qMsBzg
+         Aq7feop/AIob1eo9KHsrhdDnXgpt06VfJhwk1PhL2IOautJ+yDqtsucLMxtpeRR+xGfg
+         jeY4IsDHuReOXvx8lQjTQjUA2/6ysIWlsVF9QTjdA2lvxM1LfRB1jOJ+k6QmhROHuCaV
+         qgjeOqlBPJlQ4HVQ1w4lFVCDN6/YYyNLV77xNtd7LJ4RrsHHYnaBFQe4E/8hw80yMUss
+         c0vg==
+X-Gm-Message-State: AOJu0Yzfx4bHSw7bm4QNQL13+8MZHbvXfQQ5mZvEZ4PxP3oj9+HqXdW0
+	DPOrwyQslzBlQQ7ex95vDwSNOIq/TzSQdJ4hyyJlTw9VJ3KhWnkfW2IlFsIeKkFS
+X-Received: by 2002:a05:622a:1aa8:b0:423:93ea:18f1 with SMTP id s40-20020a05622a1aa800b0042393ea18f1mr24198236qtc.66.1701305799379;
+        Wed, 29 Nov 2023 16:56:39 -0800 (PST)
+X-Forwarded-To: redmine@seattlecommunitynetwork.org
+X-Forwarded-For: support@seattlecommunitynetwork.org redmine@seattlecommunitynetwork.org
+Delivered-To: support@seattlecommunitynetwork.org
+Received: by 2002:ac8:5ed5:0:b0:423:9daf:870b with SMTP id s21csp789059qtx;
+        Wed, 29 Nov 2023 16:56:38 -0800 (PST)
+X-Received: by 2002:ac2:5f62:0:b0:50b:cbc9:3758 with SMTP id c2-20020ac25f62000000b0050bcbc93758mr282375lfc.38.1701305798076;
+        Wed, 29 Nov 2023 16:56:38 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1701305798; cv=none;
+        d=google.com; s=arc-20160816;
+        b=nDox2sUqRZ+vR5S6K9pZ5Ll6BiHIMrO82uHYPqR7WOeioflKqhD9qDb3effMsc1RKS
+         yua91HTIoEboaoY1oxFxN/k/p/9i+CIZ8Mod/anVyUta83JHHska4pHpa6UY/dG0eLn/
+         U/34CKVmtoJovqlr2b/PzH/Ih+L07ePfTrB62V5LN1KgLCw2CZAxCJoL7z4mkoUUsgTw
+         e26MMlP/bSHzfcaUJ0fvKhSMZdPoU6n5uBUKwkJ5xWDpYnRKvP/5aXvyxfJecYmPw4wf
+         0It6soshD9r/r/FD92nXp2LaIjqJ9/xWOxKlMjg9EPuIrVb/NW5svpiQgazIN+XiQcyw
+         472Q==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:dkim-signature;
+        bh=i4iUGHoOEs6nM8xA+Xz0cSDONekIedusvrpnQPJIk04=;
+        fh=kYxA6Ix7xEz0t51E7hV/jeFpjdPj2MSJWgh46MG095Q=;
+        b=thmhKUaWy02ZOWw40TUgytWcBPuJOtyWDd+Rd5SesUTKA1FB00mZoDdumvCSqK+GKs
+         dAnr/Y9ILB6sItZwBCa2f0cC5PWrRThCNop5la3v8O6tu7uh58Bqpw3XsUWM//PKiMqc
+         oL+KVaIf86wZpMaGYNVXihDbHZXgyEillsCPavKHdy4REOZClegpXHzSWV3cy9dWKB0N
+         QjYbUGkbqVGDl9OlVXqHZbEuCVKBEyZdMzBRpFIK2fWyC4tK1CO250oajFbG7s3mQvUi
+         V0ZBrw3KoCRRfsR8rBwrRvdBe2ppdohFwEne/OF97domsiac6zldF0d8Cv3/3cOiiC3e
+         tltg==
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20230601 header.b=JfsvAniw;
+       spf=pass (google.com: domain of jang.esther@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=jang.esther@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com
+Return-Path: <jang.esther@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id m28-20020a19711c000000b0050bbc100b94sor11683lfc.25.2023.11.29.16.56.37
+        for <support@seattlecommunitynetwork.org>
+        (Google Transport Security);
+        Wed, 29 Nov 2023 16:56:38 -0800 (PST)
+Received-SPF: pass (google.com: domain of jang.esther@gmail.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1701305797; x=1701910597; darn=seattlecommunitynetwork.org;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=i4iUGHoOEs6nM8xA+Xz0cSDONekIedusvrpnQPJIk04=;
+        b=JfsvAniwyS0EsGoOJ28LcCbqOMMk6SGXaLYDeUPOpnwhh1eLsmVTtxllPZhJuoqQA9
+         edXLx1simK5EJWhhq3KqqYGYVsJSJwt8YMuXxP+BIywW3DK5WHbyNaaSNCg1u91VHeCq
+         TqGaSbjkQ2HTBBw3qyGLiizAGosArBpKyL0twbusQ7W1ZPLsfo9ms/VkWoq2KKO6S/DV
+         vW1u44GHzMb7NynzekrxI7cy7RrgRbHjK9fZevuxeKOGKzLVVpZ25LvpXfpG5Pv8HByi
+         boDrL3UpqKukhIuTFVm7gNm6R6CHVD8Wz/b4Q0OtW/I+pILbSkDTP837m5k0TmFOLyH/
+         oKFg==
+X-Google-Smtp-Source: AGHT+IG0akI/ozvFod0v9+eLv0zw0ZuD8D+IBaTLPoShaIFoiKQHExbr92k68zabGI54hFqJ1DnovQ==
+X-Received: by 2002:a05:6512:2210:b0:500:7cab:efc3 with SMTP id h16-20020a056512221000b005007cabefc3mr16436691lfu.11.1701305796757;
+        Wed, 29 Nov 2023 16:56:36 -0800 (PST)
+Return-Path: <jang.esther@gmail.com>
+Received: from mail-lj1-f177.google.com (mail-lj1-f177.google.com. [209.85.208.177])
+        by smtp.gmail.com with ESMTPSA id q17-20020a05651232b100b0050ab7b3d9a9sm6874lfe.1.2023.11.29.16.56.35
+        for <support@seattlecommunitynetwork.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 29 Nov 2023 16:56:36 -0800 (PST)
+Received: by mail-lj1-f177.google.com with SMTP id 38308e7fff4ca-2c9b77be7ceso5558031fa.2
+        for <support@seattlecommunitynetwork.org>; Wed, 29 Nov 2023 16:56:35 -0800 (PST)
+X-Received: by 2002:a2e:8606:0:b0:2c9:af18:2e8c with SMTP id
+ a6-20020a2e8606000000b002c9af182e8cmr4585464lji.10.1701305795583; Wed, 29 Nov
+ 2023 16:56:35 -0800 (PST)
+MIME-Version: 1.0
+References: <CADP+R5BkkGLLCqUdXL43mws=LxivwHMNYorfCAivL_iF37Qx7A@mail.gmail.com>
+In-Reply-To: <CADP+R5BkkGLLCqUdXL43mws=LxivwHMNYorfCAivL_iF37Qx7A@mail.gmail.com>
+From: Esther Jang <jang.esther@gmail.com>
+Date: Wed, 29 Nov 2023 16:56:24 -0800
+X-Gmail-Original-Message-ID: <CAFcJ7OEPOU_1DPYgNk=CJN8Sqcmx3-2TMS5X0NaF5xDNA-SkpA@mail.gmail.com>
+Message-ID: <CAFcJ7OEPOU_1DPYgNk=CJN8Sqcmx3-2TMS5X0NaF5xDNA-SkpA@mail.gmail.com>
+Subject: Re: VyOS For Good Contract Status
+To: Holly Cooper <h.cooper@vyos.io>, Paul Philion <support@seattlecommunitynetwork.org>
+Cc: lcl@seattlecommunitynetwork.org
+Content-Type: multipart/alternative; boundary="00000000000099bad3060b541fbc"
+
+--00000000000099bad3060b541fbc
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hi Holly,
+I tried to sign the agreement but the link had expired! Could you please
+send a new one?
+Thanks,
+-Esther
+
+On Wed, Nov 29, 2023 at 9:45=E2=80=AFAM Holly Cooper <h.cooper@vyos.io> wro=
+te:
+
+> Hi Esther,
+>
+> I hope you are well.  I am working to wrap up the VyOS For Good (VFG)
+> initiative to have members sign our license agreement.  I am not sure if
+> you have received my previous emails because sometimes they sometimes go =
+in
+> the spam folder.  Can you please let me know your status regarding
+> signing our agreement?  I know you're finding VyOS helpful and want to
+> ensure that you still have access to support going forward.
+>
+> Could you please let me know your status?
+>
+> Thank you,
+> Holly
+> --
+> Holly Cooper
+> *VyOS Team*
+> h.cooper@vyos.io
+>
+>
+>
+
+--00000000000099bad3060b541fbc
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr">Hi Holly,<div>I tried to sign the agreement but the link h=
+ad expired! Could you please send a new one?<br><div>Thanks,</div><div>-Est=
+her</div></div></div><br><div class=3D"gmail_quote"><div dir=3D"ltr" class=
+=3D"gmail_attr">On Wed, Nov 29, 2023 at 9:45=E2=80=AFAM Holly Cooper &lt;<a=
+ href=3D"mailto:h.cooper@vyos.io">h.cooper@vyos.io</a>&gt; wrote:<br></div>=
+<blockquote class=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;border-=
+left:1px solid rgb(204,204,204);padding-left:1ex"><div dir=3D"ltr">Hi Esthe=
+r,<div><br></div><div><div><div>I hope you are well.=C2=A0 I am working to =
+wrap up the VyOS For Good (VFG) initiative to have members sign our license=
+ agreement.=C2=A0 I am not sure if you have received my previous emails bec=
+ause sometimes they sometimes go in the spam folder.=C2=A0 Can you please l=
+et me know your status regarding signing=C2=A0our agreement?=C2=A0 I know y=
+ou&#39;re finding VyOS helpful and want to ensure that you still have=C2=A0=
+access to support going forward.</div><div><br></div><div>Could you please=
+=C2=A0let me know your status?</div></div><div><br></div><div>Thank you,=C2=
+=A0</div><div>Holly</div><span class=3D"gmail_signature_prefix">-- </span><=
+br><div dir=3D"ltr" class=3D"gmail_signature"><div dir=3D"ltr">Holly Cooper=
+<div><b>VyOS Team</b></div><div><a href=3D"mailto:h.cooper@vyos.io" target=
+=3D"_blank">h.cooper@vyos.io</a></div><div><br></div><div><br></div></div><=
+/div></div><img src=3D"https://t.sidekickopen71.com/Cto/5B+23284/cvc-W04/R5=
+R8b42w8N9cdvRp2fD9hW1Xnxxb1_l1zwW3GKmZB1XmNVdW1GB6j322Sq3jW1V0MXy1YZrgPW3K1=
+_4j1--tPtn1V0MQ04W1" alt=3D"" style=3D"display: none;" height=3D"1" width=
+=3D"1"><div></div></div>
+</blockquote></div>
+
+--00000000000099bad3060b541fbc--

@@ -224,7 +224,7 @@ class Client(): ## redmine.Client()
             return response.issues
         else:
             log.info(f"Unknown ticket numbers: {ticket_ids}")
-            return None
+            return []
     
     def find_ticket_from_str(self, str:str):
         # for now, this is a trivial REGEX to match '#nnn' in a string, and return ticket #nnn
@@ -234,7 +234,7 @@ class Client(): ## redmine.Client()
             return self.get_ticket(ticket_num)
         else:
             log.debug(f"Unable to match ticket number in: {str}")
-            return None
+            return []
     
     
     def create_user(self, email:str, first:str, last:str):
