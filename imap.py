@@ -185,10 +185,6 @@ class Client(): ## imap.Client()
             messages = server.search("UNSEEN")
             for uid, message_data in server.fetch(messages, "RFC822").items():
                 data = message_data[b"RFC822"]
-                
-                # log the file
-                #with open(f"message-{uid}.eml", "wb") as file:
-                #    file.write(data)
 
                 # process each message returned by the query
                 try:
@@ -204,6 +200,9 @@ class Client(): ## imap.Client()
                 except Exception as e:
                     log.error(f"Message {uid} can not be processed: {e}")
                     traceback.print_exc()
+                    # save the message data in a file
+                    with open(f"message-err-{uid}.eml", "wb") as file:
+                        file.write(data)
                     server.add_flags(uid, [SEEN])
             log.info(f"processed {len(messages)} new messages")
     
