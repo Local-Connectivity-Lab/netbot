@@ -125,42 +125,34 @@ class Client(): ## imap.Client()
 
     def handle_message(self, msg_id:str, message:Message):
         first, last, addr = self.parse_email_address(message.from_address)
-        log.info(f'uid:{msg_id} - from:{last}, {first}, email:{addr}, subject:{message.subject}')
+        log.debug(f'uid:{msg_id} - from:{last}, {first}, email:{addr}, subject:{message.subject}')
+
+
+        # first, search for a matching subject
+        tickets = self.redmine.search_tickets(message.subject_cleaned())
+        if len(tickets) == 1:
+            # as expected
+            ticket = tickets[0]
+            log.debug(f"found ticket id={ticket.id} for subject: {message.subject}")
+        elif len(tickets) >= 2:
+            # more than expected
+            log.warning(f"subject query returned {len(tickets)} results, using first: {message.subject_cleaned()}")
+            ticket = tickets[0]
+                    
+        # next, find ticket using the subject, if possible           
+        if ticket == None:
+            # this uses a simple REGEX '#\d+' to match ticket numbers
+            ticket = self.redmine.find_ticket_from_str(message.subject)
 
         # get user id from from_address
         user = self.redmine.find_user(addr)
         if user == None:
-            log.error(f"Unknown email address, no user found: {addr}, {message.from_address}")
-            # create new user if needed.
-            # New user means no old ticket to append to , so create a new ticket
-            log.info(f"Unknow user: {addr}, creating new account.")
+            log.debug(f"Unknown email address, no user found: {addr}, {message.from_address}")
+            # create new user
             user = self.redmine.create_user(addr, first, last)
-            print(f"#### created user: {user}")
-            ticket = None
-        else:
-            # find ticket using the subject, if possible
-            # this uses a simple REGEX '#\d+' to match ticket numbers
-            ticket = self.redmine.find_ticket_from_str(message.subject)
-            
-        if ticket == None:
-            # if the ticket is still none, search for a matching subject
-            tickets = self.redmine.search_tickets(message.subject_cleaned())
-            if len(tickets) == 1:
-                # as expected
-                ticket = tickets[0]
-                log.debug(f"found ticket id={ticket.id} for subject: {message.subject}")
-            elif len(tickets) >= 2:
-                # more than expected
-                log.warning(f"subject query returned {len(tickets)} results: {message.subject_cleaned()}")
-                ticket = tickets[0]
-        
-        # this has been disabled. found not productive
-        # if there is not ticket number found,
-        # query "most recently updated open ticket by userid", if any
-        #if user and (ticket is None):
-        #    ticket = self.redmine.most_recent_ticket_for(user.login)
+            log.info(f"Unknow user: {addr}, created new account.")
 
-        # first, upload any attachments
+        #  upload any attachments
         for attachment in message.attachments:
             # uploading the attachment this way
             # puts the token in the attachment
