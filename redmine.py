@@ -206,6 +206,10 @@ class Client(): ## redmine.Client()
             return None
 
     def get_ticket(self, ticket_id:int, include_journals:bool = False):
+        if ticket_id is None or ticket_id == 0:
+            log.warning(f"Invalid ticket number: {ticket_id}")
+            return None
+
         query = f"/issues/{ticket_id}.json"
         if include_journals:
             query += "?include=journals" # as per https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals

@@ -127,7 +127,6 @@ class Client(): ## imap.Client()
         first, last, addr = self.parse_email_address(message.from_address)
         log.debug(f'uid:{msg_id} - from:{last}, {first}, email:{addr}, subject:{message.subject}')
 
-
         # first, search for a matching subject
         tickets = self.redmine.search_tickets(message.subject_cleaned())
         if len(tickets) == 1:
