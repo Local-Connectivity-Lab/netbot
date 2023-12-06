@@ -28,6 +28,7 @@ log = logging.getLogger(__name__)
 
 def setup(bot):
     bot.add_cog(TicketsCog(bot))
+    log.info(f"initialized tickets cog")
 
 
 
@@ -152,7 +153,7 @@ class TicketsCog(commands.Cog):
             # TODO message templates
             note = f"Created Discord thread: {thread.name}: {thread.jump_url}"
             user = self.redmine.find_discord_user(ctx.user.name)
-            self.redmine.enable_discord_sync(ticket.id, user.login, note)
+            self.redmine.enable_discord_sync(ticket.id, user, note)
 
             # sync the ticket, so everything is up to date
             await self.bot.synchronize_ticket(ticket.id, thread, ctx)

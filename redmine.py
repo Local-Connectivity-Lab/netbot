@@ -23,7 +23,7 @@ class Client(): ## redmine.Client()
         self.token = os.getenv('REDMINE_TOKEN')
         self.reindex()
 
-    def create_ticket(self, user_id, subject, body, attachments=None):
+    def create_ticket(self, user, subject, body, attachments=None):
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
 
         data = {
@@ -46,7 +46,7 @@ class Client(): ## redmine.Client()
         r = requests.post(
             url=f"{self.url}/issues.json", 
             data=json.dumps(data), 
-            headers=self.get_headers(user_id))
+            headers=self.get_headers(user.login))
                 
         # check status
         if r.status_code == 201:
@@ -56,15 +56,15 @@ class Client(): ## redmine.Client()
             log.error(f"Error creating ticket. status={r.status_code}: {r}")
             return None
 
-    def update_user(self, user_id:int, fields:dict):
+    def update_user(self, user, fields:dict):
         # PUT a simple JSON structure
         data = {}
         data['user'] = fields
 
         r = requests.put(
-            url=f"{self.url}/users/{user_id}.json", 
+            url=f"{self.url}/users/{user.id}.json", 
             data=json.dumps(data),
-            headers=self.get_headers(user_id))
+            headers=self.get_headers(user.login))
         
         log.debug(f"update user: [{r.status_code}] {r.request.url}, fields: {fields}")
                 
@@ -75,7 +75,7 @@ class Client(): ## redmine.Client()
             # throw exception?
 
 
-    def update_ticket(self, ticket_id:str, fields:dict, user_id:str=None):
+    def update_ticket(self, ticket_id:str, fields:dict, user_login:str=None):
         # PUT a simple JSON structure
         data = {
             'issue': {}
@@ -86,7 +86,7 @@ class Client(): ## redmine.Client()
         r = requests.put(
             url=f"{self.url}/issues/{ticket_id}.json", 
             data=json.dumps(data),
-            headers=self.get_headers(user_id))
+            headers=self.get_headers(user_login))
         
         log.debug(f"update ticket: [{r.status_code}] {r.request.url}, fields: {fields}")
                 
@@ -406,13 +406,13 @@ class Client(): ## redmine.Client()
             log.info(f"No open tickets found for: {response.request.url}")
             return None
 
-    def enable_discord_sync(self, ticket_id, user_id, note):
+    def enable_discord_sync(self, ticket_id, user, note):
         fields = {
             "note": note, #f"Created Discord thread: {thread.name}: {thread.jump_url}",
             "cf_1": "1",
         }
         
-        self.update_ticket(ticket_id, fields, user_id)
+        self.update_ticket(ticket_id, fields, user.login)
         # currently doesn't return or throw anything
         # todo: better error reporting back to discord
 
@@ -436,7 +436,7 @@ class Client(): ## redmine.Client()
                 { "id": field_id, "value": discord_name } # cf_4, custom field syncdata
             ]
         }
-        self.update_user(user.id, fields)
+        self.update_user(user, fields)
 
     def join_project(self, username, project:str):
         # look up user ID

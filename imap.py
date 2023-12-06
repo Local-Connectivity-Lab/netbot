@@ -163,7 +163,7 @@ class Client(): ## imap.Client()
             log.info(f"Updated ticket #{ticket.id} with message from {user.login} and {len(message.attachments)} attachments")
         else:
             # no open tickets, create new ticket for the email message
-            self.redmine.create_ticket(user.login, message.subject, message.note, message.attachments)
+            self.redmine.create_ticket(user, message.subject, message.note, message.attachments)
             log.info(f"Created new ticket for: {user.login}, with {len(message.attachments)} attachments")
 
 

@@ -28,6 +28,7 @@ log = logging.getLogger(__name__)
 
 def setup(bot):
     bot.add_cog(SCNCog(bot))
+    log.info(f"initialized SCN cog")
 
 class SCNCog(commands.Cog):
     def __init__(self, bot):
@@ -50,7 +51,8 @@ class SCNCog(commands.Cog):
         if user:
             await ctx.respond(f"Discord user: {discord_name} is already configured as redmine user: {user.login}")
         else:
-            redmine.create_discord_mapping(redmine_login, discord_name)
+            self.redmine.create_discord_mapping(redmine_login, discord_name)
+            await ctx.respond(f"Discord user: {discord_name} has been paired with redmine user: {redmine_login}")
 
 
     @scn.command()
@@ -114,17 +116,20 @@ class SCNCog(commands.Cog):
         if teamname:
             team = self.redmine.get_team(teamname)
             if team:
-                await self.print_team(ctx, team)
-                await ctx.respond("-")
+                #await self.print_team(ctx, team)
+                await ctx.respond(self.format_team(team))
             else:
                 await ctx.respond(f"Unknown team name: {teamname}") # error
         else:
             # all teams
             teams = self.redmine.get_teams()
+            buff = ""
             for teamname in teams:
                 team = self.redmine.get_team(teamname)
-                await self.print_team(ctx, team)
-            await ctx.respond("-")
+                #await self.print_team(ctx, team)
+                buff += self.format_team(team)
+            await ctx.respond(buff[:2000]) # truncate!
+
 
     async def print_team(self, ctx, team):
         msg = f"> **{team.name}**\n"
@@ -135,3 +140,9 @@ class SCNCog(commands.Cog):
             #msg += f"[{user.id}] **{user_rec.name}** {user.login} {user.mail} {user.custom_fields[0].value}\n"
         msg = msg[:-2] + '\n\n'
         await ctx.channel.send(msg)
+
+
+    def format_team(self, team):
+        # single line format: teamname: member1, member2
+        if team:
+            return f"**{team.name}**: {', '.join([user.name for user in team.users])}\n"
