@@ -41,6 +41,7 @@ class SCNCog(commands.Cog):
 
     @scn.command()
     async def add(self, ctx:discord.ApplicationContext, redmine_login:str, member:discord.Member=None):
+        """add Discord user information to redmine"""
         discord_name = ctx.user.name # by default, assume current user
         if member:
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
@@ -57,6 +58,7 @@ class SCNCog(commands.Cog):
 
     @scn.command()
     async def sync(self, ctx:discord.ApplicationContext):
+        """syncronize an existing ticket thread with redmine"""
         if isinstance(ctx.channel, discord.Thread):
             # get the ticket id from the thread name
             # FIXME: notice the series of calls to "self.bot": could be better encapsulated
@@ -73,11 +75,12 @@ class SCNCog(commands.Cog):
 
     @scn.command()
     async def reindex(self, ctx:discord.ApplicationContext):
+        """reindex the user and team information"""
         self.redmine.reindex()
-        await ctx.send(f"Rebuilt redmine indices.")
+        await ctx.respond(f"Rebuilt redmine indices.")
 
 
-    @scn.command()
+    @scn.command(description="join the specified team")
     async def join(self, ctx:discord.ApplicationContext, teamname:str , member: discord.Member=None):
         discord_name = ctx.user.name # by default, assume current user
         if member:
@@ -93,7 +96,7 @@ class SCNCog(commands.Cog):
         pass
 
 
-    @scn.command()
+    @scn.command(description="leave the specified team")
     async def leave(self, ctx:discord.ApplicationContext, teamname:str, member: discord.Member=None):
         discord_name = ctx.user.name # by default, assume current user
         if member:
@@ -109,7 +112,7 @@ class SCNCog(commands.Cog):
         pass
 
 
-    @scn.command()
+    @scn.command(description="list teams and members")
     async def teams(self, ctx:discord.ApplicationContext, teamname:str=None):
         # list all teams, with members
 

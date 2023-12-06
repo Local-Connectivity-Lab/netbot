@@ -135,7 +135,7 @@ class NetBot(commands.Bot):
     ### FORMATTING ###
     
     # the table version
-    def print_tickets(self, tickets, fields=["link","status","priority","age","assigned","subject"]):
+    def print_ticket_table(self, tickets, fields=["link","status","priority","age","assigned","subject"]):
         if not tickets:
             print("no tickets found")
             return
@@ -164,9 +164,6 @@ class NetBot(commands.Bot):
 
     async def print_tickets(self, tickets, ctx):
         msg = self.format_tickets(tickets)
-        
-        
-        
         
         if len(msg) > 2000:
             log.warning("message over 2000 chars. truncing.")

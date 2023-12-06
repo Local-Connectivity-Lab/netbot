@@ -64,6 +64,7 @@ class TicketsCog(commands.Cog):
             
     @commands.slash_command()     # guild_ids=[...] # Create a slash command for the supplied guilds.
     async def tickets(self, ctx: discord.ApplicationContext, params: str = ""):
+        """List tickets for you, or filtered by parameter"""
         # different options: none, me (default), [group-name], intake, tracker name
         # buid index for trackers, groups
         # add groups to users.
@@ -82,6 +83,7 @@ class TicketsCog(commands.Cog):
 
     @commands.slash_command()
     async def ticket(self, ctx: discord.ApplicationContext, ticket_id:int, action:str="show"):
+        """Update status on a ticket, using: unassign, resolve, progress"""
         try:
             # lookup the user
             user = self.redmine.find_discord_user(ctx.user.name)
@@ -141,7 +143,7 @@ class TicketsCog(commands.Cog):
         return await ctx.channel.create_thread(name=name)
 
 
-    @commands.slash_command() 
+    @commands.slash_command(description="Create a Discord thread for the specified ticket") 
     @option("ticket_id", description="ID of tick to create thread for")
     async def thread(self, ctx: discord.ApplicationContext, ticket_id:int):
         ticket = self.redmine.get_ticket(ticket_id)
@@ -162,3 +164,29 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") # todo add some fancy formatting
+
+
+    ### formatting ###
+
+    async def print_tickets(self, tickets, ctx):
+        msg = self.format_tickets(tickets)
+        
+        if len(msg) > 2000:
+            log.warning("message over 2000 chars. truncing.")
+            msg = msg[:2000]
+        await ctx.respond(msg)
+
+    def format_tickets(self, tickets, fields=["link","priority","updated","assigned","subject"]):
+        if tickets is None:
+            return "No tickets found."
+        
+        section = ""
+        for ticket in tickets:
+            section += self.format_ticket(ticket, fields) + "\n" # append each ticket
+        return section.strip()
+
+    def format_ticket(self, ticket, fields):
+        section = ""
+        for field in fields:
+            section += self.redmine.get_field(ticket, field) + " " # spacer, one space
+        return section.strip() # remove trailing whitespace
