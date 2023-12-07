@@ -64,7 +64,7 @@ Logs from the runs are stored in `/home/scn/github/netbot/logs` folder, one per 
 
 ```
 scn add [login]    - Map current discord userid to redmine [login]
-scn sync           - manually sychs the current Discord thread (assuming you're in one), or replies with warning 
+scn sync           - manually sychs the current Discord thread (assuming you're in one), or replies with warning
 scn join [team]    - discord user joins [team] (and maps user id)
 scn leave [team]   - discord user leaves [team] 
 scn reindex        - rebuild the bot's index of users, teams and other metadata. Use when adding new users and teams to Redmine.
@@ -74,18 +74,22 @@ tickets [team]     - tickets assigned to team [team]
 tickets [user]     - tickets assigned to a specific [user]
 tickets [query]    - tickets that match the term [query]
 
-ticket new [title] - create a new ticket with the title [title]
-
 ticket # show      - (default) show ticket info for ticket #
 ticket # details   - show ticket # with all notes (in a decent format)
 
-ticket # assign    - Assign ticket n to the specified user
+ticket # assign    - Assign ticket n to the specified user - not yet implemented
 ticket # unassign  - Mark ticket n new and unassigned.
 ticket # progress  - Assign the ticket to yourself and set it yourself.
 ticket # resolve   - Mark the ticket resolved.
-ticket # note      - Add a note to the specific ticket. same as commenting in the ticket thread (if there is a ticket-thread, works without)
-ticket # thread    - Creates new synced thread for ticket in the current text channel, or errors
+ticket # note      - Add a note to the specific ticket. same as commenting in the ticket thread (if there is a ticket-thread, works without) - not yet implemented
+
+thread #           - Create new synced thread for ticket in the current text channel, or error.
+
+new [title]        - Create a new ticket with the title [title]
+
 ```
+
+
 
 ## CLI
 

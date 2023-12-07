@@ -91,11 +91,18 @@ class TicketsCog(commands.Cog):
 
             match action:
                 case "show":
-                    #FIXME
-                    await ctx.respond("not implemented")
+                    ticket = self.redmine.get_ticket(ticket_id)
+                    if ticket:
+                        await ctx.respond(self.format_ticket(ticket)[:2000]) #trunc
+                    else:
+                        await ctx.respond(f"Ticket {ticket_id} not found.")
                 case "details":
                     # FIXME
-                    await ctx.respond("not implemented")
+                    ticket = self.redmine.get_ticket(ticket_id)
+                    if ticket:
+                        await ctx.respond(self.format_ticket(ticket)[:2000]) #trunc
+                    else:
+                        await ctx.respond(f"Ticket {ticket_id} not found.")                
                 case "unassign":
                     self.redmine.unassign_ticket(id, user.login)
                     await self.print_ticket(self.redmine.get_ticket(id), ctx)
@@ -107,8 +114,8 @@ class TicketsCog(commands.Cog):
                     await self.print_ticket(self.redmine.get_ticket(id), ctx)
                 case "note":
                     await ctx.respond("not implemented")
-                case "sync":
-                    await ctx.respond("not implemented")
+                #case "sync":
+                #    await ctx.respond("not implemented")
                 case "assign":
                     await ctx.respond("not implemented")
                 case _:
