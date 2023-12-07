@@ -15,8 +15,15 @@ from types import SimpleNamespace
 log = logging.getLogger(__name__)
 
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
+TIMEOUT = 2 # seconds
 
-
+class RedmineException(Exception):
+    def __init__(self, message: str, request_id: str) -> None:
+        self.message = message
+        self.request_id = request_id
+        super().__init__(self.message)
+        
+    
 class Client(): ## redmine.Client()
     def __init__(self):
         self.url = os.getenv('REDMINE_URL')
@@ -28,7 +35,7 @@ class Client(): ## redmine.Client()
 
         data = {
             'issue': {
-                'project_id': 1,
+                'project_id': 1, #FIXME hard-coded project ID
                 'subject': subject,
                 'description': body,
             }
@@ -43,18 +50,25 @@ class Client(): ## redmine.Client()
                     "content_type": a.content_type,
                 })
 
-        r = requests.post(
+        response = requests.post(
             url=f"{self.url}/issues.json", 
             data=json.dumps(data), 
-            headers=self.get_headers(user.login))
+            headers=self.get_headers(user.login),
+            timeout=TIMEOUT)
                 
         # check status
-        if r.status_code == 201:
-            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
+        if response.ok:
+            root = json.loads(response.text, object_hook= lambda x: SimpleNamespace(**x))
             return root.issue
         else:
-            log.error(f"Error creating ticket. status={r.status_code}: {r}")
-            return None
+            raise RedmineException("create_ticket failed, status={response.status_code} {response.reason}", response.headers['X-Request-Id'])
+        ### old style
+        #if r.status_code == 201:
+        #    root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
+        #    return root.issue
+        #else:
+        #    log.error(f"Error creating ticket. status={r.status_code}: {r}")
+        #    return None
 
     def update_user(self, user, fields:dict):
         # PUT a simple JSON structure
@@ -70,9 +84,13 @@ class Client(): ## redmine.Client()
                 
         # check status
         if r.status_code != 204:
-            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-            log.error(f"update_user, status={r.status_code}: {root}")
-            # throw exception?
+            if r.json:
+                root = json.loads(r.json, object_hook= lambda x: SimpleNamespace(**x))
+                log.error(f"update_user, status={r.status_code}, req-id={r.headers['X-Request-Id']}: {root}")
+            else:
+                log.error(f"update_user, status={r.status_code}, req-id={r.headers['X-Request-Id']}: {r.reason}")
+
+            #TODO throw exception to show update failed, and why
 
 
     def update_ticket(self, ticket_id:str, fields:dict, user_login:str=None):
@@ -92,9 +110,10 @@ class Client(): ## redmine.Client()
                 
         # check status
         if r.status_code != 204:
-            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-            log.error(f"update_ticket, status={r.status_code}: {root}")
-            # throw exception?
+            log.error(f"update_ticket, status={r.status_code}, req-id={r.headers['X-Request-Id']}: {r.reason}")
+            #root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
+            #log.error(f"update_ticket, status={r.status_code}: {root}")
+            #TODO throw exception to show update failed, and why
 
 
     def append_message(self, ticket_id:str, user_login:str, note:str, attachments=None):
@@ -126,11 +145,11 @@ class Client(): ## redmine.Client()
             pass
         elif r.status_code == 403:
             # no access
-            print(f"#### {vars(r)}")
+            #print(f"#### {vars(r)}")
             log.error(f"{user_login} has no access to add note to ticket #{ticket_id}, req-id={r.headers['X-Request-Id']}")
         else:
-            log.error(f"append_message, status={r.status_code}: {vars(r)}, req-id={r.headers['X-Request-Id']}")
-            # throw exception?
+            log.error(f"append_message, status={r.status_code}: {r.reason}, req-id={r.headers['X-Request-Id']}")
+            #TODO throw exception to show update failed, and why
 
 
     def upload_file(self, user_id, data, filename, content_type):
@@ -159,8 +178,9 @@ class Client(): ## redmine.Client()
             return token
         else:
             #print(vars(r))
-            log.error(f"Error uploading {filename} {content_type} - response:{r}")
+            log.error(f"upload_file, file={filename} {content_type}, status={r.status_code}: {r.reason}, req-id={r.headers['X-Request-Id']}")
             # todo throw exception
+            #TODO throw exception to show upload failed, and why
 
     def upload_attachments(self, user_id, attachments):
         # uploads all the attachments, 
@@ -280,9 +300,11 @@ class Client(): ## redmine.Client()
             log.error(f"Trying to create existing user email: email={email}, user={user}")
             return user
         else:
-            log.error(f"Error creating user. status={r.status_code}: {r}")
+            log.error(f"create_user, status={r.status_code}: {r.reason}, req-id={r.headers['X-Request-Id']}")
+            #TODO throw exception?
             return None
         
+
     # used only in testing
     def remove_user(self, user_id:int):
         # DELETE to /users/{user_id}.json
@@ -539,7 +561,7 @@ class Client(): ## redmine.Client()
 
         headers = self.get_headers(user)
 
-        r = requests.get(f"{self.url}{query_str}", headers=headers)
+        r = requests.get(f"{self.url}{query_str}", headers=headers, timeout=TIMEOUT)
 
         # check 200 status code
         if r.status_code == 200:

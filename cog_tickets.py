@@ -133,7 +133,7 @@ class TicketsCog(commands.Cog):
         user = self.redmine.find_discord_user(ctx.user.name)
         # text templating
         text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
-        ticket = self.redmine.create_ticket(user.login, title, text)
+        ticket = self.redmine.create_ticket(user, title, text)
         if ticket:
             #await self.print_ticket(ticket, ctx)
             await ctx.respond(self.format_ticket(ticket)[:2000]) #trunc

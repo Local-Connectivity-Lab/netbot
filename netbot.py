@@ -201,6 +201,16 @@ class NetBot(commands.Bot):
         match = re.match(r'^Ticket #(\d+):', title)
         if match:
             return int(match.group(1))
+        
+    
+    async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
+        """Bot-level error handler"""
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.respond("This command is currently on cooldown!")
+        else:
+            log.error(f"{error}")
+            #raise error  # Here we raise other errors to ensure they aren't ignored
+            await ctx.respond(f"{error}")
 
 
 
