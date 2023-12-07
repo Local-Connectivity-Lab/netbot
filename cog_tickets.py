@@ -122,19 +122,17 @@ class TicketsCog(commands.Cog):
     @commands.slash_command(name="new", description="Create a new ticket") 
     @option("title", description="Title of the new SCN ticket")
     @option("add_thread", description="Create a Discord thread for the new ticket", default=False)
-    async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str, add_thread=False):
+    async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str):
         user = self.redmine.find_discord_user(ctx.user.name)
         # text templating
         text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
         ticket = self.redmine.create_ticket(user.login, title, text)
         if ticket:
-            if add_thread:
-                # todo set thread flag in discord
-                thread = await self.create_thread(ticket, ctx)
-                await ctx.respond(f"Created thread: {thread}")
-
-            await self.print_ticket(ticket, ctx)
+            #await self.print_ticket(ticket, ctx)
+            await ctx.respond(self.format_ticket(ticket)[:2000]) #trunc
         # error handling? exception? 
+        else:
+            await ctx.respond(f"error creating ticket with title={title}")
 
 
     async def create_thread(self, ticket, ctx):
@@ -185,7 +183,7 @@ class TicketsCog(commands.Cog):
             section += self.format_ticket(ticket, fields) + "\n" # append each ticket
         return section.strip()
 
-    def format_ticket(self, ticket, fields):
+    def format_ticket(self, ticket, fields=["link","priority","updated","assigned","subject"]):
         section = ""
         for field in fields:
             section += self.redmine.get_field(ticket, field) + " " # spacer, one space
