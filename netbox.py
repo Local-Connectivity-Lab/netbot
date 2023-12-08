@@ -4,6 +4,9 @@ import logging
 import requests
 import pynetbox
 
+### WARNING ###
+# still under development and not ready for use.
+
 log = logging.getLogger(__name__) # TODO central logger defination
 
 class Client(): ## netbox.Client()

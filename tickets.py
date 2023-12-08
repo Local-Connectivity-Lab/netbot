@@ -11,6 +11,9 @@ from dotenv import load_dotenv
 
 import redmine
 
+### REMOVE ###
+# replaced by cli.py
+
 # using https://pypi.org/project/rich/ for terminal formatting
 from rich.console import Console
 from rich.table import Table
