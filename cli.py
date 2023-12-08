@@ -72,7 +72,7 @@ def print_tickets(tickets, fields=["link","status","priority","age","assigned","
 
     console.print(table)
 
-def print_tickets2(tickets, fields=["link","status","priority","age","assigned","subject"]):
+def print_tickets_md(tickets, fields=["link","status","priority","age","assigned","subject"]):
     if not tickets:
         print("no tickets found")
         return
@@ -100,6 +100,25 @@ def print_tickets2(tickets, fields=["link","status","priority","age","assigned",
     
     for line in buffer:
         print(f"{line.strip()}")
+        
+        
+def print_team(team):
+    console = Console()
+    table = Table(show_header=True, box=box.SIMPLE_HEAD, collapse_padding=True, header_style="bold magenta")
+    table.add_column(team.name)
+    for user in team.users:
+        table.add_row(user.name)
+
+    console.print(table)
+
+
+def print_teams(teams):
+    if not teams:
+        print("no teams found")
+    else:
+        for teamname in teams:
+            team = redmine_client.get_team(teamname)
+            print_team(team)
 
 
 color_map = {
@@ -279,15 +298,6 @@ def tickets(query):
     else:
         print_tickets(redmine_client.my_tickets())
         
-        
-@cli.command()
-@click.argument("id", type=int) 
-def unassign(id:int):
-    """Unassign ticket"""
-    # case "unassign":
-    redmine_client.unassign_ticket(id)
-    print_ticket(redmine_client.get_ticket(id))
-     
                
 @cli.command()
 @click.argument("id", type=int) 
@@ -315,7 +325,47 @@ def assign(id:int, asignee:str):
     # case assign
     redmine_client.assign_ticket(id, asignee)
     print_ticket(redmine_client.get_ticket(id))
-        
+    
+
+@cli.command()
+@click.argument("id", type=int) 
+def unassign(id:int):
+    """Unassign ticket"""
+    # case "unassign":
+    redmine_client.unassign_ticket(id)
+    print_ticket(redmine_client.get_ticket(id))
+
+
+@cli.command()
+def teams():
+    """List teams"""
+    print_teams(redmine_client.get_teams())
+
+
+@cli.command()
+@click.argument("team", type=str) 
+def team(team:str):
+    """List team members"""
+    print_team(redmine_client.get_team(team))
+
+
+@cli.command()
+@click.argument("user", type=str) 
+@click.argument("team", type=str) 
+def join(user:str, team:str):
+    """Join a team"""
+    redmine_client.join_team(user, team)
+    print_team(redmine_client.get_team(team))
+
+
+@cli.command()
+@click.argument("user", type=str) 
+@click.argument("team", type=str) 
+def leave(user:str, team:str):
+    """Leave a team"""
+    redmine_client.leave_team(user, team)
+    print_team(redmine_client.get_team(team))
+
 
 if __name__ == '__main__':
     cli()
