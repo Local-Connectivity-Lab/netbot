@@ -60,7 +60,7 @@ class Client(): ## redmine.Client()
             root = json.loads(response.text, object_hook= lambda x: SimpleNamespace(**x))
             return root.issue
         else:
-            raise RedmineException("create_ticket failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
+            raise RedmineException(f"create_ticket failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
         
 
     def update_user(self, user, fields:dict):
@@ -80,7 +80,7 @@ class Client(): ## redmine.Client()
             # TODO get and return the updated user?
             return user
         else:
-            raise RedmineException("update_user failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
+            raise RedmineException(f"update_user failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
 
 
     def update_ticket(self, ticket_id:str, fields:dict, user_login:str=None):
@@ -103,7 +103,7 @@ class Client(): ## redmine.Client()
             # no body, so re-get the updated tickets?
             return self.get_ticket(ticket_id)
         else:
-            raise RedmineException("update_ticket failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
+            raise RedmineException(f"update_ticket failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
 
 
     def append_message(self, ticket_id:str, user_login:str, note:str, attachments=None):
