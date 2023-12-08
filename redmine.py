@@ -71,7 +71,7 @@ class Client(): ## redmine.Client()
         response = requests.put(
             url=f"{self.url}/users/{user.id}.json", 
             data=json.dumps(data),
-            headers=self.get_headers(user.login))
+            headers=self.get_headers()) # removed user.login impersonation header
         
         log.debug(f"update user: [{response.status_code}] {response.request.url}, fields: {fields}")
         
