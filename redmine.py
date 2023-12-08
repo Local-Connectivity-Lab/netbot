@@ -19,11 +19,10 @@ TIMEOUT = 2 # seconds
 
 class RedmineException(Exception):
     def __init__(self, message: str, request_id: str) -> None:
-        self.message = message
+        super().__init__(message + ", req_id=" + request_id)
         self.request_id = request_id
-        super().__init__(self.message)
-        
     
+
 class Client(): ## redmine.Client()
     def __init__(self):
         self.url = os.getenv('REDMINE_URL')
@@ -61,36 +60,27 @@ class Client(): ## redmine.Client()
             root = json.loads(response.text, object_hook= lambda x: SimpleNamespace(**x))
             return root.issue
         else:
-            raise RedmineException("create_ticket failed, status={response.status_code} {response.reason}", response.headers['X-Request-Id'])
-        ### old style
-        #if r.status_code == 201:
-        #    root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-        #    return root.issue
-        #else:
-        #    log.error(f"Error creating ticket. status={r.status_code}: {r}")
-        #    return None
+            raise RedmineException("create_ticket failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
+        
 
     def update_user(self, user, fields:dict):
         # PUT a simple JSON structure
         data = {}
         data['user'] = fields
 
-        r = requests.put(
+        response = requests.put(
             url=f"{self.url}/users/{user.id}.json", 
             data=json.dumps(data),
             headers=self.get_headers(user.login))
         
-        log.debug(f"update user: [{r.status_code}] {r.request.url}, fields: {fields}")
-                
+        log.debug(f"update user: [{response.status_code}] {response.request.url}, fields: {fields}")
+        
         # check status
-        if r.status_code != 204:
-            if r.json:
-                root = json.loads(r.json, object_hook= lambda x: SimpleNamespace(**x))
-                log.error(f"update_user, status={r.status_code}, req-id={r.headers['X-Request-Id']}: {root}")
-            else:
-                log.error(f"update_user, status={r.status_code}, req-id={r.headers['X-Request-Id']}: {r.reason}")
-
-            #TODO throw exception to show update failed, and why
+        if response.ok:
+            # TODO get and return the updated user?
+            return user
+        else:
+            raise RedmineException("update_user failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
 
 
     def update_ticket(self, ticket_id:str, fields:dict, user_login:str=None):
@@ -101,19 +91,19 @@ class Client(): ## redmine.Client()
 
         data['issue'] = fields
 
-        r = requests.put(
+        response = requests.put(
             url=f"{self.url}/issues/{ticket_id}.json", 
             data=json.dumps(data),
             headers=self.get_headers(user_login))
         
-        log.debug(f"update ticket: [{r.status_code}] {r.request.url}, fields: {fields}")
+        log.debug(f"update ticket: [{response.status_code}] {response.request.url}, fields: {fields}")
                 
         # check status
-        if r.status_code != 204:
-            log.error(f"update_ticket, status={r.status_code}, req-id={r.headers['X-Request-Id']}: {r.reason}")
-            #root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-            #log.error(f"update_ticket, status={r.status_code}: {root}")
-            #TODO throw exception to show update failed, and why
+        if response.ok:
+            # no body, so re-get the updated tickets?
+            return self.get_ticket(ticket_id)
+        else:
+            raise RedmineException("update_ticket failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
 
 
     def append_message(self, ticket_id:str, user_login:str, note:str, attachments=None):
