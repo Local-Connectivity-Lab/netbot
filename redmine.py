@@ -31,6 +31,8 @@ class Client(): ## redmine.Client()
 
     def create_ticket(self, user, subject, body, attachments=None):
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
+        # tracker_id = 13 is test tracker.
+        # would need full param handling to pass that thru discord to get to this invocation....
 
         data = {
             'issue': {
@@ -595,13 +597,17 @@ class Client(): ## redmine.Client()
 
     def get_team(self, teamname:str):
         team = self.find_team(teamname)
+        if team is None:
+            log.debug(f"Unknown team name: {teamname}")
+            return None
+        
         # as per https://www.redmine.org/projects/redmine/wiki/Rest_Groups#GET-2
         # GET /groups/20.json?include=users
         response = self.query(f"/groups/{team.id}.json?include=users")
         if response:
             return response.group
         else:
-            log.warning(f"Unknown team name: {teamname}")
+            #TODO exception?
             return None
 
     def get_field(self, ticket, fieldname):
@@ -701,9 +707,10 @@ class Client(): ## redmine.Client()
         user_id = self.find_user(username).id
         team = self.get_team(teamname) # requires an API call, could be cashed? only used for testing
 
-        for user in team.users:
-            if user.id == user_id:
-                return True
+        if team:
+            for user in team.users:
+                if user.id == user_id:
+                    return True
         return False
 
 
