@@ -73,17 +73,16 @@ class TestMessages(unittest.TestCase):
         self.assertEqual("Philion", last)
         self.assertEqual("philion@acmerocket.com", email)
 
-    @unittest.skip
-    def test_new_account(self):
+
+    def test_new_account_from_email(self):
         test_email = "philion@acmerocket.com"
         
         user = client.find_user(test_email)
         log.info(f"found {user} for {test_email}")
-        #if user:
-        #    client.remove_user(user.id) # remove the user, for testing
-        #    
-        #    client.reindex_users()
-        #    log.info(f"removed user id={user.id} and reindexed")
+        if user:
+            client.remove_user(user.id) # remove the user, for testing
+            client.reindex_users()
+            log.info(f"removed user id={user.id} and reindexed for test")
         
         email = "test/message-190.eml"
         with open("test/message-190.eml", 'rb') as file:
@@ -92,14 +91,24 @@ class TestMessages(unittest.TestCase):
         
         client.reindex_users()
         user = client.find_user(test_email)
-        print(user)
         self.assertEqual(test_email, user.mail)
-        # check if part of a project? how?
         self.assertTrue(client.is_user_in_team(user.login, "users"))
         
-        #client.remove_user(user.id) # remove the user, for testing
-        #client.reindex_users()
-        #self.assertIsNone(client.find_user(test_email))
+        client.remove_user(user.id) # remove the user, for testing
+        client.reindex_users()
+        self.assertIsNone(client.find_user(test_email))
+
+    def test_subject_search(self):
+        # find expected tickets, based on subject
+        items = [
+            {"subject": "Search for subject match in email threading", "id": "218"}
+        ]
+        
+        for item in items:
+            tickets = client.search_tickets(item["subject"])
+            
+            self.assertEqual(1, len(tickets))
+            self.assertEqual(int(item["id"]), tickets[0].id)
 
 
 if __name__ == '__main__':

@@ -37,91 +37,84 @@ class TestSCNCog(unittest.IsolatedAsyncioTestCase):
         self.bot = NetBot(self.redmine)
         self.bot.load_extension("cog_scn")
         self.cog = self.bot.cogs["SCNCog"] # Note class name, note filename.
-
+        
+        # create a test user. this could be a fixture!
+        # create new test user name: test-12345@example.com, login test-12345
+        tag = test_utils.tagstr()
+        first = "test-" + tag
+        last = "Testy"
+        self.fullName = f"{first} {last}"
+        email = first + "@example.com"
+        self.discord_user = "discord-" + tag 
+        # create new redmine user, using redmine api
+        self.user = self.redmine.create_user(email, first, last)
+        self.assertIsNotNone(self.user)
+        self.assertEqual(email, self.user.login)
+        
+        
+    def tearDown(self):
+        # delete user with redmine api, assert
+        self.redmine.remove_user(self.user.id)
+        self.redmine.reindex_users()
+        self.assertIsNone(self.redmine.find_user(self.user.login))
+        self.assertIsNone(self.redmine.find_user(self.discord_user))
+        
+        
     async def test_team_join_leave(self):
         test_team_name = "test-team"
+                
+        # create temp discord mapping with scn add
+        ctx = test_utils.build_context(test_user_id, self.discord_user)
+        await self.cog.add(ctx, self.user.login) # invoke cog to add uer
         
-        # Test steps:
-        # 1. create new test user name: test-12345@example.com, login test-12345
-        tag = test_utils.tagstr()
-        username = "test-" + tag
-        email = username + "@example.com"
-        discord_user = "discord-" + tag 
+        # check add result
+        ctx.respond.assert_called_with(
+            f"Discord user: {self.discord_user} has been paired with redmine user: {self.user.login}")
         
-        # 2. create new redmine user, using redmine api
-        user = self.redmine.create_user(email, username, "Testy")
-        self.assertIsNotNone(user)
-        self.assertEqual(email, user.login)
-        
-        # 3. create temp discord mapping with scn add
-        #self.redmine.create_discord_mapping(user.login, discord_user)
-        ctx = test_utils.build_context(test_user_id, discord_user)
-        await self.cog.add(ctx, user.login) # invoke cog to add uer
-        await asyncio.sleep(0.01) # needed? smaller?
-        
-        # 3.5 check add result
-        ctx.respond.assert_called_with(f"Discord user: {discord_user} has been paired with redmine user: {user.login}")
-        
-        # 4. reindex using cog
-        ctx = test_utils.build_context(test_user_id, discord_user)
+        # reindex using cog
+        ctx = test_utils.build_context(test_user_id, self.discord_user)
         await self.cog.reindex(ctx) # invoke cog to add uer
         await asyncio.sleep(0.01) # needed? smaller?
         # 4.5 check reindex result, and lookup based on login and discord id
         ctx.respond.assert_called_with("Rebuilt redmine indices.")
-        self.assertIsNotNone(self.redmine.find_user(user.login))
-        self.assertIsNotNone(self.redmine.find_user(discord_user))
+        self.assertIsNotNone(self.redmine.find_user(self.user.login))
+        self.assertIsNotNone(self.redmine.find_user(self.discord_user))
         
-        # 5. join team users
-        ctx = test_utils.build_context(test_user_id, discord_user)
+        # join team users
+        ctx = test_utils.build_context(test_user_id, self.discord_user)
         #member = unittest.mock.AsyncMock(discord.Member) # for forced use case
         #member.name = discord_user
         await self.cog.join(ctx, test_team_name)
-        await asyncio.sleep(0.01) # needed? smaller?
 
-        # 6. confirm via mock callback and API
+        # confirm via mock callback and API
         #ctx.respond.assert_called_with(f"Unknown team name: {test_team_name}") # unknown team response!
-        ctx.respond.assert_called_with(f"**{discord_user}** has joined *{test_team_name}*")
-        self.assertTrue(self.redmine.is_user_in_team(user.login, test_team_name), f"{user.login} not in team {test_team_name}")
-        
-        # 6.5 confirm via cog teams
-        ctx = test_utils.build_context(test_user_id, discord_user)
+        ctx.respond.assert_called_with(f"**{self.discord_user}** has joined *{test_team_name}*")
+        self.assertTrue(self.redmine.is_user_in_team(self.user.login, test_team_name), f"{self.user.login} not in team {test_team_name}")
+    
+        # confirm in team via cog teams response
+        ctx = test_utils.build_context(test_user_id, self.discord_user)
         await self.cog.teams(ctx, test_team_name)
-        await asyncio.sleep(0.01) # needed? smaller?
-        self.assertIn(f"{username} Testy", str(ctx.respond.call_args))
+        self.assertIn(self.fullName, str(ctx.respond.call_args))
 
-        # 7. leave team users
-        ctx = test_utils.build_context(test_user_id, discord_user)
+        # leave team users
+        ctx = test_utils.build_context(test_user_id, self.discord_user)
         await self.cog.leave(ctx, test_team_name)
-        await asyncio.sleep(0.01) # needed? smaller?
 
-        # 8. confirm via API and callback
-        self.assertFalse(self.redmine.is_user_in_team(user.login, test_team_name), f"{user.login} *in* team {test_team_name}")
-        ctx.respond.assert_called_with(f"**{discord_user}** has left *{test_team_name}*")
+        # confirm via API and callback
+        self.assertFalse(self.redmine.is_user_in_team(self.user.login, test_team_name), f"{self.user.login} *in* team {test_team_name}")
+        ctx.respond.assert_called_with(f"**{self.discord_user}** has left *{test_team_name}*")
         
-        # 8.5 confirm via cog teams
-        ctx = test_utils.build_context(test_user_id, discord_user)
+        # confirm not in team via cog teams response
+        ctx = test_utils.build_context(test_user_id, self.discord_user)
         await self.cog.teams(ctx, test_team_name)
-        await asyncio.sleep(0.01) # needed? smaller?
-        self.assertNotIn(f"{username}", str(ctx.respond.call_args))
+        self.assertNotIn(self.fullName, str(ctx.respond.call_args))
         
-        # 9. delete user with redmine api, assert
-        self.redmine.remove_user(user.id)
-        self.redmine.reindex_users()
-        self.assertIsNone(self.redmine.find_user(user.login))
-        self.assertIsNone(self.redmine.find_user(discord_user))
 
-    @unittest.skip ## FIXME
-    def test_subject_threading(self):
-        # find expected tickets, based on subject
-        items = [
-            {"subject": "Search for subject match in email threading", "id": "193"}
-        ]
+    async def test_thread_sync(self):
+        # TODO
+        # test threading 
+        pass
         
-        for item in items:
-            tickets = client.search_tickets(item["subject"])
-            
-            self.assertEqual(1, len(tickets))
-            self.assertEqual(int(item["id"]), tickets[0].id)
 
 if __name__ == '__main__':
     unittest.main()
