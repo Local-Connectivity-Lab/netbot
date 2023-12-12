@@ -38,7 +38,6 @@ class TestSCNCog(unittest.IsolatedAsyncioTestCase):
         self.bot.load_extension("cog_scn")
         self.cog = self.bot.cogs["SCNCog"] # Note class name, note filename.
 
-    #@unittest.skip
     async def test_team_join_leave(self):
         test_team_name = "test-team"
         
@@ -111,6 +110,18 @@ class TestSCNCog(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.redmine.find_user(user.login))
         self.assertIsNone(self.redmine.find_user(discord_user))
 
+    @unittest.skip ## FIXME
+    def test_subject_threading(self):
+        # find expected tickets, based on subject
+        items = [
+            {"subject": "Search for subject match in email threading", "id": "193"}
+        ]
+        
+        for item in items:
+            tickets = client.search_tickets(item["subject"])
+            
+            self.assertEqual(1, len(tickets))
+            self.assertEqual(int(item["id"]), tickets[0].id)
 
 if __name__ == '__main__':
     unittest.main()
