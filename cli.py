@@ -243,7 +243,7 @@ closed_on: None
 
 def format_tickets(tickets, fields=["link","priority","updated","assigned","subject"]):
         if len(tickets) == 1:
-            format_ticket_details(ticket[0])
+            format_ticket_details(tickets[0])
         else:
             for ticket in tickets:
                 print(format_ticket(ticket, fields))
