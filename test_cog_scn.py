@@ -48,9 +48,16 @@ class TestSCNCog(unittest.IsolatedAsyncioTestCase):
         # 2. create new redmine user, using redmine api
         user = self.redmine.create_user(email, username, "Testy")
         self.assertIsNotNone(user)
+        self.assertEqual(email, user.login)
         
-        # 3. create temp discord mapping with redmine api 
-        self.redmine.create_discord_mapping(user.login, discord_user)
+        # 3. create temp discord mapping with scn add
+        #self.redmine.create_discord_mapping(user.login, discord_user)
+        ctx = test_utils.build_context(test_user_id, discord_user)
+        await self.cog.add(ctx, user.login) # invoke cog to add uer
+        await asyncio.sleep(0.01) # needed? smaller?
+        
+        # 3.5 check add result
+        ctx.respond.assert_called_with(f"Discord user: {discord_user} has been paired with redmine user: {user.login}")
         
         # 4. reindex users and lookup based on login and discord
         self.redmine.reindex_users()
