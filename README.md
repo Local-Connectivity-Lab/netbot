@@ -1,5 +1,9 @@
 # netbot
 
+[![Python application](https://github.com/philion/netbot/actions/workflows/python-app.yml/badge.svg)](https://github.com/philion/netbot/actions/workflows/python-app.yml)
+
+Testing currently requires VPN access, so automanted testing have been disables for now. To test manually, run `python -m unittest` from the commandline with an active VENV. 
+
 community **NET**work discord **BOT**, for integrating network management functions
 
 ## Deploy netbot
