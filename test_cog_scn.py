@@ -14,9 +14,7 @@ from netbot import NetBot
 
 import test_utils
 
-logging.basicConfig(level=logging.ERROR)
-
-
+#logging.basicConfig(level=logging.ERROR)
 #logging.basicConfig(level=logging.DEBUG)
 #logging.basicConfig(level=logging.DEBUG, 
 #                    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
@@ -28,11 +26,11 @@ test_username: str = "acmerocket"
 test_username2: str = "infrared0"
 test_user_id: int = 5
 
-
+@unittest.skipUnless(load_dotenv(), "ENV settings not available")
 class TestSCNCog(unittest.IsolatedAsyncioTestCase):
     
     def setUp(self):
-        load_dotenv()
+        #load_dotenv()
         self.redmine = Client()
         self.bot = NetBot(self.redmine)
         self.bot.load_extension("cog_scn")

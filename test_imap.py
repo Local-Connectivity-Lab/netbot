@@ -19,16 +19,20 @@ logging.basicConfig(level=logging.ERROR)
 
 log = logging.getLogger(__name__)
 
-load_dotenv()
-client = redmine.Client()
-imap = imap.Client()
 
+@unittest.skipUnless(load_dotenv(), "ENV settings not available")
 class TestMessages(unittest.TestCase):
+    
+    def setUp(self):
+        #load_dotenv()
+        self.redmine = redmine.Client()
+        self.imap = imap.Client()
+        
     def test_messages_examples(self):
         # open 
         for filename in glob.glob('test/*.eml'):
             with open(os.path.join(os.getcwd(), filename), 'rb') as file:
-                message = imap.parse_message(file.read())
+                message = self.imap.parse_message(file.read())
                 #print(message.subject_cleaned())
                 #if "Forwarded message" in message.note:
                 #    print(f"Found: {filename}")
@@ -38,7 +42,7 @@ class TestMessages(unittest.TestCase):
                 
     def test_email_address_parsing(self):
         from_address =  "Esther Jang <infrared@cs.washington.edu>"
-        first, last, addr = imap.parse_email_address(from_address)
+        first, last, addr = self.imap.parse_email_address(from_address)
         self.assertEqual(first, "Esther")
         self.assertEqual(last, "Jang")
         self.assertEqual(addr, "infrared@cs.washington.edu")
@@ -48,12 +52,12 @@ class TestMessages(unittest.TestCase):
     def test_upload(self):
 
         with open("test/message-161.eml", 'rb') as file:
-            message = imap.parse_message(file.read())
+            message = self.imap.parse_message(file.read())
             #print(message)
-            client.upload_attachments("philion", message.attachments)
+            self.redmine.upload_attachments("philion", message.attachments)
 
     def test_more_recent_ticket(self):
-        ticket = client.most_recent_ticket_for("philion")
+        ticket = self.redmine.most_recent_ticket_for("philion")
         self.assertIsNotNone(ticket)
         #print(ticket)
 
@@ -61,14 +65,14 @@ class TestMessages(unittest.TestCase):
     def test_email_address_parsing(self):
         addr = 'philion <philion@gmail.com>'
         
-        first, last, email = imap.parse_email_address(addr)
+        first, last, email = self.imap.parse_email_address(addr)
         self.assertEqual("philion", first)
         self.assertEqual("", last)
         self.assertEqual("philion@gmail.com", email)
         
         addr2 = 'Paul Philion <philion@acmerocket.com>'
         
-        first, last, email = imap.parse_email_address(addr2)
+        first, last, email = self.imap.parse_email_address(addr2)
         self.assertEqual("Paul", first)
         self.assertEqual("Philion", last)
         self.assertEqual("philion@acmerocket.com", email)
@@ -77,26 +81,26 @@ class TestMessages(unittest.TestCase):
     def test_new_account_from_email(self):
         test_email = "philion@acmerocket.com"
         
-        user = client.find_user(test_email)
+        user = self.redmine.find_user(test_email)
         log.info(f"found {user} for {test_email}")
         if user:
-            client.remove_user(user.id) # remove the user, for testing
-            client.reindex_users()
+            self.redmine.remove_user(user.id) # remove the user, for testing
+            self.redmine.reindex_users()
             log.info(f"removed user id={user.id} and reindexed for test")
         
         email = "test/message-190.eml"
         with open("test/message-190.eml", 'rb') as file:
-            message = imap.parse_message(file.read())
-            imap.handle_message("test", message)
+            message = self.imap.parse_message(file.read())
+            self.imap.handle_message("test", message)
         
-        client.reindex_users()
-        user = client.find_user(test_email)
+        self.redmine.reindex_users()
+        user = self.redmine.find_user(test_email)
         self.assertEqual(test_email, user.mail)
-        self.assertTrue(client.is_user_in_team(user.login, "users"))
+        self.assertTrue(self.redmine.is_user_in_team(user.login, "users"))
         
-        client.remove_user(user.id) # remove the user, for testing
-        client.reindex_users()
-        self.assertIsNone(client.find_user(test_email))
+        self.redmine.remove_user(user.id) # remove the user, for testing
+        self.redmine.reindex_users()
+        self.assertIsNone(self.redmine.find_user(test_email))
 
     def test_subject_search(self):
         # find expected tickets, based on subject
@@ -105,7 +109,7 @@ class TestMessages(unittest.TestCase):
         ]
         
         for item in items:
-            tickets = client.search_tickets(item["subject"])
+            tickets = self.redmine.search_tickets(item["subject"])
             
             self.assertEqual(1, len(tickets))
             self.assertEqual(int(item["id"]), tickets[0].id)

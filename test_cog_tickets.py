@@ -17,11 +17,11 @@ from netbot import NetBot
 
 log = logging.getLogger(__name__)
 
-
+@unittest.skipUnless(load_dotenv(), "ENV settings not available")
 class TestTicketsCog(unittest.IsolatedAsyncioTestCase):
     
     def setUp(self):
-        load_dotenv()
+        #load_dotenv()
         self.redmine = Client()
         self.bot = NetBot(self.redmine)
         #self.bot = self.build_bot("setup")
