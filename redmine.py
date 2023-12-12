@@ -645,7 +645,7 @@ class Client(): ## redmine.Client()
                         return dt.datetime.fromisoformat(timestr) ### UTC
                     except Exception as e:
                         log.info(f"no sync tag available, {e}")
-                        return None
+                        return dt.datetime.fromtimestamp(0).astimezone(dt.timezone.utc)
         except AttributeError:
             return "" # or None?
     

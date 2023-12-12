@@ -97,14 +97,13 @@ class NetBot(commands.Bot):
 
     async def synchronize_ticket(self, ticket, thread, ctx: discord.ApplicationContext):
         last_sync = self.redmine.get_field(ticket, "sync")
-        log.debug(
-            f"ticket {ticket.id} last sync: {last_sync} {age(last_sync)} ")
+        #log.debug(f"ticket {ticket.id} last sync: {last_sync} {age(last_sync)} ")
 
         # start of the process, will become "last update"
         timestamp = dt.datetime.now(dt.timezone.utc)  # UTC
 
         notes = self.redmine.get_notes_since(ticket.id, last_sync)
-        log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread}")
+        log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread.name}")
 
         for note in notes:
             msg = f"> **{note.user.name}** at *{note.created_on}*\n\n{note.notes}\n"
@@ -131,7 +130,7 @@ class NetBot(commands.Bot):
 
         # update the SYNC timestamp
         self.redmine.update_syncdata(ticket.id, timestamp)
-        log.info(f"completed sync for {ticket.id} <--> {thread}")
+        log.info(f"completed sync for {ticket.id} <--> {thread.name}")
 
 
     ### FORMATTING ###

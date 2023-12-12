@@ -14,11 +14,11 @@ from netbot import NetBot
 
 import test_utils
 
-#logging.basicConfig(level=logging.ERROR)
-#logging.basicConfig(level=logging.DEBUG)
-#logging.basicConfig(level=logging.DEBUG, 
-#                    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-#logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+#logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR, 
+                    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+logging.getLogger("asyncio").setLevel(logging.ERROR)
 
 log = logging.getLogger(__name__)
 
@@ -38,12 +38,12 @@ class TestSCNCog(unittest.IsolatedAsyncioTestCase):
         
         # create a test user. this could be a fixture!
         # create new test user name: test-12345@example.com, login test-12345
-        tag = test_utils.tagstr()
-        first = "test-" + tag
+        self.tag = test_utils.tagstr()
+        first = "test-" + self.tag
         last = "Testy"
         self.fullName = f"{first} {last}"
         email = first + "@example.com"
-        self.discord_user = "discord-" + tag 
+        self.discord_user = "discord-" + self.tag 
         # create new redmine user, using redmine api
         self.user = self.redmine.create_user(email, first, last)
         self.assertIsNotNone(self.user)
@@ -109,10 +109,17 @@ class TestSCNCog(unittest.IsolatedAsyncioTestCase):
         
 
     async def test_thread_sync(self):
-        # TODO
-        # test threading 
-        pass
+        test_ticket = 218
         
+        ctx = test_utils.build_context(test_user_id, self.discord_user)
+        ctx.channel = unittest.mock.AsyncMock(discord.Thread)
+        ctx.channel.name = f"Ticket #{test_ticket}: Search for subject match in email threading"
+        ctx.channel.id = self.tag
+        
+        await self.cog.sync(ctx)
+        ctx.respond.assert_called_with(f"SYNC ticket {test_ticket} to thread id: {self.tag} complete")
+        # check for actual changes! updated timestamp!
+
 
 if __name__ == '__main__':
     unittest.main()
