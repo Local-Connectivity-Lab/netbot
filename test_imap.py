@@ -61,7 +61,6 @@ class TestMessages(unittest.TestCase):
         self.assertIsNotNone(ticket)
         #print(ticket)
 
-
     def test_email_address_parsing(self):
         addr = 'philion <philion@gmail.com>'
         
