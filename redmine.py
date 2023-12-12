@@ -500,18 +500,18 @@ class Client(): ## redmine.Client()
             "user_id": user.id
         }
 
-        r = requests.post(
+        response = requests.post(
             url=f"{self.url}/groups/{team.id}/users.json", 
             data=json.dumps(data), 
             headers=self.get_headers())
-        
-        log.info(f"join_team {username}, {teamname}, {r}")
-
-        # check status
-        if r.status_code != 204:
-            log.error(f"Error joining group. status={r.status_code}: {r.request.url}, data={data}")
             
-
+        # check status
+        if response.ok:
+            log.info(f"join_team {username}, {teamname}")
+        else:
+            raise RedmineException(f"join_team failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
+        
+   
     def leave_team(self, username:int, teamname:str):
         # look up user ID
         user = self.find_user(username)

@@ -14,10 +14,14 @@ from netbot import NetBot
 
 import test_utils
 
+logging.basicConfig(level=logging.ERROR)
+
+
 #logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG, 
-                    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+#logging.basicConfig(level=logging.DEBUG, 
+#                    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+#logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+
 log = logging.getLogger(__name__)
 
 test_username: str = "acmerocket"
@@ -36,7 +40,7 @@ class TestSCNCog(unittest.IsolatedAsyncioTestCase):
 
     #@unittest.skip
     async def test_team_join_leave(self):
-        test_team_name = "users"
+        test_team_name = "test-team"
         
         # Test steps:
         # 1. create new test user name: test-12345@example.com, login test-12345
@@ -59,8 +63,12 @@ class TestSCNCog(unittest.IsolatedAsyncioTestCase):
         # 3.5 check add result
         ctx.respond.assert_called_with(f"Discord user: {discord_user} has been paired with redmine user: {user.login}")
         
-        # 4. reindex users and lookup based on login and discord
-        self.redmine.reindex_users()
+        # 4. reindex using cog
+        ctx = test_utils.build_context(test_user_id, discord_user)
+        await self.cog.reindex(ctx) # invoke cog to add uer
+        await asyncio.sleep(0.01) # needed? smaller?
+        # 4.5 check reindex result, and lookup based on login and discord id
+        ctx.respond.assert_called_with("Rebuilt redmine indices.")
         self.assertIsNotNone(self.redmine.find_user(user.login))
         self.assertIsNotNone(self.redmine.find_user(discord_user))
         
@@ -76,6 +84,12 @@ class TestSCNCog(unittest.IsolatedAsyncioTestCase):
         ctx.respond.assert_called_with(f"**{discord_user}** has joined *{test_team_name}*")
         self.assertTrue(self.redmine.is_user_in_team(user.login, test_team_name), f"{user.login} not in team {test_team_name}")
         
+        # 6.5 confirm via cog teams
+        ctx = test_utils.build_context(test_user_id, discord_user)
+        await self.cog.teams(ctx, test_team_name)
+        await asyncio.sleep(0.01) # needed? smaller?
+        self.assertIn(f"{username} Testy", str(ctx.respond.call_args))
+
         # 7. leave team users
         ctx = test_utils.build_context(test_user_id, discord_user)
         await self.cog.leave(ctx, test_team_name)
@@ -84,7 +98,13 @@ class TestSCNCog(unittest.IsolatedAsyncioTestCase):
         # 8. confirm via API and callback
         self.assertFalse(self.redmine.is_user_in_team(user.login, test_team_name), f"{user.login} *in* team {test_team_name}")
         ctx.respond.assert_called_with(f"**{discord_user}** has left *{test_team_name}*")
-
+        
+        # 8.5 confirm via cog teams
+        ctx = test_utils.build_context(test_user_id, discord_user)
+        await self.cog.teams(ctx, test_team_name)
+        await asyncio.sleep(0.01) # needed? smaller?
+        self.assertNotIn(f"{username}", str(ctx.respond.call_args))
+        
         # 9. delete user with redmine api, assert
         self.redmine.remove_user(user.id)
         self.redmine.reindex_users()

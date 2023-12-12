@@ -10,10 +10,13 @@ from dotenv import load_dotenv
 import imap
 import redmine
 
+logging.basicConfig(level=logging.ERROR)
+
 #logging.basicConfig(level=logging.DEBUG)
 #logging.basicConfig(level=logging.DEBUG, 
 #    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
 #logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+
 log = logging.getLogger(__name__)
 
 load_dotenv()

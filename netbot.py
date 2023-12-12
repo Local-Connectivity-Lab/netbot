@@ -19,14 +19,16 @@ from dotenv import load_dotenv
 
 from discord.ext import commands
 
-logging.basicConfig(level=logging.DEBUG,
-                    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
 
-logging.getLogger("discord.gateway").setLevel(logging.WARNING)
-logging.getLogger("discord.http").setLevel(logging.INFO)
-logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-logging.getLogger("discord.client").setLevel(logging.INFO)
-logging.getLogger("discord.webhook.async_").setLevel(logging.INFO)
+def setup_logging():
+    logging.basicConfig(level=logging.DEBUG,
+                        format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+
+    logging.getLogger("discord.gateway").setLevel(logging.WARNING)
+    logging.getLogger("discord.http").setLevel(logging.INFO)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+    logging.getLogger("discord.client").setLevel(logging.INFO)
+    logging.getLogger("discord.webhook.async_").setLevel(logging.INFO)
 
 
 log = logging.getLogger(__name__)
@@ -215,6 +217,8 @@ class NetBot(commands.Bot):
 
 
 def main():
+    setup_logging()
+    
     log.info(f"initializing {__name__}")
     load_dotenv()
 
