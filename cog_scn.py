@@ -86,14 +86,15 @@ class SCNCog(commands.Cog):
         if member:
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
             discord_name = member.name
+            
         user = self.redmine.find_discord_user(discord_name)
-        
-        if user:
+        if user is None:
+            await ctx.respond(f"Unknown user, no Discord mapping: {discord_name}")
+        elif self.redmine.find_team(teamname) is None:
+            await ctx.respond(f"Unknown team name: {teamname}")
+        else:
             self.redmine.join_team(user.login, teamname)
             await ctx.respond(f"**{discord_name}** has joined *{teamname}*")
-        else:
-            await ctx.respond(f"Unknown Discord user: {discord_name}.")
-        pass
 
 
     @scn.command(description="leave the specified team")

@@ -127,6 +127,7 @@ class Client(): ## imap.Client()
         first, last, addr = self.parse_email_address(message.from_address)
         log.debug(f'uid:{msg_id} - from:{last}, {first}, email:{addr}, subject:{message.subject}')
 
+        ticket = None
         # first, search for a matching subject
         tickets = self.redmine.search_tickets(message.subject_cleaned())
         if len(tickets) == 1:
@@ -139,7 +140,7 @@ class Client(): ## imap.Client()
             ticket = tickets[0]
                     
         # next, find ticket using the subject, if possible           
-        if ticket == None:
+        if ticket is None:
             # this uses a simple REGEX '#\d+' to match ticket numbers
             ticket = self.redmine.find_ticket_from_str(message.subject)
 

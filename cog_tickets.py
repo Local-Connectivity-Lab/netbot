@@ -36,6 +36,7 @@ class TicketsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.redmine = bot.redmine
+        log.debug(f"Initialized with {self.redmine}")
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
 
@@ -130,7 +131,12 @@ class TicketsCog(commands.Cog):
     @option("title", description="Title of the new SCN ticket")
     @option("add_thread", description="Create a Discord thread for the new ticket", default=False)
     async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str):
+        log.debug(f"######## {self}, {ctx}, {title}")
         user = self.redmine.find_discord_user(ctx.user.name)
+        if user is None:
+            await ctx.respond(f"Unknown user: {ctx.user.name}")
+            return
+        
         # text templating
         text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
         ticket = self.redmine.create_ticket(user, title, text)
