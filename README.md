@@ -2,7 +2,7 @@
 
 [![Python application](https://github.com/philion/netbot/actions/workflows/python-app.yml/badge.svg?branch=main)](https://github.com/philion/netbot/actions/workflows/python-app.yml)
 
-Testing currently requires VPN access, so automanted testing have been disables for now. To test manually, run `python -m unittest` from the commandline with an active VENV. 
+Testing currently requires VPN access, so automanted tests are skipped for now. To test manually, run `python -m unittest` from the commandline with a valid `.env` file.
 
 community **NET**work discord **BOT**, for integrating network management functions
 
@@ -63,6 +63,7 @@ This cron job uses the Python venv to execute, and captures std and err output t
 
 Logs from the runs are stored in `/home/scn/github/netbot/logs` folder, one per cron jon with timestamps.
 
+
 ## Discord Usage
 `netbot` provides the following commands in Discord:
 
@@ -92,7 +93,6 @@ thread #           - Create new synced thread for ticket in the current text cha
 new [title]        - Create a new ticket with the title [title]
 
 ```
-
 
 
 ## CLI
