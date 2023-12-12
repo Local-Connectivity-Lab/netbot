@@ -308,6 +308,17 @@ class Client(): ## redmine.Client()
         if r.status_code != 204:
             log.error(f"Error removing user status={r.status_code}, url={r.request.url}")
             
+    def remove_ticket(self, ticket_id:int):
+        # DELETE to /issues/{ticket_id}.json
+        response = requests.delete(
+            url=f"{self.url}/issues/{ticket_id}.json", 
+            headers=self.get_headers())
+        
+        if response.ok:
+            log.info(f"remove_ticket {ticket_id}")
+        else:
+            raise RedmineException(f"remove_ticket failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])  
+        
         
     def most_recent_ticket_for(self, email):
         # get the user record for the email

@@ -27,7 +27,7 @@ test_username2: str = "infrared0"
 test_user_id: int = 5
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
-class TestSCNCog(unittest.IsolatedAsyncioTestCase):
+class TestSCNCog(test_utils.CogTestCase):
     
     def setUp(self):
         #load_dotenv()

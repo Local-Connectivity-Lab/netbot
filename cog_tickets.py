@@ -71,6 +71,8 @@ class TicketsCog(commands.Cog):
         # add groups to users.
 
         # lookup the user
+        log.debug(f"looking for user mapping for {ctx}")
+
         user = self.redmine.find_discord_user(ctx.user.name)
         log.debug(f"found user mapping for {ctx.user.name}: {user}")
 
@@ -131,7 +133,6 @@ class TicketsCog(commands.Cog):
     @option("title", description="Title of the new SCN ticket")
     @option("add_thread", description="Create a Discord thread for the new ticket", default=False)
     async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str):
-        log.debug(f"######## {self}, {ctx}, {title}")
         user = self.redmine.find_discord_user(ctx.user.name)
         if user is None:
             await ctx.respond(f"Unknown user: {ctx.user.name}")
@@ -141,7 +142,6 @@ class TicketsCog(commands.Cog):
         text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
         ticket = self.redmine.create_ticket(user, title, text)
         if ticket:
-            #await self.print_ticket(ticket, ctx)
             await ctx.respond(self.format_ticket(ticket)[:2000]) #trunc
         # error handling? exception? 
         else:
