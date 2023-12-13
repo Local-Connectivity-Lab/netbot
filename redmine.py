@@ -576,7 +576,7 @@ class Client(): ## redmine.Client()
         if r.status_code == 200:
             return json.loads(r.text, object_hook=lambda x: SimpleNamespace(**x))
         else:
-            log.error(f"{r.status_code}: {r.request.url}")
+            log.warning(f"{r.status_code}: {r.request.url}")
             return None
     
 

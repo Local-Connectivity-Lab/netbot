@@ -31,33 +31,58 @@ class TestTicketsCog(test_utils.CogTestCase):
         self.bot.load_extension("cog_tickets")
         self.cog = self.bot.cogs["TicketsCog"] # Note class name, note filename.
     
+    # tickets - that it gets a reasonable response
+    #async def test_tickets_query(self):
+    #    pass
+    # added test to 
+    
+    def parse_markdown_link(self, text:str) -> (str, str):
+        regex = "^\[(\d+)\]\((.+)\)"
+        m = re.match(regex, text)
+        self.assertIsNotNone(m, f"could not find ticket number in response str: {text}")
+        
+        ticket_id = m.group(1)
+        url = m.group(2)
+        return ticket_id, url
+    
     
     async def test_new_ticket(self):
         # create ticket with discord user, assert
-        test_title = "This is a test ticket"
+        test_title = f"This is a test ticket {self.tag}"
         ctx = self.build_context()
         await self.cog.create_new_ticket(ctx, test_title)
         response_str = ctx.respond.call_args.args[0]
-        
-        regex = "^\[(\d+)\]\((.+)\)"
-        m = re.match(regex, response_str)
-        self.assertIsNotNone(m, f"could not find ticket number in response str: {response_str}")
 
-        ticket_id = m.group(1)
-        url = m.group(2)
-        log.debug(f"created ticket {ticket_id}, {url}")
+        ticket_id, url = self.parse_markdown_link(response_str)
+        log.debug(f"created ticket: {ticket_id}, {url}")
 
-        # get the ticket using a new context
+        # get the ticket using id
         ctx = self.build_context()
         await self.cog.tickets(ctx, ticket_id)
         response_str = ctx.respond.call_args.args[0]
         self.assertIn(ticket_id, response_str)
         self.assertIn(url, response_str)
         
+        # get the ticket using tag
+        ctx = self.build_context()
+        await self.cog.tickets(ctx, self.tag)
+        response_str = ctx.respond.call_args.args[0]
+        self.assertIn(ticket_id, response_str)
+        self.assertIn(url, response_str)
+        
         # delete ticket with redmine api, assert
         self.redmine.remove_ticket(int(ticket_id))
-        # TODO check that the ticket has been removed
-        
+        # check that the ticket has been removed
+        self.assertIsNone(self.redmine.get_ticket(int(ticket_id)))
+    
+    
+    # ticket - case "show", "details", "unassign", "resolve", "progress":
+    async def test_ticket_update(self):
+        pass
+
+    # create thread/sync 
+    async def test_thread_sync(self):
+        pass
 
 
 if __name__ == '__main__':
