@@ -67,13 +67,13 @@ class TestTicketsCog(test_utils.CogTestCase):
         self.assertIn(ticket_id, response_str)
         self.assertIn(url, response_str)
          
-        # assign the ticket - NOT IMPLEMENTED
-        #ctx = self.build_context()
-        #await self.cog.ticket(ctx, ticket_id, "assign")
-        #response_str = ctx.respond.call_args.args[0]
-        #self.assertIn(ticket_id, response_str)
-        #self.assertIn(url, response_str)
-        #self.assertIn(self.user.login, response_str)
+        # assign the ticket
+        ctx = self.build_context()
+        await self.cog.ticket(ctx, ticket_id, "assign")
+        response_str = ctx.respond.call_args.args[0]
+        self.assertIn(ticket_id, response_str)
+        self.assertIn(url, response_str)
+        self.assertIn(self.fullName, response_str)
         
         # "progress" the ticket, setting it in-progress and assigning it to "me"
         ctx = self.build_context()
