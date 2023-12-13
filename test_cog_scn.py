@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import unittest
 import logging
 import discord
@@ -26,13 +27,13 @@ test_username: str = "acmerocket"
 test_username2: str = "infrared0"
 test_user_id: int = 5
 
+
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
 class TestSCNCog(test_utils.CogTestCase):
-    def __init__(self, methodName: str = "runTest") -> None:
-        super().__init__(methodName)
         
-        self.redmine = Client()
-        self.bot = NetBot(self.redmine)
+    def setUp(self):
+        super().setUp()
+        
         self.bot.load_extension("cog_scn")
         self.cog = self.bot.cogs["SCNCog"] # Note class name, note filename.
         

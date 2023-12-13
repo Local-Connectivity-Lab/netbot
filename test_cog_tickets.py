@@ -3,6 +3,7 @@
 import unittest
 import logging
 import re
+import os
 
 from dotenv import load_dotenv
 
@@ -23,12 +24,10 @@ log = logging.getLogger(__name__)
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
 class TestTicketsCog(test_utils.CogTestCase):
-    
-    def __init__(self, methodName: str = "runTest") -> None:
-        super().__init__(methodName)
         
-        self.redmine = Client()
-        self.bot = NetBot(self.redmine)
+    def setUp(self):
+        super().setUp()
+
         self.bot.load_extension("cog_tickets")
         self.cog = self.bot.cogs["TicketsCog"] # Note class name, note filename.
     

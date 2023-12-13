@@ -6,6 +6,8 @@ import unittest
 import discord
 from discord import ApplicationContext
 from unittest import mock
+from redmine import Client
+from netbot import NetBot
 
 log = logging.getLogger(__name__)
 
@@ -44,6 +46,9 @@ class CogTestCase(unittest.IsolatedAsyncioTestCase):
     
     
     def setUp(self):
+        self.redmine = Client()
+        self.bot = NetBot(self.redmine)
+        
         # create a test user. this could be a fixture!
         # create new test user name: test-12345@example.com, login test-12345
         self.tag = self.tagstr()

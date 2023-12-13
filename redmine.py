@@ -26,7 +26,13 @@ class RedmineException(Exception):
 class Client(): ## redmine.Client()
     def __init__(self):
         self.url = os.getenv('REDMINE_URL')
+        if self.url is None:
+            raise RedmineException("Unable to load REDMINE_URL", "[n/a]")
+        
         self.token = os.getenv('REDMINE_TOKEN')
+        if self.url is None:
+            raise RedmineException("Unable to load REDMINE_TOKEN")
+        
         self.reindex()
 
     def create_ticket(self, user, subject, body, attachments=None):
