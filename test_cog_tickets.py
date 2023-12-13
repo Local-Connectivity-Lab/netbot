@@ -24,6 +24,15 @@ log = logging.getLogger(__name__)
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
 class TestTicketsCog(test_utils.CogTestCase):
     
+    def __init__(self, methodName: str = "runTest") -> None:
+        super().__init__(methodName)
+        
+        self.redmine = Client()
+        self.bot = NetBot(self.redmine)
+        self.bot.load_extension("cog_tickets")
+        self.cog = self.bot.cogs["TicketsCog"] # Note class name, note filename.
+    
+    
     async def test_new_ticket(self):
         # create ticket with discord user, assert
         test_title = "This is a test ticket"
