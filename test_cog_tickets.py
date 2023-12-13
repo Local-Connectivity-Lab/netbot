@@ -14,6 +14,7 @@ from netbot import NetBot
 import test_utils
 
 #logging.basicConfig(level=logging.DEBUG)
+
 logging.basicConfig(level=logging.DEBUG, 
                     format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
 logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
@@ -31,10 +32,6 @@ class TestTicketsCog(test_utils.CogTestCase):
         self.bot.load_extension("cog_tickets")
         self.cog = self.bot.cogs["TicketsCog"] # Note class name, note filename.
     
-    # tickets - that it gets a reasonable response
-    #async def test_tickets_query(self):
-    #    pass
-    # added test to 
     
     def parse_markdown_link(self, text:str) -> (str, str):
         regex = "^\[(\d+)\]\((.+)\)"
@@ -69,6 +66,30 @@ class TestTicketsCog(test_utils.CogTestCase):
         response_str = ctx.respond.call_args.args[0]
         self.assertIn(ticket_id, response_str)
         self.assertIn(url, response_str)
+         
+        # assign the ticket - NOT IMPLEMENTED
+        #ctx = self.build_context()
+        #await self.cog.ticket(ctx, ticket_id, "assign")
+        #response_str = ctx.respond.call_args.args[0]
+        #self.assertIn(ticket_id, response_str)
+        #self.assertIn(url, response_str)
+        #self.assertIn(self.user.login, response_str)
+        
+        # "progress" the ticket, setting it in-progress and assigning it to "me"
+        ctx = self.build_context()
+        await self.cog.ticket(ctx, ticket_id, "progress")
+        response_str = ctx.respond.call_args.args[0]
+        self.assertIn(ticket_id, response_str)
+        self.assertIn(url, response_str)
+        self.assertIn(self.fullName, response_str)
+        
+        # resolve the ticket
+        ctx = self.build_context()
+        await self.cog.ticket(ctx, ticket_id, "resolve")
+        response_str = ctx.respond.call_args.args[0]
+        self.assertIn(ticket_id, response_str)
+        self.assertIn(url, response_str)
+        self.assertIn(self.fullName, response_str)
         
         # delete ticket with redmine api, assert
         self.redmine.remove_ticket(int(ticket_id))

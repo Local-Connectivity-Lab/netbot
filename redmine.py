@@ -585,14 +585,18 @@ class Client(): ## redmine.Client()
         if user:
             fields = {
                 "assigned_to_id": user.id,
-                "status_id": "1", # New
+                #"status_id": "1", # New
             }
+            if user_id is None:
+                # use the user-id to self-assign
+                user_id = user.login
             self.update_ticket(id, fields, user_id)
         else:
             log.error(f"unknow user: {target}")
     
 
     def progress_ticket(self, id, user_id=None): # TODO notes
+        
         fields = {
             "assigned_to_id": "me",
             "status_id": "2", # "In Progress"

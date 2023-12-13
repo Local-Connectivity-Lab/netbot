@@ -107,20 +107,20 @@ class TicketsCog(commands.Cog):
                     else:
                         await ctx.respond(f"Ticket {ticket_id} not found.")                
                 case "unassign":
-                    self.redmine.unassign_ticket(id, user.login)
-                    await self.print_ticket(self.redmine.get_ticket(id), ctx)
+                    self.redmine.unassign_ticket(ticket_id, user.login)
+                    await self.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
                 case "resolve":
-                    self.redmine.resolve_ticket(id, user.login)
-                    await self.print_ticket(self.redmine.get_ticket(id), ctx)
+                    self.redmine.resolve_ticket(ticket_id, user.login)
+                    await self.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
                 case "progress":
-                    self.progress_ticket(id, user.login)
-                    await self.print_ticket(self.redmine.get_ticket(id), ctx)
-                case "note":
-                    await ctx.respond("not implemented")
-                #case "sync":
-                #    await ctx.respond("not implemented")
+                    self.redmine.progress_ticket(ticket_id, user.login)
+                    await self.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
+                #case "note":
+                #    msg = ???
+                #    self.redmine.append_message(ticket_id, user.login, msg)
                 case "assign":
-                    await ctx.respond("not implemented")
+                    self.redmine.assign_ticket(ticket_id, user.login)
+                    await self.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
                 case _:
                     await ctx.respond("unknown command: {action}")
         except Exception as e:
@@ -181,6 +181,14 @@ class TicketsCog(commands.Cog):
 
     async def print_tickets(self, tickets, ctx):
         msg = self.format_tickets(tickets)
+        
+        if len(msg) > 2000:
+            log.warning("message over 2000 chars. truncing.")
+            msg = msg[:2000]
+        await ctx.respond(msg)
+
+    async def print_ticket(self, ticket, ctx):
+        msg = self.format_ticket(ticket)
         
         if len(msg) > 2000:
             log.warning("message over 2000 chars. truncing.")
