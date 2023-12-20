@@ -13,6 +13,7 @@ from redmine import Client
 from netbot import NetBot
 import discord
 import test_utils
+import datetime as dt
 
 #logging.basicConfig(level=logging.DEBUG)
 
@@ -99,11 +100,15 @@ class TestTicketsCog(test_utils.CogTestCase):
 
     # create thread/sync 
     async def test_thread_sync(self):
-        # create a ticket
-        title = f"Test Thread Ticket {self.tag}"
-        text = f"This is a test thread ticket tagges with {self.tag}"
-        ticket = self.redmine.create_ticket(self.user, title, text)
-        
+        timestamp = dt.datetime.now().astimezone(dt.timezone.utc)
+
+        # create a ticket and add a note
+        subject = f"Test Thread Ticket {self.tag}"
+        text = f"This is a test thread ticket tagged with {self.tag}"
+        note = f"This is a test note tagged with {self.tag}"
+        ticket = self.redmine.create_ticket(self.user, subject, text)
+        self.redmine.append_message(ticket.id, self.user.login, note)
+
         # thread the ticket using 
         ctx = self.build_context()
         ctx.channel = unittest.mock.AsyncMock(discord.Thread)
@@ -115,10 +120,23 @@ class TestTicketsCog(test_utils.CogTestCase):
         
         await self.cog.thread(ctx, ticket.id)
         response = ctx.respond.call_args.args[0]
+        thread_response = str(ctx.channel.create_thread.call_args) # hacky
+        #log.info(f"#### response args: {ctx.channel.create_thread.call_args}")
         self.assertIn(str(ticket.id), response)
+        self.assertIn(str(ticket.id), thread_response)
+        self.assertIn(self.tag, thread_response)
+
+        # test note appended to thread
+        #log.info(f"#### send args: {thread.send.call_args}")
+        send_args = str(thread.send.call_args) # hacky
+        # call('> **test-s5xyrj Testy** at *2023-12-20T01:28:32Z*\n\nThis is a test note tagged with s5xyrj\n')
+        self.assertIn(self.fullName, send_args)
+        self.assertIn(note, send_args)
         
-        # add a note
-        # ...
+        # test redmine syncdata
+        ticket = self.redmine.get_ticket(ticket.id)
+        last_update = self.redmine.get_field(ticket, "sync")
+        self.assertLess(timestamp, last_update)
         
         # delete the ticket
         self.redmine.remove_ticket(ticket.id)

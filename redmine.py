@@ -114,7 +114,7 @@ class Client(): ## redmine.Client()
             raise RedmineException(f"update_ticket failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
 
 
-    def append_message(self, ticket_id:str, user_login:str, note:str, attachments=None):
+    def append_message(self, ticket_id:int, user_login:str, note:str, attachments=None):
         # PUT a simple JSON structure
         data = {
             'issue': {

@@ -150,7 +150,7 @@ class TicketsCog(commands.Cog):
 
     async def create_thread(self, ticket, ctx):
         log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
-        name = f"Ticket #{ticket.id}: {ticket.subject[:20]}"
+        name = f"Ticket #{ticket.id}: {ticket.subject}"
         return await ctx.channel.create_thread(name=name)
 
 
