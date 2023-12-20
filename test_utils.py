@@ -12,7 +12,7 @@ from netbot import NetBot
 log = logging.getLogger(__name__)
 
 
-class CogTestCase(unittest.IsolatedAsyncioTestCase):
+class BotTestCase(unittest.IsolatedAsyncioTestCase):
     
     # from https://github.com/tonyseek/python-base36/blob/master/base36.py
     def dumps(self, num:int)-> str:

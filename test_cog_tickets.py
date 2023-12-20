@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
-class TestTicketsCog(test_utils.CogTestCase):
+class TestTicketsCog(test_utils.BotTestCase):
         
     def setUp(self):
         super().setUp()

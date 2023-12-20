@@ -29,7 +29,7 @@ test_user_id: int = 5
 
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
-class TestSCNCog(test_utils.CogTestCase):
+class TestSCNCog(test_utils.BotTestCase):
         
     def setUp(self):
         super().setUp()
