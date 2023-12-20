@@ -11,6 +11,7 @@ from typing import Any
 
 from redmine import Client
 from netbot import NetBot
+import discord
 import test_utils
 
 #logging.basicConfig(level=logging.DEBUG)
@@ -95,15 +96,32 @@ class TestTicketsCog(test_utils.CogTestCase):
         self.redmine.remove_ticket(int(ticket_id))
         # check that the ticket has been removed
         self.assertIsNone(self.redmine.get_ticket(int(ticket_id)))
-    
-    
-    # ticket - case "show", "details", "unassign", "resolve", "progress":
-    async def test_ticket_update(self):
-        pass
 
     # create thread/sync 
     async def test_thread_sync(self):
-        pass
+        # create a ticket
+        title = f"Test Thread Ticket {self.tag}"
+        text = f"This is a test thread ticket tagges with {self.tag}"
+        ticket = self.redmine.create_ticket(self.user, title, text)
+        
+        # thread the ticket using 
+        ctx = self.build_context()
+        ctx.channel = unittest.mock.AsyncMock(discord.Thread)
+        ctx.channel.name = f"Test Channel {self.tag}"
+        ctx.channel.id = self.tag
+        thread = unittest.mock.AsyncMock(discord.Thread)
+        #thread.
+        ctx.channel.create_thread = unittest.mock.AsyncMock(name="create_thread", return_value=thread)
+        
+        await self.cog.thread(ctx, ticket.id)
+        response = ctx.respond.call_args.args[0]
+        self.assertIn(str(ticket.id), response)
+        
+        # add a note
+        # ...
+        
+        # delete the ticket
+        self.redmine.remove_ticket(ticket.id)
 
 
 if __name__ == '__main__':

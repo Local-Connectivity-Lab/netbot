@@ -169,7 +169,7 @@ class TicketsCog(commands.Cog):
             self.redmine.enable_discord_sync(ticket.id, user, note)
 
             # sync the ticket, so everything is up to date
-            await self.bot.synchronize_ticket(ticket.id, thread, ctx)
+            await self.bot.synchronize_ticket(ticket, thread, ctx)
 
             # TODO format command for single ticket
             await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
