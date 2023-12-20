@@ -4,16 +4,10 @@ import os
 import re
 import logging
 import datetime as dt
-import io
 
 import discord
 import redmine
-import humanize
 
-# using https://pypi.org/project/rich/ for terminal formatting
-from rich.console import Console
-from rich.table import Table
-from rich import box
 
 from dotenv import load_dotenv
 
@@ -70,6 +64,12 @@ class NetBot(commands.Bot):
         log.info(f"Joined thread: {thread}")
         
 
+    def parse_thread_title(self, title: str) -> int:
+        match = re.match(r'^Ticket #(\d+):', title)
+        if match:
+            return int(match.group(1))
+
+
     async def on_message(self, message: discord.Message):
         # Make sure we won't be replying to ourselves.
         # if message.author.id == bot.user.id:
@@ -81,6 +81,7 @@ class NetBot(commands.Bot):
             if ticket_id:
                 await self.sync_new_message(ticket_id, message)
             # else just a normal thread, do nothing
+
 
     async def sync_new_message(self, ticket_id: int, message: discord.Message):
         # ticket = redmine.get_ticket(ticket_id, include_journals=True)
@@ -94,6 +95,7 @@ class NetBot(commands.Bot):
         else:
             log.warning(
                 f"Unknown discord user: {message.author.name}, skipping message")
+
 
     async def synchronize_ticket(self, ticket, thread, ctx: discord.ApplicationContext):
         last_sync = self.redmine.get_field(ticket, "sync")
@@ -131,77 +133,6 @@ class NetBot(commands.Bot):
         # update the SYNC timestamp
         self.redmine.update_syncdata(ticket.id, timestamp)
         log.info(f"completed sync for {ticket.id} <--> {thread.name}")
-
-
-    ### FORMATTING ###
-    
-    # the table version
-    def print_ticket_table(self, tickets, fields=["link","status","priority","age","assigned","subject"]):
-        if not tickets:
-            print("no tickets found")
-            return
-        elif len(tickets) == 1:
-            self.print_ticket(tickets[0])
-            return
-
-        console = Console(file=io.StringIO(), width=80, color_system=None)
-
-        table = Table(show_header=True, width=80, box=box.SIMPLE_HEAD, collapse_padding=True, header_style="bold magenta")
-        for field in fields:
-            #table.add_column("Date", style="dim", width=12)
-            table.add_column(field)
-
-        for ticket in tickets:
-            row = []
-            for field in fields:
-                row.append(self.get_formatted_field(ticket, field))
-            table.add_row(*row)
-
-        for line in console.file.getvalue():
-            print(f"---- {line}")
-        
-    
-    
-
-    async def print_tickets(self, tickets, ctx):
-        msg = self.format_tickets(tickets)
-        
-        if len(msg) > 2000:
-            log.warning("message over 2000 chars. truncing.")
-            msg = msg[:2000]
-        await ctx.respond(msg)
-
-    def format_tickets(self, tickets, fields=["link","priority","updated","assigned","subject"]):
-        if tickets is None:
-            return "No tickets found."
-        
-        section = ""
-        for ticket in tickets:
-            section += self.format_ticket(ticket, fields) + "\n" # append each ticket
-        return section.strip()
-
-    def format_ticket(self, ticket, fields):
-        section = ""
-        for field in fields:
-            section += self.redmine.get_field(ticket, field) + " " # spacer, one space
-        return section.strip() # remove trailing whitespace
-
-    def format_section(self, tickets, status):
-        section = ""
-        section += f"> {status}\n"
-        for ticket in tickets:
-            if ticket.status.name == status:
-                url = self.redmine.get_field(ticket, "url")
-                assigned = self.redmine.get_field(ticket, "assigned")
-                section += f"[**`{ticket.id:>4}`**]({url})`  {ticket.priority.name:<6}  {ticket.updated_on[:10]}\
-                        {assigned[:20]:<20}  {ticket.subject}`\n"
-        return section
-
-
-    def parse_thread_title(self, title: str) -> int:
-        match = re.match(r'^Ticket #(\d+):', title)
-        if match:
-            return int(match.group(1))
         
     
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
@@ -212,7 +143,6 @@ class NetBot(commands.Bot):
             log.error(f"{error}")
             #raise error  # Here we raise other errors to ensure they aren't ignored
             await ctx.respond(f"{error}")
-
 
 
 def main():
@@ -230,11 +160,6 @@ def main():
 
     # run the bot
     bot.run()
-
-
-def age(time: dt.datetime):
-    age = dt.datetime.utcnow().astimezone(dt.timezone.utc) - time
-    return humanize.naturaldelta(age)
 
 
 if __name__ == '__main__':
