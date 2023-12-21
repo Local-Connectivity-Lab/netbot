@@ -106,6 +106,8 @@ class TestTicketsCog(test_utils.BotTestCase):
         subject = f"Test Thread Ticket {self.tag}"
         text = f"This is a test thread ticket tagged with {self.tag}"
         note = f"This is a test note tagged with {self.tag}"
+        #old_message = f"This is a sync message with {self.tag}"
+
         ticket = self.redmine.create_ticket(self.user, subject, text)
         self.redmine.append_message(ticket.id, self.user.login, note)
 
@@ -115,7 +117,15 @@ class TestTicketsCog(test_utils.BotTestCase):
         ctx.channel.name = f"Test Channel {self.tag}"
         ctx.channel.id = self.tag
         thread = unittest.mock.AsyncMock(discord.Thread)
-        #thread.
+        # setup history with a message from the user - disabled while I work out the history mock.
+        #member = unittest.mock.AsyncMock(discord.Member)
+        #member.name=self.discord_user
+        #message = unittest.mock.AsyncMock(discord.Message)
+        #message.channel = thread
+        #message.content=old_message
+        #message.author=member
+        #thread.history = unittest.mock.AsyncMock(name="history")
+        #thread.history.flatten = unittest.mock.AsyncMock(name="flatten", return_value=[message])
         ctx.channel.create_thread = unittest.mock.AsyncMock(name="create_thread", return_value=thread)
         
         await self.cog.thread(ctx, ticket.id)

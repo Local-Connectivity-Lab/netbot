@@ -43,6 +43,7 @@ class Message():
         self.from_address = from_addr
         self.subject = subject
         self.attachments = []
+        self.note = ""
 
     # Note: note containts the text of the message, the body of the email
     def set_note(self, note:str):
@@ -108,10 +109,13 @@ class Client(): ## imap.Client()
                     type=content_type,
                     payload=part.get_payload(decode=True)))
                 log.debug(f"Added attachment: {part.get_filename()} {content_type}")
+            # FIXME ticket 208 - http://10.10.0.218/issues/208
             elif content_type == 'text/plain': # FIXME std const?
                 payload = part.get_payload(decode=True).decode('UTF-8')
                 
                 # strip any forwarded messages
+                # FIXME look for google content, as in http://10.10.0.218/issues/323
+                # from ^>
                 forward_tag = "------ Forwarded message ---------"
                 idx = payload.find(forward_tag)
                 if idx > -1:
@@ -121,6 +125,22 @@ class Client(): ## imap.Client()
                 log.debug(f"Set note, size={len(payload)}")
 
         return message
+
+    """
+    <https://voice.google.com>
+
+    YOUR ACCOUNT <https://voice.google.com> HELP CENTER
+    <https://support.google.com/voice#topic=1707989> HELP FORUM
+    <https://productforums.google.com/forum/#!forum/voice>
+    This email was sent to you because you indicated that you'd like to receive
+    email notifications for text messages. If you don't want to receive such
+    emails in the future, please update your email notification settings
+    <https://voice.google.com/settings#messaging&gt;.
+    Google LLC
+    1600 Amphitheatre Pkwy
+    Mountain View CA 94043 USA
+    """
+
 
 
     def handle_message(self, msg_id:str, message:Message):

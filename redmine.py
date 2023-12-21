@@ -653,19 +653,17 @@ class Client(): ## redmine.Client()
                 case "title":
                     return ticket.title
                 case "age":
-                    #log.debug(f"### fromisoformat: {ticket.updated_on}")
-                    updated = dt.datetime.fromisoformat(ticket.updated_on) ###
+                    updated = dt.datetime.fromisoformat(ticket.updated_on) ### UTC
                     age = dt.datetime.now(dt.timezone.utc) - updated
                     return humanize.naturaldelta(age)  
                 case "sync":
                     try:
                         # Parse custom_field into datetime
-                        # FIXME: this is fragile, add custom field lookup
+                        # FIXME: this is fragile: relies on specific index of custom field, add custom field lookup by name
                         timestr = ticket.custom_fields[1].value 
-                        #log.debug(f"### fromisoformat: {timestr}")
                         return dt.datetime.fromisoformat(timestr) ### UTC
                     except Exception as e:
-                        log.info(f"no sync tag available, {e}")
+                        log.debug(f"sync tag not set, using epoch")
                         return dt.datetime.fromtimestamp(0).astimezone(dt.timezone.utc)
         except AttributeError:
             return "" # or None?

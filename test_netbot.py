@@ -31,11 +31,11 @@ class TestNetbot(test_utils.BotTestCase):
         ctx = self.build_context()
         
         message = unittest.mock.AsyncMock(discord.Message)
+        message.content = note
         message.channel = unittest.mock.AsyncMock(discord.Thread)
         message.channel.name = f"Ticket #{test_ticket}: Search for subject match in email threading"
         message.author = unittest.mock.AsyncMock(discord.Member)
-        message.author.name = self.discord_user 
-        message.content = note
+        message.author.name = self.discord_user
         
         await self.bot.on_message(message)
         
