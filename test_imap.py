@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 import imap
 import redmine
 
-logging.basicConfig(level=logging.ERROR)
 
 #logging.basicConfig(level=logging.DEBUG)
 #logging.basicConfig(level=logging.DEBUG, 
@@ -33,12 +32,9 @@ class TestMessages(unittest.TestCase):
         for filename in glob.glob('test/*.eml'):
             with open(os.path.join(os.getcwd(), filename), 'rb') as file:
                 message = self.imap.parse_message(file.read())
-                #print(message.subject_cleaned())
-                #if "Forwarded message" in message.note:
-                #    print(f"Found: {filename}")
-                tag = "------ Forwarded message ---------"
-                idx = message.note.find(tag)
-                self.assertEqual(-1, idx)
+                self.assertNotIn("------ Forwarded message ---------", message.note)
+                self.assertNotIn("wrote:", message.note, f"Found 'wrote:' after processing {filename}")
+                self.assertNotIn("https://voice.google.com", message.note)
                 
     def test_email_address_parsing(self):
         from_address =  "Esther Jang <infrared@cs.washington.edu>"

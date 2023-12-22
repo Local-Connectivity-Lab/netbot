@@ -13,6 +13,8 @@ import redmine
 from imapclient import IMAPClient, SEEN, DELETED
 from dotenv import load_dotenv
 
+from io import StringIO
+from html.parser import HTMLParser
 
 # imapclient docs: https://imapclient.readthedocs.io/en/3.0.0/index.html
 # source code: https://github.com/mjs/imapclient
@@ -61,7 +63,18 @@ class Message():
     def __str__(self):
         return f"from:{self.from_address}, subject:{self.subject}, attached:{len(self.attachments)}; {self.note[0:20]}" 
 
-
+# from https://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
+class MLStripper(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.reset()
+        self.strict = False
+        self.convert_charrefs= True
+        self.text = StringIO()
+    def handle_data(self, d):
+        self.text.write(d + '\n') # force a newline
+    def get_data(self):
+        return self.text.getvalue()
 
 class Client(): ## imap.Client()
     def __init__(self):
@@ -99,6 +112,7 @@ class Client(): ## imap.Client()
         from_address = root.get("From")
         subject = root.get("Subject")
         message = Message(from_address, subject)
+        payload = ""
 
         for part in root.walk():
             content_type = part.get_content_type()
@@ -113,35 +127,70 @@ class Client(): ## imap.Client()
             elif content_type == 'text/plain': # FIXME std const?
                 payload = part.get_payload(decode=True).decode('UTF-8')
                 
-                # strip any forwarded messages
-                # FIXME look for google content, as in http://10.10.0.218/issues/323
-                # from ^>
-                forward_tag = "------ Forwarded message ---------"
-                idx = payload.find(forward_tag)
-                if idx > -1:
-                    payload = payload[0:idx]
-                
-                message.set_note(payload)
-                log.debug(f"Set note, size={len(payload)}")
+        # http://10.10.0.218/issues/208
+        if payload == "":
+            payload = root.get_body().get_content()
+            # search for HTML
+            if payload.startswith("<html>") or payload.startswith("<HTML>"):
+                # strip HTML
+                payload = self.strip_html_tags(payload)
+                #log.debug(f"HTML payload after: {payload}")
 
+        payload = self.strip_forwards(payload)
+        message.set_note(payload)
+        log.debug(f"Setting note: {payload}")
+        
         return message
 
-    """
-    <https://voice.google.com>
+    def strip_html_tags(self, text:str) -> str:
+        s = MLStripper()
+        s.feed(text)
+        return s.get_data()
 
-    YOUR ACCOUNT <https://voice.google.com> HELP CENTER
-    <https://support.google.com/voice#topic=1707989> HELP FORUM
-    <https://productforums.google.com/forum/#!forum/voice>
-    This email was sent to you because you indicated that you'd like to receive
-    email notifications for text messages. If you don't want to receive such
-    emails in the future, please update your email notification settings
-    <https://voice.google.com/settings#messaging&gt;.
-    Google LLC
-    1600 Amphitheatre Pkwy
-    Mountain View CA 94043 USA
-    """
+    skip_strs = [
+        "<https://voice.google.com>",
+        "YOUR ACCOUNT <https://voice.google.com> HELP CENTER",
+        "<https://support.google.com/voice#topic=1707989> HELP FORUM",
+        "<https://productforums.google.com/forum/#!forum/voice>",
+        "This email was sent to you because you indicated that you'd like to receive",
+        "email notifications for text messages. If you don't want to receive such",
+        "emails in the future, please update your email notification settings",
+        "<https://voice.google.com/settings#messaging>.",
+        "Google LLC",
+        "1600 Amphitheatre Pkwy",
+        "Mountain View CA 94043 USA",
+    ]
+    def strip_forwards(self, text:str) -> str:
+        # strip any forwarded messages
+        # from ^>
+        forward_tag = "------ Forwarded message ---------"
+        idx = text.find(forward_tag)
+        if idx > -1:
+            text = text[0:idx]
+            
+        # search for "On ... wrote:"
+        p = re.compile(r"^On .* <.*>\s+wrote:", flags=re.MULTILINE)
+        match = p.search(text)
+        if match:
+            text = text[0:match.start()]
+            
+        # TODO search for --
 
+        # look for google content, as in http://10.10.0.218/issues/323
+        buffer = ""
+        for line in text.splitlines():
+            skip = False
+            # search for skip_strs
+            for skip_str in self.skip_strs:
+                if line.startswith(skip_str):
+                    skip = True
+                    break;
+            if skip:
+                log.debug(f"skipping {line}")
+            else:
+                buffer += line + '\n'
 
+        return buffer.strip()
 
     def handle_message(self, msg_id:str, message:Message):
         first, last, addr = self.parse_email_address(message.from_address)
