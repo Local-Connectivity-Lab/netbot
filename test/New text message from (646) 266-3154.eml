@@ -1,0 +1,279 @@
+Delivered-To: philion@gmail.com
+Received: by 2002:a05:6918:c298:b0:1ee:e7f8:c9f9 with SMTP id ft24csp385326ysb;
+        Thu, 21 Dec 2023 14:09:59 -0800 (PST)
+X-Received: by 2002:a05:6808:1b0f:b0:3b9:e69f:c0a8 with SMTP id bx15-20020a0568081b0f00b003b9e69fc0a8mr567499oib.6.1703196599099;
+        Thu, 21 Dec 2023 14:09:59 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1703196599; cv=none;
+        d=google.com; s=arc-20160816;
+        b=pMtC8TRLx5GWWaXh+FxL0U8WfviZIsda5Wab63WgCuq6sclbbo10/MJD9AMMAXC+RI
+         7UzQzU1KcCPDu8pzSzWLaIqVECJxM7/jCm4Z0IMUn4gUWzCXpZ9TWoDvpcSbNJ0o1QZU
+         sVcnlHbkXCucud844ZmTCyPKxwmZ1Z+S0bcPywsV2pI/4zDCIH5w2l0P/9ZaLT7m1rAG
+         fCWZ1kNIBGmxWf5CxLDefzah3MBqC4SN2EfWFsSvicFGwkLWYUWLDAsQRJLNI19LbVO+
+         V5Dqe/DnfBTi1F82L65YhiXGt5VpPNYtew8t4RL1mvHSR5Bo4KujmxIxoerZfOhJy/MW
+         edQw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=to:subject:message-id:date:from:in-reply-to:references:mime-version
+         :dkim-signature;
+        bh=S9mih65mXgR7auSNRcpRhF0wt0VB7nAR5cQjGixQkw4=;
+        fh=/T/0D4KNPDxEFnDBI+98gqnYLg/A+B1NEteNowTpxvU=;
+        b=z6dsKRsIxZUcLLe5Q/tfb0osAMYyDZa0/VbuBGONOh+pcNbuTQ1t9gCeGb4OzILuf9
+         bRxPe9j3PCHrkbUvLcO017ytguMTU5oxaJ6uNLbIXU7Kxrrjj2hf3CbQQVJz3Az+z1Nf
+         yc6vWwoCL5ycPD5G+AVjfsaHlXuiElHOkClmQKBx/VkVxDweCeJm1lcamtNWNoi+ehnv
+         b/TcclPfd7RMIBF6VWk7sQvdGaXBfGiQxp5HFTfOTsG6c0io3QblfQD3VlRe6iFMQRfj
+         gqAkSfGj6G+echKsXnYMctrqcnEjlZ6YZ+crk9TRU1u7o7c8nMp4Vkt54MgoN2rX4DZH
+         a9ug==
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@seattlecommunitynetwork-org.20230601.gappssmtp.com header.s=20230601 header.b=J2uEsiX2;
+       spf=neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of phone@seattlecommunitynetwork.org) smtp.mailfrom=phone@seattlecommunitynetwork.org
+Return-Path: <phone@seattlecommunitynetwork.org>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id cn4-20020a056808350400b003bb7aa78e13sor1386824oib.0.2023.12.21.14.09.58
+        for <philion@gmail.com>
+        (Google Transport Security);
+        Thu, 21 Dec 2023 14:09:59 -0800 (PST)
+Received-SPF: neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of phone@seattlecommunitynetwork.org) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@seattlecommunitynetwork-org.20230601.gappssmtp.com header.s=20230601 header.b=J2uEsiX2;
+       spf=neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of phone@seattlecommunitynetwork.org) smtp.mailfrom=phone@seattlecommunitynetwork.org
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=seattlecommunitynetwork-org.20230601.gappssmtp.com; s=20230601; t=1703196598; x=1703801398; dara=google.com;
+        h=to:subject:message-id:date:from:in-reply-to:references:mime-version
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=S9mih65mXgR7auSNRcpRhF0wt0VB7nAR5cQjGixQkw4=;
+        b=J2uEsiX2yma/c8ShweNCnL7vasybCC2GQYCLgoQqfE0YTJButcvkPU3fefwNPufa0A
+         FOBXsJ+kKmKbnhg85Phl9Z51TukGKZbYcFZCAKyKSry5ZZLJUKWdkJexq6a+7e+088LK
+         UBMU9asIiUJQZ9oqYc8YdrmPUuHjA+sPu3ocOeVEP9ZN6eR1I8adigEMM5TpwYqTCrVZ
+         D3kJU1qCySKO397FtjcIbEZdF1WyvyeohB0+FWfcbJhrtviypgN97IfJdjuhpLyEzTRR
+         fhBNgLqYTj3tal75wdTzPGEodDnWOJlUFz81RofYJxl8pulivt7YVVUEVmFjPkYw1z74
+         WYUQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1703196598; x=1703801398;
+        h=to:subject:message-id:date:from:in-reply-to:references:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=S9mih65mXgR7auSNRcpRhF0wt0VB7nAR5cQjGixQkw4=;
+        b=e2GZnqetkl+jEw+mEJESNdYzuYtg27xTU0a4P/dVv4AQl0/4eequl7418iOK2QjAnR
+         5mAnAV84/5/QrwTZMjrZWDM0nRp7pEZWtWaMgbW/yXUbIMW/ku9L3eK9YPmzRoIRLEBx
+         S3A0cymXTKDfCkB0Iz/sA+gC5k4ZWYxiLSmpqVv4vECSldkzh7Pnc/ila5yGiuUI3Ze3
+         1zP9JPQjMcr+NfsrmngBusthmRhcaJLfdbLsABdTInb8NGUWBdo6G42LvHUK/WcKyvLO
+         OIbQMz/6AbkUP19PeIJICwsCN5JlAOVEEZZ3ICAFCCFirt1x0+AtJZg95QzLDDfCjpo7
+         9q0g==
+X-Gm-Message-State: AOJu0Yyk5epdFuHhJanMPFO0sDHT2U0gz+lDZaXHvtWFSWnGwPgCIt/7
+	ZivakmtHev8pCRmkFK7VdLEtwj4JBl44QoulN+GC2APcKMA7+31TwS1JdJp07Ek=
+X-Google-Smtp-Source: AGHT+IHWSAa2bDZj8cL+8fa36/1smFWOGFKKC9ieAg7IAQowtOmhQWOAGt0rxvJEgW3ugoRtiFEpk5OehuLV2fnZKzE=
+X-Received: by 2002:a05:6358:a085:b0:174:b59d:8b54 with SMTP id
+ u5-20020a056358a08500b00174b59d8b54mr379881rwn.44.1703196598554; Thu, 21 Dec
+ 2023 14:09:58 -0800 (PST)
+MIME-Version: 1.0
+References: <redmine.issue-323.20231221183752.463@seattlecommunitynetwork.org> <redmine.journal-1010.20231221220507.463@seattlecommunitynetwork.org>
+In-Reply-To: <redmine.journal-1010.20231221220507.463@seattlecommunitynetwork.org>
+From: Phone SCN <phone@seattlecommunitynetwork.org>
+Date: Thu, 21 Dec 2023 14:09:47 -0800
+Message-ID: <CAGKFdVPb=xMYoPmRTFrYfQPERGoKHBV5VzTT5wC-vudgXh-qig@mail.gmail.com>
+Subject: Fwd: [Seattle Community Network - External-Comms-Intake #323] New
+ text message from (646) 266-3154
+To: "philion@gmail.com" <philion@gmail.com>
+Content-Type: multipart/alternative; boundary="0000000000003d6eab060d0c5c11"
+
+--0000000000003d6eab060d0c5c11
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hi Paul,
+Here's an example of the large number of updates happening on any reply
+from phone@ to support@ as well as the external phone number (646) texting
+with the SCN phone.
+-Esther
+
+---------- Forwarded message ---------
+From: Phone SCN <support@seattlecommunitynetwork.org>
+Date: Thu, Dec 21, 2023 at 2:05=E2=80=AFPM
+Subject: [Seattle Community Network - External-Comms-Intake #323] New text
+message from (646) 266-3154
+To: <phone@seattlecommunitynetwork.org>
+
+
+Ticket #323 has been updated by Phone SCN.
+
+
+Trying again sending a reply all from phone@ email with fwding filter for
+SMS reply set up through support@ and not redmine@. Last time this type of
+reply caused a lot of ticket updates.
+
+On Thu, Dec 21, 2023 at 1:56=E2=80=AFPM Phone SCN <phone@seattlecommunityne=
+twork.org
+>
+wrote:
+
+> Testing replying to both support and phone number again 1:56 pm.
+>
+> On Thu, Dec 21, 2023 at 1:47 PM (646) 266-3154 <
+> 12536557221.16462663154.l4bQS4Ghq3@txt.voice.google.com> wrote:
+>
+>> [image: Google Voice] <https://voice.google.com>
+>> Trying again
+>> YOUR ACCOUNT <https://voice.google.com> HELP CENTER
+>> <https://support.google.com/voice#topic=3D1707989> HELP FORUM
+>> <https://productforums.google.com/forum/#!forum/voice>
+>> This email was sent to you because you indicated that you'd like to
+>> receive email notifications for text messages. If you don't want to
+receive
+>> such emails in the future, please update your email notification setting=
+s
+>> <https://voice.google.com/settings#messaging>.
+>> [image: Google]
+>> Google LLC
+>> 1600 Amphitheatre Pkwy
+>> Mountain View CA 94043 USA
+>>
+>
+
+
+----------------------------------------
+External-Comms-Intake #323: New text message from (646) 266-3154
+http://10.0.1.20/issues/323#change-1010
+
+* Author: "(646) 266-3154"
+* Status: New
+* Priority: Normal
+* Assignee: ticket-intake
+* Start date: 2023-12-21
+* Discord Thread: No
+----------------------------------------
+
+<https://voice.google.com>
+Testing the threading behavior again! 12/23
+To respond to this text message, reply to this email or visit Google Voice.
+YOUR ACCOUNT <https://voice.google.com> HELP CENTER
+<https://support.google.com/voice#topic=3D1707989> HELP FORUM
+<https://productforums.google.com/forum/#!forum/voice>
+This email was sent to you because you indicated that you'd like to receive
+email notifications for text messages. If you don't want to receive such
+emails in the future, please update your email notification settings
+<https://voice.google.com/settings#messaging>.
+Google LLC
+1600 Amphitheatre Pkwy
+Mountain View CA 94043 USA
+
+
+
+
+--=20
+You have received this notification because you have either subscribed to
+it, or are involved in it.
+To change your notification preferences, please click here:
+http://10.10.0.218/my/account
+
+--0000000000003d6eab060d0c5c11
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr"><div>Hi Paul,</div><div>Here&#39;s an example of the large=
+ number of updates happening on any reply from phone@ to support@ as well a=
+s the external phone number (646) texting with the SCN phone.</div><div>-Es=
+ther<br></div><div><br><div class=3D"gmail_quote"><div dir=3D"ltr" class=3D=
+"gmail_attr">---------- Forwarded message ---------<br>From: <b class=3D"gm=
+ail_sendername" dir=3D"auto">Phone SCN</b> <span dir=3D"auto">&lt;<a href=
+=3D"mailto:support@seattlecommunitynetwork.org">support@seattlecommunitynet=
+work.org</a>&gt;</span><br>Date: Thu, Dec 21, 2023 at 2:05=E2=80=AFPM<br>Su=
+bject: [Seattle Community Network - External-Comms-Intake #323] New text me=
+ssage from (646) 266-3154<br>To:  &lt;<a href=3D"mailto:phone@seattlecommun=
+itynetwork.org">phone@seattlecommunitynetwork.org</a>&gt;<br></div><br><br>=
+Ticket #323 has been updated by Phone SCN.<br>
+<br>
+<br>
+Trying again sending a reply all from phone@ email with fwding filter for<b=
+r>
+SMS reply set up through support@ and not redmine@. Last time this type of<=
+br>
+reply caused a lot of ticket updates.<br>
+<br>
+On Thu, Dec 21, 2023 at 1:56=E2=80=AFPM Phone SCN &lt;<a href=3D"mailto:pho=
+ne@seattlecommunitynetwork.org" target=3D"_blank">phone@seattlecommunitynet=
+work.org</a>&gt;<br>
+wrote:<br>
+<br>
+&gt; Testing replying to both support and phone number again 1:56 pm.<br>
+&gt;<br>
+&gt; On Thu, Dec 21, 2023 at 1:47 PM (646) 266-3154 &lt;<br>
+&gt; <a href=3D"mailto:12536557221.16462663154.l4bQS4Ghq3@txt.voice.google.=
+com" target=3D"_blank">12536557221.16462663154.l4bQS4Ghq3@txt.voice.google.=
+com</a>&gt; wrote:<br>
+&gt;<br>
+&gt;&gt; [image: Google Voice] &lt;<a href=3D"https://voice.google.com" rel=
+=3D"noreferrer" target=3D"_blank">https://voice.google.com</a>&gt;<br>
+&gt;&gt; Trying again<br>
+&gt;&gt; YOUR ACCOUNT &lt;<a href=3D"https://voice.google.com" rel=3D"noref=
+errer" target=3D"_blank">https://voice.google.com</a>&gt; HELP CENTER<br>
+&gt;&gt; &lt;<a href=3D"https://support.google.com/voice#topic=3D1707989" r=
+el=3D"noreferrer" target=3D"_blank">https://support.google.com/voice#topic=
+=3D1707989</a>&gt; HELP FORUM<br>
+&gt;&gt; &lt;<a href=3D"https://productforums.google.com/forum/#!forum/voic=
+e" rel=3D"noreferrer" target=3D"_blank">https://productforums.google.com/fo=
+rum/#!forum/voice</a>&gt;<br>
+&gt;&gt; This email was sent to you because you indicated that you&#39;d li=
+ke to<br>
+&gt;&gt; receive email notifications for text messages. If you don&#39;t wa=
+nt to receive<br>
+&gt;&gt; such emails in the future, please update your email notification s=
+ettings<br>
+&gt;&gt; &lt;<a href=3D"https://voice.google.com/settings#messaging" rel=3D=
+"noreferrer" target=3D"_blank">https://voice.google.com/settings#messaging<=
+/a>&gt;.<br>
+&gt;&gt; [image: Google]<br>
+&gt;&gt; Google LLC<br>
+&gt;&gt; 1600 Amphitheatre Pkwy<br>
+&gt;&gt; Mountain View CA 94043 USA<br>
+&gt;&gt;<br>
+&gt;<br>
+<br>
+<br>
+----------------------------------------<br>
+External-Comms-Intake #323: New text message from (646) 266-3154<br>
+<a href=3D"http://10.0.1.20/issues/323#change-1010" rel=3D"noreferrer" targ=
+et=3D"_blank">http://10.0.1.20/issues/323#change-1010</a><br>
+<br>
+* Author: &quot;(646) 266-3154&quot;<br>
+* Status: New<br>
+* Priority: Normal<br>
+* Assignee: ticket-intake<br>
+* Start date: 2023-12-21<br>
+* Discord Thread: No<br>
+----------------------------------------<br>
+<br>
+&lt;<a href=3D"https://voice.google.com" rel=3D"noreferrer" target=3D"_blan=
+k">https://voice.google.com</a>&gt;<br>
+Testing the threading behavior again! 12/23<br>
+To respond to this text message, reply to this email or visit Google Voice.=
+<br>
+YOUR ACCOUNT &lt;<a href=3D"https://voice.google.com" rel=3D"noreferrer" ta=
+rget=3D"_blank">https://voice.google.com</a>&gt; HELP CENTER<br>
+&lt;<a href=3D"https://support.google.com/voice#topic=3D1707989" rel=3D"nor=
+eferrer" target=3D"_blank">https://support.google.com/voice#topic=3D1707989=
+</a>&gt; HELP FORUM<br>
+&lt;<a href=3D"https://productforums.google.com/forum/#!forum/voice" rel=3D=
+"noreferrer" target=3D"_blank">https://productforums.google.com/forum/#!for=
+um/voice</a>&gt;<br>
+This email was sent to you because you indicated that you&#39;d like to rec=
+eive<br>
+email notifications for text messages. If you don&#39;t want to receive suc=
+h<br>
+emails in the future, please update your email notification settings<br>
+&lt;<a href=3D"https://voice.google.com/settings#messaging" rel=3D"noreferr=
+er" target=3D"_blank">https://voice.google.com/settings#messaging</a>&gt;.<=
+br>
+Google LLC<br>
+1600 Amphitheatre Pkwy<br>
+Mountain View CA 94043 USA<br>
+<br>
+<br>
+<br>
+<br>
+-- <br>
+You have received this notification because you have either subscribed to i=
+t, or are involved in it.<br>
+To change your notification preferences, please click here: <a href=3D"http=
+://10.10.0.218/my/account" rel=3D"noreferrer" target=3D"_blank">http://10.1=
+0.0.218/my/account</a><br>
+</div></div></div>
+
+--0000000000003d6eab060d0c5c11--

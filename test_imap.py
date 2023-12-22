@@ -27,7 +27,7 @@ class TestMessages(unittest.TestCase):
         self.redmine = redmine.Client()
         self.imap = imap.Client()
         
-    def test_messages_examples(self):
+    def test_messages_stripping(self):
         # open 
         for filename in glob.glob('test/*.eml'):
             with open(os.path.join(os.getcwd(), filename), 'rb') as file:
@@ -35,6 +35,22 @@ class TestMessages(unittest.TestCase):
                 self.assertNotIn("------ Forwarded message ---------", message.note)
                 self.assertNotIn("wrote:", message.note, f"Found 'wrote:' after processing {filename}")
                 self.assertNotIn("https://voice.google.com", message.note)
+                
+    def test_google_stripping(self):
+        with open("test/New text message from (646) 266-3154.eml", 'rb') as file:
+                message = self.imap.parse_message(file.read())
+                self.assertNotIn("Forwarded message", message.note)
+                self.assertNotIn("https://voice.google.com", message.note)
+                self.assertNotIn("YOUR ACCOUNT", message.note)
+                self.assertNotIn("https://support.google.com/voice#topic=3D1707989", message.note)
+                self.assertNotIn("https://productforums.google.com/forum/#!forum/voice", message.note)
+                self.assertNotIn("This email was sent to you because you indicated that you'd like to receive", message.note)
+                self.assertNotIn("email notifications for text messages. If you don't want to receive such", message.note)
+                self.assertNotIn("emails in the future, please update your email notification settings", message.note)
+                self.assertNotIn("https://voice.google.com/settings#messaging", message.note)
+                self.assertNotIn("Google LLC", message.note)
+                self.assertNotIn("1600 Amphitheatre Pkwy", message.note)
+                self.assertNotIn("Mountain View CA 94043 USA", message.note)
                 
     def test_email_address_parsing(self):
         from_address =  "Esther Jang <infrared@cs.washington.edu>"
