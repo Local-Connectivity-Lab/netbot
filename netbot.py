@@ -94,12 +94,12 @@ class NetBot(commands.Bot):
                 f"SYNCED: ticket={ticket_id}, user={user.login}, msg={message.content}")
         else:
             log.warning(
-                f"Unknown discord user: {message.author.name}, skipping message")
+                f"sync_new_message - unknown discord user: {message.author.name}, skipping message")
 
 
     async def synchronize_ticket(self, ticket, thread, ctx: discord.ApplicationContext):
         last_sync = self.redmine.get_field(ticket, "sync")
-        #log.debug(f"ticket {ticket.id} last sync: {last_sync} {age(last_sync)} ")
+        log.debug(f"ticket {ticket.id} last sync: {last_sync}, age: {self.redmine.get_field(ticket, 'age')}")
 
         # start of the process, will become "last update"
         timestamp = dt.datetime.now(dt.timezone.utc)  # UTC
@@ -113,20 +113,20 @@ class NetBot(commands.Bot):
 
         # query discord for updates to thread since last-update
         # see https://docs.pycord.dev/en/stable/api/models.html#discord.Thread.history
-        async for message in thread.history(after=last_sync):
+        log.debug("calling history with thread={thread}, after={last_sync}")
+        #messages = await thread.history(after=last_sync, oldest_first=True).flatten()
+        async for message in thread.history(after=last_sync, oldest_first=True):
             # ignore bot messages!
             if message.author.id != self.user.id:
                 # for each, create a note with translated discord user id with the update (or one big one?)
                 user = self.redmine.find_discord_user(message.author.name)
 
                 if user:
-                    log.debug(
-                        f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
-                    self.redmine.append_message(
-                        ticket.id, user.login, message.content)
+                    log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
+                    self.redmine.append_message(ticket.id, user.login, message.content)
                 else:
                     log.warning(
-                        f"Unknown discord user: {message.author.name}, skipping message")
+                        f"synchronize_ticket - unknown discord user: {message.author.name}, skipping message")
         else:
             log.debug(f"No new discord messages found since {last_sync}")
 
@@ -134,15 +134,14 @@ class NetBot(commands.Bot):
         self.redmine.update_syncdata(ticket.id, timestamp)
         log.info(f"completed sync for {ticket.id} <--> {thread.name}")
         
-    
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
         """Bot-level error handler"""
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.respond("This command is currently on cooldown!")
         else:
-            log.error(f"{error}", exc_info=True)
+            log.error(f"{error.__cause__}", exc_info=True)
             #raise error  # Here we raise other errors to ensure they aren't ignored
-            await ctx.respond(f"{error}")
+            await ctx.respond(f"{error.__cause__}")
 
 
 def main():

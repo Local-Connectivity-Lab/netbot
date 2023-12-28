@@ -100,12 +100,14 @@ class TestTicketsCog(test_utils.BotTestCase):
 
     # create thread/sync 
     async def test_thread_sync(self):
-        timestamp = dt.datetime.now().astimezone(dt.timezone.utc)
+        timestamp = dt.datetime.now().astimezone(dt.timezone.utc).replace(microsecond=0) # strip microseconds
 
         # create a ticket and add a note
         subject = f"Test Thread Ticket {self.tag}"
         text = f"This is a test thread ticket tagged with {self.tag}"
         note = f"This is a test note tagged with {self.tag}"
+        #old_message = f"This is a sync message with {self.tag}"
+
         ticket = self.redmine.create_ticket(self.user, subject, text)
         self.redmine.append_message(ticket.id, self.user.login, note)
 
@@ -115,7 +117,15 @@ class TestTicketsCog(test_utils.BotTestCase):
         ctx.channel.name = f"Test Channel {self.tag}"
         ctx.channel.id = self.tag
         thread = unittest.mock.AsyncMock(discord.Thread)
-        #thread.
+        # setup history with a message from the user - disabled while I work out the history mock.
+        #member = unittest.mock.AsyncMock(discord.Member)
+        #member.name=self.discord_user
+        #message = unittest.mock.AsyncMock(discord.Message)
+        #message.channel = thread
+        #message.content=old_message
+        #message.author=member
+        #thread.history = unittest.mock.AsyncMock(name="history")
+        #thread.history.flatten = unittest.mock.AsyncMock(name="flatten", return_value=[message])
         ctx.channel.create_thread = unittest.mock.AsyncMock(name="create_thread", return_value=thread)
         
         await self.cog.thread(ctx, ticket.id)
@@ -136,7 +146,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         # test redmine syncdata
         ticket = self.redmine.get_ticket(ticket.id)
         last_update = self.redmine.get_field(ticket, "sync")
-        self.assertLess(timestamp, last_update)
+        self.assertLessEqual(timestamp, last_update) # hack for TCs that complete in the same second
         
         # delete the ticket
         self.redmine.remove_ticket(ticket.id)

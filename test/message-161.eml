@@ -83,15 +83,15 @@ ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc
          VDpA==
 ARC-Authentication-Results: i=1; mx.google.com;
        dkim=pass header.i=@cs.washington.edu header.s=goo201206 header.b=If7hXoAe;
-       spf=pass (google.com: domain of infrared@cs.washington.edu designates 209.85.220.41 as permitted sender) smtp.mailfrom=infrared@cs.washington.edu;
+       spf=pass (google.com: domain of freddy@example.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=freddy@example.com;
        dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=cs.washington.edu
-Return-Path: <infrared@cs.washington.edu>
+Return-Path: <freddy@example.com>
 Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
         by mx.google.com with SMTPS id q11-20020a05651c054b00b002be631f488csor672023ljp.4.2023.11.16.18.22.42
         for <support@seattlecommunitynetwork.org>
         (Google Transport Security);
         Thu, 16 Nov 2023 18:22:42 -0800 (PST)
-Received-SPF: pass (google.com: domain of infrared@cs.washington.edu designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+Received-SPF: pass (google.com: domain of freddy@example.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=cs.washington.edu; s=goo201206; t=1700187761; x=1700792561; darn=seattlecommunitynetwork.org;
         h=to:subject:message-id:date:from:in-reply-to:references:mime-version
@@ -124,12 +124,12 @@ Content-Type: text/plain; charset="UTF-8"
 
 Take 2
 
-On Thu, Nov 16, 2023 at 6:14 PM Esther Jang <infrared@cs.washington.edu>
+On Thu, Nov 16, 2023 at 6:14 PM Fred Example <freddy@example.com>
 wrote:
 
 > Sending attachment again
 >
-> On Thu, Nov 16, 2023 at 5:48 PM Esther Jang <infrared@cs.washington.edu>
+> On Thu, Nov 16, 2023 at 5:48 PM Fred Example <freddy@example.com>
 > wrote:
 >
 >> Oof! Is this problem still happening? When your power was restored
@@ -163,7 +163,7 @@ wrote:
 >>>
 >>> Michelle
 >>>
->>> On Tue, Nov 14, 2023 at 10:11 AM Esther Jang <infrared@cs.washington.edu>
+>>> On Tue, Nov 14, 2023 at 10:11 AM Fred Example <freddy@example.com>
 >>> wrote:
 >>>
 >>>> Hi Michelle & Northlake Triad,
@@ -188,7 +188,7 @@ wrote:
 >>>>
 >>>> Thanks so much,
 >>>> -Esther
->>>> 1280 AFA4 DD14 589B <https://keybase.io/infrared>
+>>>> 1280 AFA4 DD14 589B <https://keybase.io/freddy@example.com>
 >>>>
 >>>
 
@@ -197,14 +197,14 @@ Content-Type: text/html; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
 <div dir=3D"auto">Take 2</div><div><br><div class=3D"gmail_quote"><div dir=
-=3D"ltr" class=3D"gmail_attr">On Thu, Nov 16, 2023 at 6:14 PM Esther Jang &=
-lt;<a href=3D"mailto:infrared@cs.washington.edu">infrared@cs.washington.edu=
+=3D"ltr" class=3D"gmail_attr">On Thu, Nov 16, 2023 at 6:14 PM Fred Example &=
+lt;<a href=3D"mailto:freddy@example.com">freddy@example.com=
 </a>&gt; wrote:<br></div><blockquote class=3D"gmail_quote" style=3D"margin:=
 0px 0px 0px 0.8ex;border-left-width:1px;border-left-style:solid;padding-lef=
 t:1ex;border-left-color:rgb(204,204,204)"><div dir=3D"auto">Sending attachm=
 ent again</div><div><br><div class=3D"gmail_quote"><div dir=3D"ltr" class=
-=3D"gmail_attr">On Thu, Nov 16, 2023 at 5:48 PM Esther Jang &lt;<a href=3D"=
-mailto:infrared@cs.washington.edu" target=3D"_blank">infrared@cs.washington=
+=3D"gmail_attr">On Thu, Nov 16, 2023 at 5:48 PM Fred Example &lt;<a href=3D"=
+mailto:freddy@example.com" target=3D"_blank">freddy@example.com@cs.washington=
 .edu</a>&gt; wrote:<br></div><blockquote class=3D"gmail_quote" style=3D"mar=
 gin:0px 0px 0px 0.8ex;border-left-width:1px;border-left-style:solid;padding=
 -left:1ex;border-left-color:rgb(204,204,204)"><div dir=3D"auto">Oof! Is thi=
@@ -232,8 +232,8 @@ you can tell me to fix this?=C2=A0</div><div dir=3D"auto"><br></div><div di=
 r=3D"auto">Kind regards,=C2=A0</div><div dir=3D"auto"><br></div><div dir=3D=
 "auto">Michelle</div><div dir=3D"auto"><br><div class=3D"gmail_quote" dir=
 =3D"auto"><div dir=3D"ltr" class=3D"gmail_attr">On Tue, Nov 14, 2023 at 10:=
-11 AM Esther Jang &lt;<a href=3D"mailto:infrared@cs.washington.edu" target=
-=3D"_blank">infrared@cs.washington.edu</a>&gt; wrote:<br></div><blockquote =
+11 AM Fred Example &lt;<a href=3D"mailto:freddy@example.com" target=
+=3D"_blank">freddy@example.com</a>&gt; wrote:<br></div><blockquote =
 class=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;border-left-width:1=
 px;border-left-style:solid;padding-left:1ex;border-left-color:rgb(204,204,2=
 04)"><div dir=3D"ltr">Hi Michelle &amp; Northlake Triad,<div><br></div><div=
@@ -256,7 +256,7 @@ ning. We had to schedule this one in a hurry due to Thanksgiving and the Se=
 attle Makers makerspace moving locations in December.</div><div><br></div><=
 div>Thanks so much,<br clear=3D"all"><div><div dir=3D"ltr" class=3D"gmail_s=
 ignature" data-smartmail=3D"gmail_signature"><div dir=3D"ltr">-Esther<br><a=
- href=3D"https://keybase.io/infrared" target=3D"_blank">1280 AFA4 DD14 589B=
+ href=3D"https://keybase.io/freddy@example.com" target=3D"_blank">1280 AFA4 DD14 589B=
 </a><br></div></div></div></div></div></div>
 </blockquote></div></div>
 </blockquote></div></div>

@@ -24,18 +24,18 @@ ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc
          vWyA==
 ARC-Authentication-Results: i=1; mx.google.com;
        dkim=pass header.i=@cs.washington.edu header.s=goo201206 header.b=ST68cjFe;
-       spf=pass (google.com: domain of infrared@cs.washington.edu designates 209.85.220.41 as permitted sender) smtp.mailfrom=infrared@cs.washington.edu;
+       spf=pass (google.com: domain of freddy@example.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=freddy@example.com;
        dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=cs.washington.edu
-Return-Path: <infrared@cs.washington.edu>
+Return-Path: <freddy@example.com>
 Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
         by mx.google.com with SMTPS id v26-20020a19741a000000b00502c8bc2048sor674674lfe.28.2023.11.03.11.15.28
         for <redmine@seattlecommunitynetwork.org>
         (Google Transport Security);
         Fri, 03 Nov 2023 11:15:28 -0700 (PDT)
-Received-SPF: pass (google.com: domain of infrared@cs.washington.edu designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+Received-SPF: pass (google.com: domain of freddy@example.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
 Authentication-Results: mx.google.com;
        dkim=pass header.i=@cs.washington.edu header.s=goo201206 header.b=ST68cjFe;
-       spf=pass (google.com: domain of infrared@cs.washington.edu designates 209.85.220.41 as permitted sender) smtp.mailfrom=infrared@cs.washington.edu;
+       spf=pass (google.com: domain of freddy@example.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=freddy@example.com;
        dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=cs.washington.edu
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=cs.washington.edu; s=goo201206; t=1699035328; x=1699640128; darn=seattlecommunitynetwork.org;
@@ -157,7 +157,7 @@ Content-Transfer-Encoding: quoted-printable
 <div dir=3D"ltr">TEST EXAMPLE TICKET<div>TODO LCL pay this invoice<br clear=
 =3D"all"><div><div dir=3D"ltr" class=3D"gmail_signature" data-smartmail=3D"=
 gmail_signature"><div dir=3D"ltr">-Esther<br><a href=3D"https://keybase.io/=
-infrared" target=3D"_blank">1280 AFA4 DD14 589B</a><br></div></div></div><b=
+freddy@example.com" target=3D"_blank">1280 AFA4 DD14 589B</a><br></div></div></div><b=
 r><br><div class=3D"gmail_quote"><div dir=3D"ltr" class=3D"gmail_attr">----=
 ------ Forwarded message ---------<br>From: <strong class=3D"gmail_senderna=
 me" dir=3D"auto">Baicells Technologies North America Inc.</strong> <span di=
@@ -165,7 +165,7 @@ r=3D"auto">&lt;<a href=3D"mailto:invoice%2Bstatements%2Bacct_1DoaF2HOhOsoTU=
 uO@stripe.com">invoice+statements+acct_1DoaF2HOhOsoTUuO@stripe.com</a>&gt;<=
 /span><br>Date: Thu, Nov 2, 2023 at 2:17=E2=80=AFAM<br>Subject: Your receip=
 t from Baicells Technologies North America Inc. #2534-1567<br>To:  &lt;<a h=
-ref=3D"mailto:infrared@cs.washington.edu">infrared@cs.washington.edu</a>&gt=
+ref=3D"mailto:freddy@example.com">freddy@example.com</a>&gt=
 ;<br></div><br><br><div class=3D"msg4938058676982245822"><u></u>
 
  =20

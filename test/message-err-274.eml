@@ -1,0 +1,208 @@
+Delivered-To: redmine@seattlecommunitynetwork.org
+Received: by 2002:a05:7022:42a2:b0:71:9e99:10da with SMTP id bk34csp307411dlb;
+        Thu, 21 Dec 2023 10:47:25 -0800 (PST)
+X-Received: by 2002:a05:6870:d0c2:b0:204:130f:221a with SMTP id k2-20020a056870d0c200b00204130f221amr242089oaa.99.1703184445189;
+        Thu, 21 Dec 2023 10:47:25 -0800 (PST)
+ARC-Seal: i=3; a=rsa-sha256; t=1703184445; cv=pass;
+        d=google.com; s=arc-20160816;
+        b=weIfnOLHz+HBAJlmOwi2ZAQn2kyPNgcVOdJrhxdvpMyGL0Kj8myh824EIteV2HKBAH
+         rzPuqpB3vkgBCbexllIv6geXEiv1m4OWBmVyJ4bPafYN2gyzC8/PGDMvS0/fSm+V04QL
+         wrvlRZag5ATtkUsVDInsqazOj4CHM9JzE9yFzCVBzQ6RLVNE0qb02C/jCcsCo9kBly2z
+         Ypl1Grxdrykr+w54vnuw1qtSWhVmDyoJpAlZOcGMrJIJi/xGshkwzzPL4iFG+MWGP/bx
+         MgPTAC2RN31ofGfdPG5tJZeFuBu2J8FnO1YAZeO3kdWH47XgqkN5fs61xoRRg6ch7LGa
+         lSpw==
+ARC-Message-Signature: i=3; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=date:to:in-reply-to:references:message-id:subject:mime-version:from
+         :content-transfer-encoding:dkim-signature:delivered-to:delivered-to;
+        bh=s7j44ASImCOGk+E5bgDc4cJwtvTYRNu5qo4PAhwf7lU=;
+        fh=LhdJM6snKgB3W7KZgyog5wnasn8gkp1VlkiUyBXGHG0=;
+        b=eunQEteiyp1uWul3KgPviAn1OWPAC12JCsDgobDts2+y1bs3s0OF0W5VlNxJ6HzOgc
+         hrcnRzUBd8QEIOUD9g6cYHv1R2IiHS8t/hAXNVNo0oC2/TXOChTXjqVIrrrvsznpNesD
+         5ieqOGC7ZkrKRXdj7IuGRwCX/xJDLQI4KZ9R1CwgtV+//rNV8hKBpv2Tgd8p/zVVqucd
+         32EnYuyUsfY1VcDCvHXA+5FSBko7AqryWVuUligCaIm6rK6xcEuuXpXFz1KTx8ahdoD9
+         VsA6K1DbLniiwte0yc8FjcWMg8NYgiaZSBgl40HsgyPyiILsKsQGHqLeh+EAOePDObTs
+         JSwA==
+ARC-Authentication-Results: i=3; mx.google.com;
+       dkim=pass header.i=@seattlecommunitynetwork-org.20230601.gappssmtp.com header.s=20230601 header.b=BWz8ayp0;
+       arc=pass (i=2 dkim=pass dkdomain=seattlecommunitynetwork-org.20230601.gappssmtp.com);
+       spf=neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org) smtp.mailfrom="support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org"
+Return-Path: <support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id k4-20020ac84784000000b00427941a324asor1237868qtq.5.2023.12.21.10.47.24
+        for <redmine@seattlecommunitynetwork.org>
+        (Google Transport Security);
+        Thu, 21 Dec 2023 10:47:25 -0800 (PST)
+Received-SPF: neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@seattlecommunitynetwork-org.20230601.gappssmtp.com header.s=20230601 header.b=BWz8ayp0;
+       arc=pass (i=2 dkim=pass dkdomain=seattlecommunitynetwork-org.20230601.gappssmtp.com);
+       spf=neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org) smtp.mailfrom="support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org"
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1703184444; x=1703789244;
+        h=date:to:in-reply-to:references:message-id:subject:mime-version:from
+         :content-transfer-encoding:dkim-signature:delivered-to
+         :x-forwarded-to:delivered-to:x-forwarded-for:x-forwarded-to
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=s7j44ASImCOGk+E5bgDc4cJwtvTYRNu5qo4PAhwf7lU=;
+        b=ap97xvt2/gPkP86GzkX93iDJdX9eYnzzLu0eYqUjSBDmXuJ60fJWvzB8QAPJtBNuAh
+         ovdIEerA2HVJmvCPCQyn1DOqdzyDJBg7M5aQGzf1DBGOZcwJFK+dFSExaW0VW2QnQkr/
+         KeC9GlTROEwlHQcBkLEn0tmQsse5ZUE2BmVxf0LU5DxLarBWZMUnMdXV0JabNqVNRAQb
+         9mw4CzjP6ft4bAxqjohDJe2BI44ZlBKyD7jyyXHB0nL6ox6UTYwnhqKcWCVcp6d7Sh0+
+         KkRcRMfdbdHFN0r88CzG1TaOUwFfusbjwz1YAwzCFlg7YUN5gva2h0ZWtrDlGRaAnSB6
+         Utvg==
+X-Gm-Message-State: AOJu0YwL0uEmg2nyvogjNoN3hjp/B4Ya51yfASo10wNAk4O9k/nTltjX
+	+SR/FQw+k6HsOAkYQq14qK9d5oBXXRbn1E4i6Mgin/TAAisbLB6Csp0Y6bywdPcteHmTdKOb
+X-Received: by 2002:a05:622a:15c9:b0:427:8c57:598f with SMTP id d9-20020a05622a15c900b004278c57598fmr165943qty.130.1703184444684;
+        Thu, 21 Dec 2023 10:47:24 -0800 (PST)
+X-Forwarded-To: redmine@seattlecommunitynetwork.org
+X-Forwarded-For: support@seattlecommunitynetwork.org redmine@seattlecommunitynetwork.org
+Delivered-To: support@seattlecommunitynetwork.org
+Received: by 2002:a05:622a:81c6:b0:423:9daf:870b with SMTP id jz6csp1257695qtb;
+        Thu, 21 Dec 2023 10:47:23 -0800 (PST)
+X-Received: by 2002:a17:902:c946:b0:1d0:7d69:16e9 with SMTP id i6-20020a170902c94600b001d07d6916e9mr73968pla.51.1703184443360;
+        Thu, 21 Dec 2023 10:47:23 -0800 (PST)
+ARC-Seal: i=2; a=rsa-sha256; t=1703184443; cv=pass;
+        d=google.com; s=arc-20160816;
+        b=g9ZPYwMhwpDGZ3nZ6hfohEBvEBSRNGl2pyLcN/9sJL5iAsNCH0sjlxmqWcwnt8Ah0c
+         uRqP/ZkiUCHQlv+sR6qJY9IDM7QkBKDWlXyMzR7MJaw//jh9KDB0JX8bvZXLJ2EG1Up9
+         JCJuTENn3ET1Uy/QrUmclkr80xpwQwqTlgr0l4Ld/fvOxSQWwMQoGvfKMJVLYGBqRTUk
+         NWPBqFvpJK2XYSXvniFvSMi8dqqD6wSVo2EQUnwkLXTumbW4M3MaroxhaZxuQtkpAA/i
+         6p7U4AMvbb4BX+EzhUhj901m/TY/9Li+sx89ikSv14B0LXVARayALXUhLE0f1djXLFww
+         ai4Q==
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=date:to:in-reply-to:references:message-id:subject:mime-version:from
+         :content-transfer-encoding:dkim-signature:delivered-to;
+        bh=s7j44ASImCOGk+E5bgDc4cJwtvTYRNu5qo4PAhwf7lU=;
+        fh=LhdJM6snKgB3W7KZgyog5wnasn8gkp1VlkiUyBXGHG0=;
+        b=OhGBmol6D+7kt+GiucoqD0VaD/Gr5IPuHSRCdbURbA2QL7P+sbwqNZIIIHxW8jlwaC
+         aLWnK/Oy16Aj07gKuDtPRAL4VQOYumd6BWuOzQlP6D8S1nhGdEQgr7qYZLHmyT5t1H6N
+         PxHWRHDO4+1kX6sWe4j7W//Yy4HxGR7hq85WSFCnhEwczbGEfZEI0epxIQFLdj0NaieZ
+         74XeZor0Z5egl26K2PSa/7+IH0oWEeUBVCPQwRdD3BQcoWNbSLSmQayE6xtovlSi++kE
+         pMKXtS3kyVtPWTPSqLJUFHnRA08ibef8Iipj1Kb3sFO3dmfI+indh+wqOk4NnaamrJOQ
+         xTCQ==
+ARC-Authentication-Results: i=2; mx.google.com;
+       dkim=pass header.i=@seattlecommunitynetwork-org.20230601.gappssmtp.com header.s=20230601 header.b=BWz8ayp0;
+       arc=pass (i=1 dkim=pass dkdomain=seattlecommunitynetwork-org.20230601.gappssmtp.com);
+       spf=neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of phone+caf_=support=seattlecommunitynetwork.org@seattlecommunitynetwork.org) smtp.mailfrom="phone+caf_=support=seattlecommunitynetwork.org@seattlecommunitynetwork.org"
+Return-Path: <phone+caf_=support=seattlecommunitynetwork.org@seattlecommunitynetwork.org>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id p12-20020a170902eacc00b001d04d73069asor905503pld.19.2023.12.21.10.47.23
+        for <support@seattlecommunitynetwork.org>
+        (Google Transport Security);
+        Thu, 21 Dec 2023 10:47:23 -0800 (PST)
+Received-SPF: neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of phone+caf_=support=seattlecommunitynetwork.org@seattlecommunitynetwork.org) client-ip=209.85.220.41;
+X-Received: by 2002:a05:6a20:4295:b0:18f:fa8b:e0a2 with SMTP id o21-20020a056a20429500b0018ffa8be0a2mr98161pzj.58.1703184442927;
+        Thu, 21 Dec 2023 10:47:22 -0800 (PST)
+X-Forwarded-To: support@seattlecommunitynetwork.org
+X-X-Forwarded-For: phone@seattlecommunitynetwork.org support@seattlecommunitynetwork.org
+Delivered-To: phone@seattlecommunitynetwork.org
+Received: by 2002:a05:7022:2212:b0:72:83e7:c496 with SMTP id bu18csp206151dlb;
+        Thu, 21 Dec 2023 10:47:21 -0800 (PST)
+X-Received: by 2002:a17:90a:a612:b0:28b:2640:c5f4 with SMTP id c18-20020a17090aa61200b0028b2640c5f4mr164102pjq.28.1703184441066;
+        Thu, 21 Dec 2023 10:47:21 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1703184441; cv=none;
+        d=google.com; s=arc-20160816;
+        b=JhpeA4nMgzEF6H3r2SU9VrOmgfDwoO+UwAhMPQjtgSgMwFQ7hw8Myr9dPT2E+jyflP
+         gfBYfpZdRFOvlxHTJk3GgbBFsO2JJ6LERUTuQXF+aEteGJ2xnKNj47A2sycq7lSPZPAp
+         TpGZBeeacKNc0nO2CLYi1akAMMFtViX+8w2rYNVEJJnUp6nqjOwLNxW1SFXQB1iWByIM
+         DVjXJAYV8aMB81iwYn7Y5q20J1jrwaJctw/s6nJKdb2Wds92B+XbIlIAuY/ocpOCCcpb
+         OAL9ZJnpQgb8t1t5J67yrtFLr+i+/H+ZR0ucNul1j8nEv7hrQarMUOhikW6vQn5QNooN
+         OxCA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=date:to:in-reply-to:references:message-id:subject:mime-version:from
+         :content-transfer-encoding:dkim-signature;
+        bh=s7j44ASImCOGk+E5bgDc4cJwtvTYRNu5qo4PAhwf7lU=;
+        fh=LhdJM6snKgB3W7KZgyog5wnasn8gkp1VlkiUyBXGHG0=;
+        b=vHyNcJYWMtiDCuqFOtgtvmy7SOtvI4/taT63Fw8AKaiudiGPcCQvNCrYmEHd05sKQg
+         Oj622Yhm7XbEgnXHjU8T0MlDnvtfD97w+EcftVnywuOgB9xDIKsBCaJoxI/X3OsiFm2U
+         DfTh01X7lQqDu5c1vrCe2Ms4TgcBQw6vQO38jinPHG6IFAGi+e9bnYyahy1kgP686Wej
+         Xr937eXxcPGkpMce8icwHJYgSq/KujNlbCV0C3zgYZ6iVD61cmUlFDoHXWFP1PdcJUk7
+         jlQNpHucUSiWJ9KsCuvUFK+5BgRU9ZA1xw1cyNqt77gXketrCy9Zs0/Six5QCX4bSOyL
+         y7AA==
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@seattlecommunitynetwork-org.20230601.gappssmtp.com header.s=20230601 header.b=BWz8ayp0;
+       spf=neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of phone@seattlecommunitynetwork.org) smtp.mailfrom=phone@seattlecommunitynetwork.org
+Return-Path: <phone@seattlecommunitynetwork.org>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id ju15-20020a170903428f00b001d3ed42bc14sor884364plb.3.2023.12.21.10.47.20
+        for <phone@seattlecommunitynetwork.org>
+        (Google Transport Security);
+        Thu, 21 Dec 2023 10:47:21 -0800 (PST)
+Received-SPF: neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of phone@seattlecommunitynetwork.org) client-ip=209.85.220.41;
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=seattlecommunitynetwork-org.20230601.gappssmtp.com; s=20230601; t=1703184440; x=1703789240; darn=seattlecommunitynetwork.org;
+        h=date:to:in-reply-to:references:message-id:subject:mime-version:from
+         :content-transfer-encoding:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=s7j44ASImCOGk+E5bgDc4cJwtvTYRNu5qo4PAhwf7lU=;
+        b=BWz8ayp0AQeVx3q1FCCuiDlW57eqprErLcC5ob7+FEBtZQLy4LVdu8mlICFizGK1YZ
+         XkU5B6Ee9czwmNp1tKSo8ka69ghpVm7YPFd0sU+g45cD+YXbnNCdHXsDeL2NE2TDWeFq
+         C1I+yUw9syFXFxKo8AV+AGQfL9Otatmjiq2l5F8GqbQjFHu7ZYNrZyEaYOakSkymvkKE
+         n4HFwpZRpIYV3XaHyPXunpvqYrDW4EdX3Z8QHz+17A998MXUe4i5kEuspWRSOdItb9MP
+         lE3te53kc94EW7Np5PXHd/CZews4Uf5K+ChgRQXNbdNOKFFg5aGM0odxysiWv3/ApaIb
+         hlDg==
+X-Google-Smtp-Source: AGHT+IEK1yuBCl13KSdFiLQ56dPYEGBgGfXXsgjhAjEjyx3+etyqrsQzx4QG1IXJIkSHEkSBQRA4NA==
+X-Received: by 2002:a17:902:aa98:b0:1d3:dc48:838 with SMTP id d24-20020a170902aa9800b001d3dc480838mr69402plr.20.1703184440592;
+        Thu, 21 Dec 2023 10:47:20 -0800 (PST)
+Return-Path: <phone@seattlecommunitynetwork.org>
+Received: from smtpclient.apple ([205.175.118.190])
+        by smtp.gmail.com with ESMTPSA id x5-20020a170902ec8500b001d04d730687sm1969126plg.103.2023.12.21.10.47.19
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 21 Dec 2023 10:47:19 -0800 (PST)
+Content-Type: multipart/alternative; boundary=Apple-Mail-58D6035F-C14C-4923-825D-5C34E301489F
+Content-Transfer-Encoding: 7bit
+From: Phone SCN <phone@seattlecommunitynetwork.org>
+Mime-Version: 1.0 (1.0)
+Subject: Re: New text message from 555-1212
+Message-Id: <0482D7F5-9D4F-40FD-B341-09DDE7A8BBBA@seattlecommunitynetwork.org>
+References: <+12536557221.bf5ec1b8a1141a560f1e7d6b1aa7667be4db1b5f@txt.voice.google.com>
+In-Reply-To: <+12536557221.bf5ec1b8a1141a560f1e7d6b1aa7667be4db1b5f@txt.voice.google.com>
+To: "(646) 555-1212" <12536557221.16465551212.l4bQS4Ghq3@txt.voice.google.com>
+Date: Thu, 21 Dec 2023 10:47:09 -0800
+X-Mailer: iPhone Mail (20F66)
+
+
+--Apple-Mail-58D6035F-C14C-4923-825D-5C34E301489F
+Content-Type: text/html;
+	charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html><head><meta http-equiv=3D"content-type" content=3D"text/html; charset=3D=
+utf-8"></head><body dir=3D"auto">Hi testing this again from phone@ mail app o=
+n iPhone<br><br><div dir=3D"ltr">SCN phone</div><div dir=3D"ltr"><br>On Dec 2=
+1, 2023, at 8:40 AM, (646) 555-1212 &lt;12536557221.16465551212.l4bQS4Ghq3@t=
+xt.voice.google.com&gt; wrote:<br><br></div><div dir=3D"ltr">=EF=BB=BF<table=
+ cellspacing=3D"0" cellpadding=3D"0" border=3D"0" style=3D"font-family: Robo=
+to,'Helvetica Neue',Helvetica,Arial,sans-serif;"><tbody><tr><td><table cells=
+pacing=3D"0" cellpadding=3D"0" border=3D"0" width=3D"600" class=3D"content-t=
+able" style=3D"border-bottom: 1px solid #eeeee;"><tbody><tr><td align=3D"lef=
+t" style=3D"padding: 16px 32px;"><a href=3D"https://voice.google.com" target=
+=3D"_blank" rel=3D"noopener"><img alt=3D"Google Voice" src=3D"https://www.gs=
+tatic.com/voice-fe/icons/voice_lockup_2020q4_48px.png" height=3D"32" data-un=
+ique-identifier=3D""></a></td></tr></tbody></table><table cellspacing=3D"0" c=
+ellpadding=3D"0" border=3D"0" width=3D"600" class=3D"content-table" style=3D=
+"padding: 25px 32px; border-bottom: 1px solid #EEEEEE;"><tbody><tr><td style=
+=3D"font-size: 14px; line-height: 20px; padding: 25px 0;">Testing threadless=
+ mode on mail app</td></tr><tr><td style=3D"font-size: 14px; font-style: ita=
+lic; line-height: 20px; color: #757575"></td></tr></tbody></table><table cel=
+lspacing=3D"0" cellpadding=3D"0" border=3D"0" width=3D"600" class=3D"content=
+-table" style=3D"padding: 25px 32px; font-size: 9px; color: #757575;"><tbody=
+><tr><td><table cellspacing=3D"0" cellpadding=3D"0" border=3D"0" width=3D"24=
+0" style=3D"font-size: 9px; line-height: 14px;" class=3D"footer-link"><tbody=
+><tr><td style=3D"padding-right: 5px;"><a href=3D"https://voice.google.com" t=
+arget=3D"_blank">YOUR ACCOUNT</a></td><td style=3D"padding-right: 5px;"><a h=
+ref=3D"https://support.google.com/voice#topic=3D1707989" target=3D"_blank">H=
+ELP CENTER</a></td><td><a href=3D"https://productforums.google.com/forum/#!f=
+orum/voice" target=3D"_blank">HELP FORUM</a></td></tr></tbody></table></td><=
+/tr><tr><td style=3D"padding: 15px 0">This email was sent to you because you=
+ indicated that you'd like to receive email notifications for text messages.=
+ If you don't want to receive such emails in the future, please update your <=
+a href=3D"https://voice.google.com/settings#messaging">email notification se=
+ttings</a>.</td></tr><tr><td><img alt=3D"Google" src=3D"https://www.gstatic.=
+com/images/branding/googlelogo/1x/googlelogo_dark_color_74x24dp.png" height=3D=
+"14" style=3D"opacity: .5;" data-unique-identifier=3D""></td></tr><tr><td st=
+yle=3D"padding: 15px 0; line-height: 12px;">Google LLC<br><span class=3D"lin=
+ks-footer">1600 Amphitheatre Pkwy<br>Mountain View CA 94043 USA</span></td><=
+/tr></tbody></table></td></tr></tbody></table></div></body></html>=
+
+--Apple-Mail-58D6035F-C14C-4923-825D-5C34E301489F--

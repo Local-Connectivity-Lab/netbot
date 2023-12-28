@@ -24,7 +24,7 @@ logging.getLogger("asyncio").setLevel(logging.ERROR)
 log = logging.getLogger(__name__)
 
 test_username: str = "acmerocket"
-test_username2: str = "infrared0"
+test_username2: str = "freddy"
 test_user_id: int = 5
 
 
