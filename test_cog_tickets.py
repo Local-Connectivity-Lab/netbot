@@ -100,7 +100,7 @@ class TestTicketsCog(test_utils.BotTestCase):
 
     # create thread/sync 
     async def test_thread_sync(self):
-        timestamp = dt.datetime.now().astimezone(dt.timezone.utc)
+        timestamp = dt.datetime.now().astimezone(dt.timezone.utc).replace(microsecond=0) # strip microseconds
 
         # create a ticket and add a note
         subject = f"Test Thread Ticket {self.tag}"
@@ -146,7 +146,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         # test redmine syncdata
         ticket = self.redmine.get_ticket(ticket.id)
         last_update = self.redmine.get_field(ticket, "sync")
-        self.assertLess(timestamp, last_update)
+        self.assertLessEqual(timestamp, last_update) # hack for TCs that complete in the same second
         
         # delete the ticket
         self.redmine.remove_ticket(ticket.id)

@@ -37,7 +37,7 @@ class TestMessages(unittest.TestCase):
                 self.assertNotIn("https://voice.google.com", message.note)
                 
     def test_google_stripping(self):
-        with open("test/New text message from 555-1212.eml", 'rb') as file:
+        with open("test/New text message from 5551212.eml", 'rb') as file:
                 message = self.imap.parse_message(file.read())
                 self.assertNotIn("Forwarded message", message.note)
                 self.assertNotIn("https://voice.google.com", message.note)
