@@ -37,7 +37,7 @@ class TestMessages(unittest.TestCase):
                 self.assertNotIn("https://voice.google.com", message.note)
                 
     def test_google_stripping(self):
-        with open("test/New text message from (646) 266-3154.eml", 'rb') as file:
+        with open("test/New text message from 555-1212.eml", 'rb') as file:
                 message = self.imap.parse_message(file.read())
                 self.assertNotIn("Forwarded message", message.note)
                 self.assertNotIn("https://voice.google.com", message.note)
@@ -53,11 +53,11 @@ class TestMessages(unittest.TestCase):
                 self.assertNotIn("Mountain View CA 94043 USA", message.note)
                 
     def test_email_address_parsing(self):
-        from_address =  "Esther Jang <infrared@cs.washington.edu>"
+        from_address =  "Fred Example <freddy@example.com>"
         first, last, addr = self.imap.parse_email_address(from_address)
         self.assertEqual(first, "Esther")
         self.assertEqual(last, "Jang")
-        self.assertEqual(addr, "infrared@cs.washington.edu")
+        self.assertEqual(addr, "freddy@example.com")
 
     # disabled so I don't flood the system with files
     @unittest.skip

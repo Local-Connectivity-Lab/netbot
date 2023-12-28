@@ -222,7 +222,7 @@ project: namespace(id=1, name='Seattle Community Network')
 tracker: namespace(id=4, name='Software Dev Task')
 status: namespace(id=2, name='In Progress', is_closed=False)
 priority: namespace(id=2, name='Normal')
-author: namespace(id=15, name='Esther Jang')
+author: namespace(id=15, name='Fred Example')
 assigned_to: namespace(id=5, name='Paul Philion')
 category: namespace(id=4, name='feature request')
 subject: Threading with Emails
