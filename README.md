@@ -69,7 +69,6 @@ Logs from the runs are stored in `/home/scn/github/netbot/logs` folder, one per 
 
 ```
 scn add [login]    - Map current discord userid to redmine [login]
-scn sync           - manually sychs the current Discord thread (assuming you're in one), or replies with warning
 scn join [team]    - discord user joins [team] (and maps user id)
 scn leave [team]   - discord user leaves [team] 
 scn reindex        - rebuild the bot's index of users, teams and other metadata. Use when adding new users and teams to Redmine.
@@ -86,14 +85,9 @@ ticket # assign    - Assign ticket n to the specified user - not yet implemented
 ticket # unassign  - Mark ticket n new and unassigned.
 ticket # progress  - Assign the ticket to yourself and set it yourself.
 ticket # resolve   - Mark the ticket resolved.
-ticket # note      - Add a note to the specific ticket. same as commenting in the ticket thread (if there is a ticket-thread, works without) - not yet implemented
-
-thread #           - Create new synced thread for ticket in the current text channel, or error.
 
 new [title]        - Create a new ticket with the title [title]
-
 ```
-
 
 ## CLI
 
@@ -102,12 +96,12 @@ A command-line interface version of the `tickets` Discord bot command provides t
 ```
 cli.py                   - List the new tickets assigned to me or teams I'm on
 cli.py [user]            - List the tickets assigned to user
-cli.py [n]               - List details for ticket n
-cli.py [query]           - Search for tickets containing this term
-cli.py [n] assign [user] - Assign ticket n to the specified user
-cli.py [n] unassign      - Mark ticket n new and unassigned.
-cli.py [n] progress      - Assign the ticket to yourself and set it yourself.
-cli.py [n] resolve       - Mark the ticket resolved.
+cli.py [#]               - List details for ticket #
+cli.py [query]           - Search for tickets containing the term [query]
+cli.py [#] assign [user] - Assign ticket # to the specified user
+cli.py [#] unassign      - Mark ticket # new and unassigned.
+cli.py [#] progress      - Assign ticket # to yourself and set it yourself.
+cli.py [#] resolve       - Mark ticket number # resolved.
 ```
 
 ### CLI Configuration
