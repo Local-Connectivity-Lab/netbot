@@ -392,7 +392,7 @@ class Client(): ## redmine.Client()
     def search_tickets(self, term):
         # todo url-encode term?
         # note: sort doesn't seem to be working for search
-        query = f"/search.json?q={term}&titles_only=1&open_issues=1&limit=100"
+        query = f"/search.json?q={term}&all_words=1&titles_only=1&open_issues=1&limit=10"
 
         response = self.query(query)
 
@@ -670,9 +670,13 @@ class Client(): ## redmine.Client()
     
     def get_discord_id(self, user):
         if user:
-            for field in user.custom_fields:
-                    if field.name == "Discord ID":
-                        return field.value
+            try:
+                for field in user.custom_fields:
+                        if field.name == "Discord ID":
+                            return field.value
+            except AttributeError:
+                # user has no defined custom_fields, fall thru
+                pass
         return None
 
     def is_user_or_group(self, user:str) -> bool:

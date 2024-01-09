@@ -22,7 +22,8 @@ class TestNetbot(test_utils.BotTestCase):
         super().setUp()
         netbot.setup_logging() # for coverage?
         
-        
+    # skipping, as it relies on a specific ticket number.
+    @unittest.skip
     async def test_new_message_synced_thread(self):
         test_ticket = 218
         note = f"This is a new note about ticket #{test_ticket} for test {self.tag}"
