@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 import imap
 import redmine
+import test_utils
 
 
 #logging.basicConfig(level=logging.DEBUG)
@@ -113,16 +114,27 @@ class TestMessages(unittest.TestCase):
         self.assertIsNone(self.redmine.find_user(test_email))
 
     def test_subject_search(self):
-        # find expected tickets, based on subject
-        items = [
-            {"subject": "Search for subject match in email threading", "id": "218"}
-        ]
+        # create a new ticket with unique subject
+        tag = test_utils.tagstr()
+        user = self.redmine.find_user("philion") # FIXME: create a relaible test_user
+        self.assertIsNotNone(user)
+        subject = f"New ticket with unique marker {tag}"
+        ticket = self.redmine.create_ticket(user, subject, f"This for {self.id}-{tag}")
+        self.assertIsNotNone(ticket)
+
+        # search for the ticket
+        tickets = self.redmine.match_subject(subject)
+        self.assertIsNotNone(tickets)
+        self.assertEqual(1, len(tickets))
+        self.assertEqual(ticket.id, tickets[0].id)
         
-        for item in items:
-            tickets = self.redmine.search_tickets(item["subject"])
-            
-            self.assertEqual(1, len(tickets))
-            self.assertEqual(int(item["id"]), tickets[0].id)
+        tickets = self.redmine.search_tickets(tag)
+        self.assertIsNotNone(tickets)
+        self.assertEqual(1, len(tickets))
+        self.assertEqual(ticket.id, tickets[0].id)
+        
+        # clean up
+        self.redmine.remove_ticket(ticket.id)
 
 
 if __name__ == '__main__':
