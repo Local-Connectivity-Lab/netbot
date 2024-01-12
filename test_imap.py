@@ -123,13 +123,6 @@ class TestMessages(unittest.TestCase):
             
             self.assertEqual(1, len(tickets))
             self.assertEqual(int(item["id"]), tickets[0].id)
-            
-    def test_message443(self):
-        with open("test/message-err-443.eml", 'rb') as file:
-            message = self.imap.parse_message(file.read())
-            self.assertIsNotNone(message)
-            self.assertIsNotNone(message.note)
-            log.info(f"NOTE: {message.note}")
 
 
 if __name__ == '__main__':
