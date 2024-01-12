@@ -12,9 +12,8 @@ import redmine
 
 
 #logging.basicConfig(level=logging.DEBUG)
-#logging.basicConfig(level=logging.DEBUG, 
-#    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-#logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 
 log = logging.getLogger(__name__)
 
@@ -56,7 +55,7 @@ class TestMessages(unittest.TestCase):
         from_address =  "Fred Example <freddy@example.com>"
         first, last, addr = self.imap.parse_email_address(from_address)
         self.assertEqual(first, "Esther")
-        self.assertEqual(last, "Jang")
+        self.assertEqual(last, "Chae")
         self.assertEqual(addr, "freddy@example.com")
 
     # disabled so I don't flood the system with files
@@ -124,6 +123,13 @@ class TestMessages(unittest.TestCase):
             
             self.assertEqual(1, len(tickets))
             self.assertEqual(int(item["id"]), tickets[0].id)
+            
+    def test_message443(self):
+        with open("test/message-err-443.eml", 'rb') as file:
+            message = self.imap.parse_message(file.read())
+            self.assertIsNotNone(message)
+            self.assertIsNotNone(message.note)
+            log.info(f"NOTE: {message.note}")
 
 
 if __name__ == '__main__':

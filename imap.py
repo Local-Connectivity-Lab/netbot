@@ -134,7 +134,7 @@ class Client(): ## imap.Client()
             if payload.startswith("<html>") or payload.startswith("<HTML>"):
                 # strip HTML
                 payload = self.strip_html_tags(payload)
-                #log.debug(f"HTML payload after: {payload}")
+                log.debug(f"HTML payload after: {payload}")
 
         payload = self.strip_forwards(payload)
         message.set_note(payload)

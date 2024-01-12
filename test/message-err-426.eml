@@ -1,0 +1,447 @@
+Delivered-To: redmine@seattlecommunitynetwork.org
+Received: by 2002:a05:7022:42a2:b0:71:9e99:10da with SMTP id bk34csp2984854dlb;
+        Tue, 26 Dec 2023 11:50:21 -0800 (PST)
+X-Received: by 2002:ac8:57d2:0:b0:427:99dd:a5ab with SMTP id w18-20020ac857d2000000b0042799dda5abmr11623898qta.31.1703620221008;
+        Tue, 26 Dec 2023 11:50:21 -0800 (PST)
+ARC-Seal: i=2; a=rsa-sha256; t=1703620220; cv=pass;
+        d=google.com; s=arc-20160816;
+        b=FlMjAws+MHmyBJ5VNcisCBxnoDQI/GipM+bOTNf8XEOaxXqQVn05VSBx/VE9Var3Bs
+         LguZ1Y3I0ac6O2Et2hgGgcavaYRpPF8XgRJSBez38w3viV+ikwkL7Y9hUWeZIK4o2eAV
+         Fv0KYGTHt1vDDWSW+fHNFBI3ZgvIywfWwlPH6K37tmcYiJi1rR4Zw/pFj6kUWzNNGtNr
+         i7nDq9kebiTz6ztR1TieoRRnZF9qrXI1dClYsxhpcF8mfhMWItgp7xJUHMlRqoC9ztgD
+         L3ADcWv/0IOJS57IhcgBTzGxPqkbTiDhMW+3IJIDaHWRDsA8ZTCQllxmwuVIryAWRXaw
+         WVUQ==
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=to:cc:message-id:subject:date:mime-version:from
+         :content-transfer-encoding:dkim-signature:delivered-to;
+        bh=fJRizIZqPZpiGp96JAtLmstNcSKdNrvu7pkPPUTjenA=;
+        fh=h2hdtc+Ehp2S6/rJrSIwh4Yb3Tzosw+iutWl2IqSoYI=;
+        b=dyp0FRFuWgx8JXxWHp5H1C42uMZ55yjTX4N5+/8EzRr2JjmY8e0Y0d8MPKjLgSy7lG
+         4x+xLqglzO8XUMY0Uo9giaLWxmvDrSpLbkE5dGTXxNfTIrGh3JkHermixkM0T0brPIDw
+         Y7UPSUgZHq+hljBYtrXO3z+/dDog2T3Ho1xA0ylrx/SmZ2aW0rjAdxASY3F3MCEA/Upw
+         OZl4S3d4uKD+uNYuSvuqTUl5kcJcN/MIHzEPdnx1ATmCgL6wxrgk9w8TqJilclbfiOQ7
+         HG17fFSPQiv0imvjeRJO0r57bBf2vMUpKAEQoT5HyRS8cOzaj55bilmjVKxebXNWr8Ue
+         ergA==
+ARC-Authentication-Results: i=2; mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20230601 header.b=YATCzeyb;
+       arc=pass (i=1 spf=pass spfdomain=gmail.com dkim=pass dkdomain=gmail.com dmarc=pass fromdomain=gmail.com);
+       spf=neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org) smtp.mailfrom="support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org";
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com
+Return-Path: <support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id kb3-20020a05622a448300b00427e6c0be45sor505857qtb.3.2023.12.26.11.50.20
+        for <redmine@seattlecommunitynetwork.org>
+        (Google Transport Security);
+        Tue, 26 Dec 2023 11:50:20 -0800 (PST)
+Received-SPF: neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20230601 header.b=YATCzeyb;
+       arc=pass (i=1 spf=pass spfdomain=gmail.com dkim=pass dkdomain=gmail.com dmarc=pass fromdomain=gmail.com);
+       spf=neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org) smtp.mailfrom="support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org";
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1703620220; x=1704225020;
+        h=to:cc:message-id:subject:date:mime-version:from
+         :content-transfer-encoding:dkim-signature:delivered-to
+         :x-forwarded-for:x-forwarded-to:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=fJRizIZqPZpiGp96JAtLmstNcSKdNrvu7pkPPUTjenA=;
+        b=WktCgzfnQzehBLNIYryZgZxxjt3yA1jx3taoHcmpNHTnVdlaSqqT0TmO8aNTf/QIqh
+         GVy6kP/WyAKVV9LMTvqtoXnF/L6paqoo0W6eTF5ItwApshp5q8VIVqiOg4HztYAvXqUw
+         3yU3HfMbH/KLUSc92N9mbtGjXToMFF3nBhLT3A0cdfVtMGfGsUDXJI4+7kBE5gTGzU74
+         VMyrZ3g4dyPprhVSoVd2Plu8dMsy7LeJs5HsGG/FbEBZXbpQH6pXBlCidg5XqF7QWqwW
+         kjyq7BW4DhF6yKO5mQORKtOxKvBxygOElDu5RvY9Al8OulXgjbdFnfvO3Qn2SJSWt0vM
+         oF2g==
+X-Gm-Message-State: AOJu0YzOVzjA34ByJ55msT86cBkzIovR+w+9+0j9LexusIPItmc4L5rU
+	VyJvZ5l/aui9v5TNBIKGuadX03zU0JZ/gttzR/sU74wEDPCZChwy0s3YqRcz1XcKXhyilFYx
+X-Received: by 2002:ac8:5a86:0:b0:425:9936:b092 with SMTP id c6-20020ac85a86000000b004259936b092mr14673451qtc.53.1703620220564;
+        Tue, 26 Dec 2023 11:50:20 -0800 (PST)
+X-Forwarded-To: redmine@seattlecommunitynetwork.org
+X-Forwarded-For: support@seattlecommunitynetwork.org redmine@seattlecommunitynetwork.org
+Delivered-To: support@seattlecommunitynetwork.org
+Received: by 2002:a05:622a:81c6:b0:423:9daf:870b with SMTP id jz6csp3998743qtb;
+        Tue, 26 Dec 2023 11:50:18 -0800 (PST)
+X-Received: by 2002:ae9:e419:0:b0:781:30b0:4f37 with SMTP id q25-20020ae9e419000000b0078130b04f37mr8162836qkc.15.1703620218018;
+        Tue, 26 Dec 2023 11:50:18 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1703620218; cv=none;
+        d=google.com; s=arc-20160816;
+        b=UUN2i+yCz659ALpwV5c1EmoRUsF10q7xn7GRd4PLA3BtmNh0cfQ+VaS6m0Cy/dYoHQ
+         NlRd7RbpOuRJ2b7XqX6i6+PWj17hhLItYltFfi5h3+ANU1I2AS1f1rz1OVFpuBo6sMOK
+         aUDM5S/l2nqwqwne93FGiSeRz/Xq1ImOf+lWayQuKjG043mKv1MbAQB6888aEFZffdVP
+         nEpBSesLjS2tZUg5r0COsYElj0vyzE/BU/zdsGKjCJVMS/oNFQJKHxSOEJLjbXr4CXbQ
+         yBlc+k1MF3Ns2iTjkDH5r6ZUiZjm99ujZ2OIOixQxXto1r/I55hOGboCB780w2x/lyXS
+         0LuA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=to:cc:message-id:subject:date:mime-version:from
+         :content-transfer-encoding:dkim-signature;
+        bh=fJRizIZqPZpiGp96JAtLmstNcSKdNrvu7pkPPUTjenA=;
+        fh=h2hdtc+Ehp2S6/rJrSIwh4Yb3Tzosw+iutWl2IqSoYI=;
+        b=QYDemrIGbiRMfV5RhBdGVItWyecMt2HLnLwcKvpd2od6CxfO9hOWbKxOqb5EC36J/2
+         CBm2xMmUKocFTA02TMqcsq3UHvhUzw1MYEfJAHB61sC4IWNZq9InqdHTeK/ybb9g8hvB
+         8b/cAVaXF74E5pH5yyTdpeLN7Zvj7366h1IKQCy09aqUjYx4nP5WUGxH+oNDDlQfsPwX
+         HAgsYnXiUUAQFNQWly1KGUTaeZks4sF5Uikb63fbB2y1DdsPjbOIsCTOEzUJHLJLWgYZ
+         jVO9O7/8gM4PtHrcU+vSw6VJZtVYICrwa3zG5l8lVVPNGnPMENCs6wNC42F3szRMrDyJ
+         /9pg==
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20230601 header.b=YATCzeyb;
+       spf=pass (google.com: domain of johnelliott703@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=johnelliott703@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com
+Return-Path: <johnelliott703@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id e5-20020a05620a12c500b0077f03b58799sor8470240qkl.16.2023.12.26.11.50.17
+        (Google Transport Security);
+        Tue, 26 Dec 2023 11:50:18 -0800 (PST)
+Received-SPF: pass (google.com: domain of johnelliott703@gmail.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1703620217; x=1704225017; darn=seattlecommunitynetwork.org;
+        h=to:cc:message-id:subject:date:mime-version:from
+         :content-transfer-encoding:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=fJRizIZqPZpiGp96JAtLmstNcSKdNrvu7pkPPUTjenA=;
+        b=YATCzeyb2ITEyWEdAEBrcJpQyzSHkcJZtKeJOMM940DkZzdKIBLvZ1r8v0y9D1R+VC
+         sXbTiuzk76ZZy5cYykWQZKmqqiIQHFQBYLJxEI+LqYRfPkcIixMV2k4bC/HXvrUWoHlt
+         G5iBkhpHslZXPipLwEnXzFZy490Cy4swa3r6/YsSwRtCKfKUD+0fo4QLDI7KE36fsDWp
+         ZwkorZxD1j4kqjQE9Qdsb2z02R8F8uUaSmKgZgbC28Zl2L2rJca7yd9MT+b44gZM/U80
+         R7bGzKpROORAtNRAWJjZPTI48Ct5cpdZ/s33N7mtLbKF9xkBitQUXCxXfiuQorSqRhsw
+         AyIA==
+X-Google-Smtp-Source: AGHT+IEpjp9tZwM0JucnsGpGaFE/FecH3u9JFxa8pAEVlc+0niG3ZzXln/5stI3LPoMwsFmhNXQX0g==
+X-Received: by 2002:ae9:e643:0:b0:781:54f6:c35c with SMTP id x3-20020ae9e643000000b0078154f6c35cmr1921871qkl.50.1703620216734;
+        Tue, 26 Dec 2023 11:50:16 -0800 (PST)
+Return-Path: <johnelliott703@gmail.com>
+Received: from smtpclient.apple ([2601:194:837f:2330:28b2:f1df:25ea:2c43])
+        by smtp.gmail.com with ESMTPSA id h12-20020a05620a13ec00b007811cbc52bfsm4361281qkl.52.2023.12.26.11.50.15
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 26 Dec 2023 11:50:16 -0800 (PST)
+Content-Type: multipart/alternative; boundary=Apple-Mail-97E126E3-B0F0-4514-A7BC-CB3AA5845502
+Content-Transfer-Encoding: 7bit
+From: John Elliott <johnelliott703@gmail.com>
+Mime-Version: 1.0 (1.0)
+Date: Tue, 26 Dec 2023 14:50:05 -0500
+Subject: Re: [SCN-Board] Re: toor.sh/SCN collaboration
+Message-Id: <CF41EC01-C2FC-4DED-8BC2-2A3B5F6CA018@gmail.com>
+Cc: Ian Foster <ian@vorsk.com>, Cody Harris <cody@hypodyne.net>,
+ board@seattlecommunitynetwork.org, support@seattlecommunitynetwork.org
+To: Dan Theisen <djt@seattlecommunitynetwork.org>
+X-Mailer: iPhone Mail (20H115)
+
+
+--Apple-Mail-97E126E3-B0F0-4514-A7BC-CB3AA5845502
+Content-Type: text/html;
+	charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html><head><meta http-equiv=3D"content-type" content=3D"text/html; charset=3D=
+utf-8"></head><body dir=3D"auto"><div dir=3D"ltr"></div><div dir=3D"ltr"><br=
+></div><div dir=3D"ltr">Hi Ian, HE is just an SCN peer.&nbsp;</div><div dir=3D=
+"ltr"><br></div><div dir=3D"ltr">John Elliott</div><div dir=3D"ltr"><br></di=
+v><div dir=3D"ltr"><br><blockquote type=3D"cite">On Dec 25, 2023, at 5:15 PM=
+, Dan Theisen &lt;djt@seattlecommunitynetwork.org&gt; wrote:<br><br></blockq=
+uote></div><blockquote type=3D"cite"><div dir=3D"ltr">=EF=BB=BF<meta http-eq=
+uiv=3D"content-type" content=3D"text/html; charset=3Dutf-8"><div dir=3D"ltr"=
+><meta http-equiv=3D"content-type" content=3D"text/html; charset=3Dutf-8">Hi=
+ Ian,<div><br></div><div>Hurricane Electric provides SCN with v6 transit. We=
+ are peering with them over the SIX fabric. Currently our compute resources a=
+re the most scarce. We have a single server colo'd in the Westin Exchange Bu=
+ilding. We're trying to get our hands on some more hardware to run some VM's=
+ currently!</div><div><br id=3D"lineBreakAtBeginningOfSignature"><div dir=3D=
+"ltr">Merry Christmas!</div><div dir=3D"ltr">Dan Theisen</div><div dir=3D"lt=
+r"><br><blockquote type=3D"cite">On Dec 23, 2023, at 11:23, Ian Foster &lt;i=
+an@vorsk.com&gt; wrote:<br><br></blockquote></div><blockquote type=3D"cite">=
+<div dir=3D"ltr">=EF=BB=BF<div dir=3D"ltr">Hello SCN,<div><br></div><div>Nic=
+e to meet you all!</div><div><br></div><div>&gt; Just a thought: since we bo=
+th peer with HE, perhaps we could announce<br>&gt; each others' routes at SI=
+X and FCIX and forward traffic via HE (we'd<br>&gt; have to check if they ar=
+e ok with that).<br></div><div><br></div><div>Unless HE gave us a direct con=
+nection to each other, I think this would require a tunnel/vpn. If they woul=
+d offer a direct connection that would be ideal. Is HE just a peer for SCN o=
+r a transit provider?</div><div><br></div><div><br></div></div><br><div clas=
+s=3D"gmail_quote"><div dir=3D"ltr" class=3D"gmail_attr">On Fri, Dec 22, 2023=
+ at 12:49=E2=80=AFPM Cody Harris &lt;<a href=3D"mailto:cody@hypodyne.net">co=
+dy@hypodyne.net</a>&gt; wrote:<br></div><blockquote class=3D"gmail_quote" st=
+yle=3D"margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204);paddi=
+ng-left:1ex">(oops, forgot to add SCN emails. Sending again)<br>
+<br>
+Hello SCN folks, this is Ian, he runs toor.sh and is interested in <br>
+collaborating with SCN.<br>
+<br>
+Ian, I've copied others from SCN onto this email thread so that we can <br>
+have a group discussion/brainstorming session about how to make <br>
+something cool happen.<br>
+<br>
+Just a thought: since we both peer with HE, perhaps we could announce <br>
+each others' routes at SIX and FCIX and forward traffic via HE (we'd <br>
+have to check if they are ok with that).<br>
+<br>
+~Cody<br>
+<br>
+<br>
+On 12/22/23 12:48, Cody Harris wrote:<br>
+&gt; Hello SCN folks, this is Ian, he runs toor.sh and is interested in <br>=
+
+&gt; collaborating with SCN.<br>
+&gt; <br>
+&gt; Ian, I've copied others from SCN onto this email thread so that we can <=
+br>
+&gt; have a group discussion/brainstorming session about how to make <br>
+&gt; something cool happen.<br>
+&gt; <br>
+&gt; Just a thought: since we both peer with HE, perhaps we could announce <=
+br>
+&gt; each others' routes at SIX and FCIX and forward traffic via HE (we'd <b=
+r>
+&gt; have to check if they are ok with that).<br>
+&gt; <br>
+&gt; ~Cody<br>
+&gt; <br>
+&gt; On 12/22/23 12:41, Cody Harris wrote:<br>
+&gt;&gt; Yes, I worked at registration and drove the parking shuttle last ti=
+me. <br>
+&gt;&gt; This year I'm thinking about doing setup/teardown. Last year I also=
+ <br>
+&gt;&gt; came with ShadyTel and helped with the phone network/Club Mate supp=
+ly :)<br>
+&gt;&gt;<br>
+&gt;&gt; Wow, I had only heard rumors about HE's free colo offer. That post w=
+as <br>
+&gt;&gt; written a few years ago, I wonder if the offer is still available.<=
+br>
+&gt;&gt;<br>
+&gt;&gt; I am going to add some SCN volunteers to this email thread so we ca=
+n <br>
+&gt;&gt; brainstorm and discuss things together.<br>
+&gt;&gt;<br>
+&gt;&gt; On 12/22/23 10:37, Ian Foster wrote:<br>
+&gt;&gt;&gt; It's awesome that you want to volunteer at ToorCamp. Have you <=
+br>
+&gt;&gt;&gt; volunteered in part years?<br>
+&gt;&gt;&gt;<br>
+&gt;&gt;&gt; I'm AS22296 and I currently just operate out of Hurricane Elect=
+ric's <br>
+&gt;&gt;&gt; FMT2 datacenter. I'm only on FCIX right now, but I do want to e=
+xpand <br>
+&gt;&gt;&gt; that as the network grows.<br>
+&gt;&gt;&gt; I'd love&nbsp;some form of presence in Seattle, and on SIX, but=
+ havent <br>
+&gt;&gt;&gt; found an economical way to achieve that yet.<br>
+&gt;&gt;&gt; I do have some spare space/power in my rack, but if you want to=
+ have <br>
+&gt;&gt;&gt; a larger presence in FMT2, I might be able to help SCN get a sp=
+ecial <br>
+&gt;&gt;&gt; deal <br>
+&gt;&gt;&gt; &lt;<a href=3D"https://www.reddit.com/r/ipv6/comments/g6v7b2/co=
+mment/foisizz/?context=3D3" rel=3D"noreferrer" target=3D"_blank">https://www=
+.reddit.com/r/ipv6/comments/g6v7b2/comment/foisizz/?context=3D3</a>&gt;.<br>=
+
+&gt;&gt;&gt;<br>
+&gt;&gt;&gt; One stretch&nbsp;goal of mine is to someday be able to provide d=
+irect <br>
+&gt;&gt;&gt; connectivity to ToorCamp, but I do realize that that is a VERY l=
+arge <br>
+&gt;&gt;&gt; endeavor.<br>
+&gt;&gt;&gt;<br>
+&gt;&gt;&gt; On Fri, Dec 22, 2023 at 9:55=E2=80=AFAM Cody Harris &lt;<a href=
+=3D"mailto:cody@hypodyne.net" target=3D"_blank">cody@hypodyne.net</a> <br>
+&gt;&gt;&gt; &lt;mailto:<a href=3D"mailto:cody@hypodyne.net" target=3D"_blan=
+k">cody@hypodyne.net</a>&gt;&gt; wrote:<br>
+&gt;&gt;&gt;<br>
+&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; Hey Ian,<br>
+&gt;&gt;&gt;<br>
+&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; I need to call Tim about volunteering for th=
+e next ToorCamp sometime<br>
+&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; soon anyway, so that=E2=80=99s a good coinci=
+dence.<br>
+&gt;&gt;&gt;<br>
+&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; That=E2=80=99s a generous offer! We have a s=
+mall physical presence on the<br>
+&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; Seattle IX in the Westin Building and are pe=
+ering with the SIX route<br>
+&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; servers and a few ASNs, including Hurricane E=
+lectric. We=E2=80=99re AS54429<br>
+&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; (<a href=3D"https://www.peeringdb.com/asn/54=
+429" rel=3D"noreferrer" target=3D"_blank">https://www.peeringdb.com/asn/5442=
+9</a><br>
+&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; &lt;<a href=3D"https://www.peeringdb.com/asn=
+/54429" rel=3D"noreferrer" target=3D"_blank">https://www.peeringdb.com/asn/5=
+4429</a>&gt;). If I recall correctly,<br>
+&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; you=E2=80=99re hosted out of HE in Fremont, C=
+A? Maybe we could make<br>
+&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; something interesting happen with colo. I=E2=
+=80=99ll mention your offer to<br>
+&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; the other SCN tech volunteers and see if the=
+y have ideas too.<br>
+&gt;&gt;&gt;<br>
+&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; ~Cody<br>
+&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; On Dec 21, 2023, at 17:52, Ian Foster &l=
+t;<a href=3D"mailto:ian@vorsk.com" target=3D"_blank">ian@vorsk.com</a><br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; &lt;mailto:<a href=3D"mailto:ian@vorsk.c=
+om" target=3D"_blank">ian@vorsk.com</a>&gt;&gt; wrote:<br>
+&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; =EF=BB=BF<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; Hey,<br>
+&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; I was just talking to Tim, one of the co=
+founders of ToorCon and<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; UnixSurplus&nbsp;folks and he mentioned t=
+hat you can call him at (619)<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; 578-8674 for more info.<br>
+&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; Unrelated, but if you or the Seattle Com=
+munity Network, would be<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; interested in any sort of mutually benef=
+icial&nbsp;network exchange<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; with toor.sh (peering, transit, colo, et=
+c) I'd be happy to share<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; some resources.<br>
+&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; On Thu, Dec 21, 2023 at 5:13=E2=80=AFPM C=
+ody Harris &lt;<a href=3D"mailto:cody@hypodyne.net" target=3D"_blank">cody@h=
+ypodyne.net</a><br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; &lt;mailto:<a href=3D"mailto:cody@hypody=
+ne.net" target=3D"_blank">cody@hypodyne.net</a>&gt;&gt; wrote:<br>
+&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Hi Ian,<br>
+&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Thanks for getti=
+ng back and explaining the situation. I=E2=80=99ll try<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; reaching out to t=
+hem and see if they have any discounts :)<br>
+&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Hope to see you a=
+t ToorCamp next year!<br>
+&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ~Cody<br>
+&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; On Dec 19, 2=
+023, at 16:49, Ian Foster &lt;<a href=3D"mailto:ian@vorsk.com" target=3D"_bl=
+ank">ian@vorsk.com</a><br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;mailto:<=
+a href=3D"mailto:ian@vorsk.com" target=3D"_blank">ian@vorsk.com</a>&gt;&gt; w=
+rote:<br>
+&gt;&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; =EF=BB=BF<br=
+>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Hello&nbsp;C=
+ody,<br>
+&gt;&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; As far as I k=
+now there is no UnixSurplus discount. I run the<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; toor.sh proj=
+ect through the ToorCon non-profit, which has<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; been sponsor=
+ed by UnixSurplus in the past and shares some<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; staff with T=
+oorCon, which&nbsp;were able to help with some<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; hardware, bu=
+t I still had to buy quite a bit out of pocket.<br>
+&gt;&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; If you are a=
+ non-profit, you can try reaching out to them and<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; see if they c=
+an offer you anything.<br>
+&gt;&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; I met some o=
+f the Seattle Community Network folks at ToorCamp<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2022. It see=
+ms like a very cool project and<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; definitely&n=
+bsp;overlaps with&nbsp;my interests. If you or any of the<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; other Seattl=
+e Community Network folks will be at ToorCamp<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2024 I can i=
+ntroduce you to some of the UnixSurplus folks who<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; are there.<b=
+r>
+&gt;&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; On Mon, Dec 1=
+8, 2023 at 6:51=E2=80=AFPM Cody Harris<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<a href=3D=
+"mailto:cody@hypodyne.net" target=3D"_blank">cody@hypodyne.net</a> &lt;mailt=
+o:<a href=3D"mailto:cody@hypodyne.net" target=3D"_blank">cody@hypodyne.net</=
+a>&gt;&gt; wrote:<br>
+&gt;&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp; Hey Ian,<br>
+&gt;&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp; I noted a comment you made at Hushcon about getting a<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp; nonprofit/educational discount from UNIX Surplus on your<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp; servers. I volunteer with Seattle Community Network and<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp; we=E2=80=99re looking and purchasing some servers to run some of=
+<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp; our internal services. I=E2=80=99m wondering if you could share a=
+<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp; little about the discounts you got and your experience<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp; with UNIX Surplus as a vendor.<br>
+&gt;&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp; Thanks!<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp; ~Cody<br>
+&gt;&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -- &nbsp;&nb=
+sp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Ian Foster<br>
+&gt;&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href=3D"h=
+ttp://vorsk.com" rel=3D"noreferrer" target=3D"_blank">vorsk.com</a> &lt;<a h=
+ref=3D"https://vorsk.com/" rel=3D"noreferrer" target=3D"_blank">https://vors=
+k.com/</a>&gt;<br>
+&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt;<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; -- &nbsp;&nbsp;&nbsp; Ian Foster<br>
+&gt;&gt;&gt;&gt; &nbsp;&nbsp;&nbsp; <a href=3D"http://vorsk.com" rel=3D"nore=
+ferrer" target=3D"_blank">vorsk.com</a> &lt;<a href=3D"https://vorsk.com/" r=
+el=3D"noreferrer" target=3D"_blank">https://vorsk.com/</a>&gt;<br>
+&gt;&gt;&gt;<br>
+&gt;&gt;&gt;<br>
+&gt;&gt;&gt;<br>
+&gt;&gt;&gt; -- <br>
+&gt;&gt;&gt; Ian Foster<br>
+&gt;&gt;&gt; <a href=3D"http://vorsk.com" rel=3D"noreferrer" target=3D"_blan=
+k">vorsk.com</a> &lt;<a href=3D"https://vorsk.com/" rel=3D"noreferrer" targe=
+t=3D"_blank">https://vorsk.com/</a>&gt;<br>
+</blockquote></div><br clear=3D"all"><div><br></div><span class=3D"gmail_sig=
+nature_prefix">-- </span><br><div dir=3D"ltr" class=3D"gmail_signature"><div=
+ dir=3D"ltr">Ian Foster<br><a href=3D"https://vorsk.com/" target=3D"_blank">=
+vorsk.com</a><br></div></div>
+
+<p></p>
+
+-- <br>
+You received this message because you are subscribed to the Google Groups "S=
+CN Community Board" group.<br>
+To unsubscribe from this group and stop receiving emails from it, send an em=
+ail to <a href=3D"mailto:board+unsubscribe@seattlecommunitynetwork.org">boar=
+d+unsubscribe@seattlecommunitynetwork.org</a>.<br>
+To view this discussion on the web visit <a href=3D"https://groups.google.co=
+m/a/seattlecommunitynetwork.org/d/msgid/board/CA%2BGNmPQMNxymQKOoSwz6iZuoyVo=
+8srYFRF7Hcobz81p9aafbDQ%40mail.gmail.com?utm_medium=3Demail&amp;utm_source=3D=
+footer">https://groups.google.com/a/seattlecommunitynetwork.org/d/msgid/boar=
+d/CA%2BGNmPQMNxymQKOoSwz6iZuoyVo8srYFRF7Hcobz81p9aafbDQ%40mail.gmail.com</a>=
+.<br>
+</div></blockquote></div></div>
+
+<p></p>
+
+-- <br>
+You received this message because you are subscribed to the Google Groups "S=
+CN Community Board" group.<br>
+To unsubscribe from this group and stop receiving emails from it, send an em=
+ail to <a href=3D"mailto:board+unsubscribe@seattlecommunitynetwork.org">boar=
+d+unsubscribe@seattlecommunitynetwork.org</a>.<br>
+To view this discussion on the web visit <a href=3D"https://groups.google.co=
+m/a/seattlecommunitynetwork.org/d/msgid/board/01D6C077-5868-4718-B96C-3D53B8=
+71931C%40seattlecommunitynetwork.org?utm_medium=3Demail&amp;utm_source=3Dfoo=
+ter">https://groups.google.com/a/seattlecommunitynetwork.org/d/msgid/board/0=
+1D6C077-5868-4718-B96C-3D53B871931C%40seattlecommunitynetwork.org</a>.<br>
+</div></blockquote></body></html>=
+
+--Apple-Mail-97E126E3-B0F0-4514-A7BC-CB3AA5845502--

@@ -1,0 +1,447 @@
+Delivered-To: redmine@seattlecommunitynetwork.org
+Received: by 2002:a05:7022:f216:b0:73:816d:95a5 with SMTP id rf22csp1776234dlb;
+        Thu, 11 Jan 2024 11:48:00 -0800 (PST)
+X-Received: by 2002:a05:6122:2888:b0:4b6:c37b:726e with SMTP id fl8-20020a056122288800b004b6c37b726emr397568vkb.18.1705002480385;
+        Thu, 11 Jan 2024 11:48:00 -0800 (PST)
+ARC-Seal: i=2; a=rsa-sha256; t=1705002480; cv=pass;
+        d=google.com; s=arc-20160816;
+        b=WkO9dSwWSyFBMSswITiniO8GT0KaqJOhtBN2YkZK9nHqlyU3OaiGQu8zejtWHFETH6
+         2tfhWo1a5Dhpfu8Mt5p0pXo9LY9toSBLEh5Qc+yj+4kCd5CbBOwolNQRtiP5xKSq5HVm
+         jwDrdgBUuuYlXFG/ffK53V+C/G76Wx3Iz0PdATczL8wTSOqG73a++tTHIFMXAzGI17Xg
+         RPmmqogO7K1Ekh4brU0THBkm9XUw74Y58/FsSFUILve+PGpkR4fPLOb+AtfAQogKTHJ8
+         zTCGMyXCd5YSnJjs7ccdaSUZJ+T02VRVFZXqjtzeh3HOjGtG7RXlF8hqxUMt9HvWZRA0
+         ztSw==
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=dkim-signature:auto-submitted:content-transfer-encoding
+         :mime-version:subject:references:in-reply-to:message-id:cc:to
+         :reply-to:from:date:delivered-to;
+        bh=/rJRomZn57l23AUM2+cF9FMWp8LRSzlMXvjIY+Kq8EA=;
+        fh=InC17l0x9skvDRAqqngSpO/B9ww5bSFQByyoDO6kQ10=;
+        b=d0TzwHSuy2JVYEZptk0OWAMuQsKA5SxM122TBiSnDH+mSnw+l/G2/ORCDHlZmCji9V
+         G5WcbMc/jKKWT4/WEn8j03Q4wZICX1jIPHW24mn+XIUE83PiR+1Kc26L6e8R9+dLqt6L
+         qNQ4ClkaondcJDolu1/QcaK3o7uHvPazCszlpDqeQcn57NYNWo88JkdLDfszl6UMcPTg
+         lqcF03hKIx6qdXM54rrg2ktuQbyMAJDdLRucl2GYaczMWiIV+qjHOVRYIsPL8EGMH9GL
+         cF64G8XkNTjeEXnA6QIeiCoNcx8mBaHtg9yrWqn4x20aWqqKtATKbVJmN3O751vabU5r
+         wnFQ==
+ARC-Authentication-Results: i=2; mx.google.com;
+       dkim=pass header.i=@benevity.com header.s=zendesk1 header.b=R7srSwvC;
+       arc=pass (i=1 spf=pass spfdomain=benevity.com dkim=pass dkdomain=benevity.com dmarc=pass fromdomain=benevity.com);
+       spf=neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org) smtp.mailfrom="support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org";
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=benevity.com
+Return-Path: <support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id y21-20020a05620a25d500b0078146e38cb1sor1360767qko.4.2024.01.11.11.48.00
+        for <redmine@seattlecommunitynetwork.org>
+        (Google Transport Security);
+        Thu, 11 Jan 2024 11:48:00 -0800 (PST)
+Received-SPF: neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@benevity.com header.s=zendesk1 header.b=R7srSwvC;
+       arc=pass (i=1 spf=pass spfdomain=benevity.com dkim=pass dkdomain=benevity.com dmarc=pass fromdomain=benevity.com);
+       spf=neutral (google.com: 209.85.220.41 is neither permitted nor denied by best guess record for domain of support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org) smtp.mailfrom="support+caf_=redmine=seattlecommunitynetwork.org@seattlecommunitynetwork.org";
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=benevity.com
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1705002480; x=1705607280;
+        h=dkim-signature:auto-submitted:content-transfer-encoding
+         :mime-version:subject:references:in-reply-to:message-id:cc:to
+         :reply-to:from:date:delivered-to:x-forwarded-for:x-forwarded-to
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=/rJRomZn57l23AUM2+cF9FMWp8LRSzlMXvjIY+Kq8EA=;
+        b=n5U4TsmQpxqYaGHzqpn2G34ANkExcwqPQalUZ24cykKgnDgMjCVLaJ21HUh+NQDQo2
+         7SHSF3BwBWJTY5YdmNKYwrtY2kxkUselrtW7kWyY3fdzB6CRIcq0vpKK1KcnQfLcCDoX
+         mjx4uDJRBjmuM5U7PsyPnx7ZAM5jjYOArhbINSqxk+SR8m8OmGhSR56h6FX6nApCGGtz
+         pOq+tpKE7icQ/mntsQQcUGyACw+P8m/+RAXCT3NLPanmDS3pbykop0whUOUV16lR2ryJ
+         y8xG+d5engHZamrcnxjf/kZSxddp2AXoUHSU3vfChuEOaied2oZunC520xESmWiwircb
+         pyKA==
+X-Gm-Message-State: AOJu0YwPFLudBTz5yYL3Fj/b6MDM9JwQ4K1q1nD4Mmr3Q6lj6npeP2hA
+	fatHns6xv57YElkIUtjP1wNFyjr1fr85GyiJ7tQ/Ovm/zQSKNcvGfHxqqT1aAxX6UbdSTj/p
+X-Received: by 2002:a05:622a:a:b0:429:c900:13c with SMTP id x10-20020a05622a000a00b00429c900013cmr262939qtw.64.1705002479837;
+        Thu, 11 Jan 2024 11:47:59 -0800 (PST)
+X-Forwarded-To: redmine@seattlecommunitynetwork.org
+X-Forwarded-For: support@seattlecommunitynetwork.org redmine@seattlecommunitynetwork.org
+Delivered-To: support@seattlecommunitynetwork.org
+Received: by 2002:ac8:760c:0:b0:429:8ebc:84a9 with SMTP id t12csp3011792qtq;
+        Thu, 11 Jan 2024 11:47:58 -0800 (PST)
+X-Google-Smtp-Source: AGHT+IGFfm/N1xFzhtZbep5qPyr+Y+gxwSpJCbTW16xstSLdMIrrVoGU+EzInk4dgSgebRJUvruW
+X-Received: by 2002:a17:902:db01:b0:1d3:dbea:7671 with SMTP id m1-20020a170902db0100b001d3dbea7671mr193798plx.39.1705002477895;
+        Thu, 11 Jan 2024 11:47:57 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1705002477; cv=none;
+        d=google.com; s=arc-20160816;
+        b=zxT6pU3jN1qLxetZBrO7F2mkFUjThD+YKYg/JWinWNohGFHYQB434LVNnz/pURF/nO
+         3koYezJ9TOldFuifk8zcJeMHIbjr2NpK2YoURIN4CAx6TUN5kGBkkBQowF52RTU7QDND
+         E4FRyStcsEsrDziyhsgjsRgLt7G6ZBZlp1Sd4QZuFKY27MGI4EFrQvEFHzjdFwv5RUcl
+         r9bbvZbCc3yKu+wbMr+3NE4W1lQPeBYuAV5/7Zozz+/3l0u0SYGlKLQ7DZV1ExpOmHX9
+         UbzWtVUBhrxTEDBiG+5uwDQr0IP3za2ye7QAdHzyORtHSOHkJVNvvPMheaz0/1UiRfyR
+         rZpA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=dkim-signature:auto-submitted:content-transfer-encoding
+         :mime-version:subject:references:in-reply-to:message-id:cc:to
+         :reply-to:from:date;
+        bh=/rJRomZn57l23AUM2+cF9FMWp8LRSzlMXvjIY+Kq8EA=;
+        fh=InC17l0x9skvDRAqqngSpO/B9ww5bSFQByyoDO6kQ10=;
+        b=sblDMMWzNlKcr4PvnGcS9YWwQaI3d8Nsx9JQgILO1dazsvtC15zcGxcUYXKTm6a1bS
+         awYL7mjDzEiCD4N+2Qp41QUjYDYKj+k3yfZmNO6yjwtIskfDDluWDZzBG+1R7a6Oc0qm
+         2/M2JJFjmYBvUPqM1c9dpWSrLhHAkrtG5XOk6lau1jo+aTSKlpJXY6TKc/1beJ/UaTWq
+         rI8D0gdD0kPFKxAjaw9xUROYpE6QEEaE0qDB6LGSbjz1AHW4DDyBwBfqkuPR6sUIC9vt
+         bwhFJ1XWzNiAUmi2cll8HfKYkduLiWB5nwqMbvMv2JCszN8eZKLa9Qe1pYL0xPA87AC9
+         zipg==
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@benevity.com header.s=zendesk1 header.b=R7srSwvC;
+       spf=pass (google.com: domain of causes@benevity.com designates 192.161.151.31 as permitted sender) smtp.mailfrom=causes@benevity.com;
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=benevity.com
+Return-Path: <causes@benevity.com>
+Received: from outbyoip1.pod20.usw2.zdsys.com (outbyoip1.pod20.usw2.zdsys.com. [192.161.151.31])
+        by mx.google.com with ESMTPS id t21-20020a170902dcd500b001d4526d0037si1644724pll.170.2024.01.11.11.47.57
+        for <support@seattlecommunitynetwork.org>
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 11 Jan 2024 11:47:57 -0800 (PST)
+Received-SPF: pass (google.com: domain of causes@benevity.com designates 192.161.151.31 as permitted sender) client-ip=192.161.151.31;
+Received: from zendesk.com (unknown [10.219.89.44])
+	by outbyoip1.pod20.usw2.zdsys.com (Postfix) with ESMTP id 4T9wF93P08z14K2k;
+	Thu, 11 Jan 2024 19:47:57 +0000 (UTC)
+Date: Thu, 11 Jan 2024 19:47:57 +0000
+From: causes@benevity.com
+Reply-To: causes@benevity.com
+To: Esther Chae <koolblu@example.com>
+Cc: Paul Philion <support@seattlecommunitynetwork.org>
+Message-ID: <Y73X9K1K70K_65a045ed26058_4339943528aa_sprut@zendesk.com>
+In-Reply-To: <CAFcJ7OEvLROM=58gxgmaCCBL6-p5vYShmJej7g4zpkPZC=h5tg@mail.gmail.com>
+References: <Y73X9K1K70K@zendesk.com>
+ <70b5c49552147c927e429c978.3d1e57e469.20231207225120.b1be87a2b7.0d2bbd28@mail199.sea71.mcsv.net>
+ <CAFcJ7OEvLROM=58gxgmaCCBL6-p5vYShmJej7g4zpkPZC=h5tg@mail.gmail.com>
+Subject: Re: Re: Electronic Banking Information Change Update
+Mime-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="--==_mimepart_65a045ed5e1c9_4339943529f3";
+ charset=utf-8
+Content-Transfer-Encoding: 7bit
+X-Delivery-Context: event-id-22725285959828
+Auto-Submitted: auto-generated
+X-Auto-Response-Suppress: All
+X-Mailer: Zendesk Mailer
+X-Zendesk-From-Account-Id: 333bd31
+X-Zendesk-Email-Id: 01HKX129MSED4GCC1R5Q7PWQ5D
+DKIM-Signature:  v=1; a=rsa-sha256; c=relaxed/relaxed; d=benevity.com;
+ q=dns/txt; s=zendesk1; t=1705002477;
+ bh=/rJRomZn57l23AUM2+cF9FMWp8LRSzlMXvjIY+Kq8EA=;
+ h=date:from:reply-to:to:cc:message-id:in-reply-to:references:subject:mime-version:content-type:content-transfer-encoding;
+ b=R7srSwvClOZUet2P4+5HoglZKAK6Q900A4cdZOVmxE8E2U/g69LiWHe8sBYJvTLPJOgGuUOBeU8RpYlwlsGR1TYMho0CKGaGFJTHUpzHZA2FQNeIixmh/xcOb3jV7+u0FkjHQN+0dpg7MPxR8dL8gC0bVEcM+2VlOprXLDRTDx2jTFJnu1ZgKtwOjqC2jKTK4RZgzeVAKEvA1pKpiENq1Ogv28fteyNFoZocMo+GM13s0KuyrgzQ43MpxZPUtkOKkuKY8CvHdQEvHyMwKpF0u2LVnYSuxT+gGmAQRCUPjxbViJtWnD/+/z/EKvGUr2BwffEgKkpg8IM14+Pv6Saf5Q==
+
+
+----==_mimepart_65a045ed5e1c9_4339943529f3
+Content-Type: text/plain;
+ charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+=0D
+=0D
+##- Please type your reply above this line -##=0D
+=0D
+Your request "Re: Electronic Banking Information Change Update" has been =
+updated. To add additional comments, reply to this email.=0D
+=0D
+ =0D
+Please note the following email addresses are included on this request an=
+d receive copies of all messages:=0D
+ =0D
+   support@seattlecommunitynetwork.org    =0D
+=0D
+=0D
+----------------------------------------------=0D
+=0D
+Jessica, Jan 11, 2024, 12:47 MST=0D
+=0D
+Hello,=0D
+=0D
+Thanks for reaching out regarding your pending donation method applicatio=
+n. We would be happy to share an update with you.=0D
+=0D
+All EFT applications submitted through the Causes Portal are manually rev=
+iewed by our Finance team. Please note that we are currently experiencing=
+ over a month for review timelines. This delay is due to the implementati=
+on of additional security measures in our system, along with an increase =
+in year-end volume.=0D
+=0D
+For organizations located in North America, this does not affect your cau=
+se from receiving donations from Canadian and US donors as you will recei=
+ve Check payments in the interim. For organizations located outside of No=
+rth America, we understand this is impacting your donation eligibility.=0D=
+
+=0D
+We are working as fast as possible to review all applications. There are =
+no further steps to be taken as applications are reviewed in the order th=
+ey are received. **You will receive an email when your EFT application ha=
+s been reviewed.**=0D
+=0D
+We appreciate your patience and apologize for any inconvenience.=0D
+=0D
+Kindest Regards,=0D
+=0D
+=0D
+=E2=80=8B=E2=80=8B ![](https://lh7-us.googleusercontent.com/obFFKwDOCACuF=
+V7W5U8BxPVj7EY5m7V1YwznZ14sgtKm5Yr8GcfDGBhiiuiKwuAYKrDauC2fHmhDoW9VM-QWSd=
+4qYqmSjYz_WfDkjXTsi1MlRfPw42LjkGyM6GLMF0aMCptBRln0is7KMquh6GhA6FU)=E2=80=8B=
+=0D
+Cause Support Team=0D
+=0D
+_This email contains confidential information intended for the addressee =
+only. If you are not the intended recipient, please reply to let us know =
+and then promptly delete the email. Copying, forwarding or other distribu=
+tion of this email or its contents by any means is prohibited. Thank you.=
+_=0D
+=0D
+----------------------------------------------=0D
+=0D
+Esther Chae, Jan 8, 2024, 13:18 MST=0D
+=0D
+Hi Benevity,=0D
+=0D
+We have been trying to update our bank account info on Benevity for sever=
+al months now as we are switching banks from Seattle Credit Union to Wash=
+ington State Employees Credit Union. The Benevity update process has dela=
+yed us several months in shutting down our old bank account. Please appro=
+ve the update to our info as quickly as possible.=0D
+=0D
+Thanks so much,=0D
+=0D
+-Esther=0D
+=0D
+=0D
+=0D
+On Thu, Dec 7, 2023 at 2:51=E2=80=AFPM The Benevity Team <causes@benevity=
+.com> wrote:=0D
+=0D
+> ![](https://mcusercontent.com/70b5c49552147c927e429c978/images/f41f26a4=
+-73bd-4050-96b4-f7c7b9ddf59f.png)=0D
+>=0D
+> ##=0D
+>=0D
+> We have received your request to make changes to your nonprofit=E2=80=99=
+s electronic banking information.  We are currently implementing addition=
+al security measures on the Benevity Causes Portal and this has resulted =
+in a delay in approving any requested changes.=0D
+>=0D
+> We are working as fast as possible to expedite these measures and imple=
+ment your requested changes. We appreciate your patience and apologize fo=
+r any inconvenience this additional due diligence has caused.=0D
+>=0D
+> You will receive a notification when your application has been reviewed=
+.=0D
+>=0D
+> Thank you,=0D
+>=0D
+> Benevity=0D
+>=0D
+> Unsubscribe=0D
+>=0D
+> Copyright =C2=A9 2023 Benevity, Inc.=0D
+> Benevity, Inc. 700-611 Meredith Rd NE Calgary, AB T2E 2W5 Canada=0D
+>=0D
+>=0D
+>=0D
+> ![](https://benevity.us2.list-manage.com/track/open.php?u=3D70b5c495521=
+47c927e429c978&id=3Db1be87a2b7&e=3D3d1e57e469)=0D
+=0D
+=0D
+=0D
+=0D
+=0D
+=0D
+=0D
+=0D
+=0D
+[Y73X9K-1K70K]=
+
+----==_mimepart_65a045ed5e1c9_4339943529f3
+Content-Type: text/html;
+ charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html><head>=0D
+  <meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dutf-8=
+">=0D
+  <style type=3D"text/css">=0D
+    table td {=0D
+      border-collapse: collapse;=0D
+    }=0D
+    body[dir=3Drtl] .directional_text_wrapper { direction: rtl; unicode-b=
+idi: embed; }=0D
+=0D
+  </style>=0D
+</head>=0D
+<body lang=3D"en-us" style=3D"width: 100%!important; margin: 0; padding: =
+0;">=0D
+  <div style=3D"padding: 10px ; line-height: 18px; font-family: 'Lucida G=
+rande',Verdana,Arial,sans-serif; font-size: 12px; color:#444444;">=0D
+    <div style=3D"color: #b5b5b5;">##- Please type your reply above this =
+line -##</div>=0D
+     <p dir=3D"ltr">Your request "Re: Electronic Banking Information Chan=
+ge Update" has been updated. To add additional comments, reply to this em=
+ail.</p><p dir=3D"ltr"> <br>Please note the following email addresses are=
+ included on this request and receive copies of all messages:<br> <br>   =
+support@seattlecommunitynetwork.org    </p><p dir=3D"ltr"></p><div style=3D=
+"margin-top: 25px" data-version=3D"2"><table width=3D"100%" cellpadding=3D=
+"0" cellspacing=3D"0" border=3D"0" role=3D"presentation">  <tbody><tr>   =
+ <td width=3D"100%" style=3D"padding: 15px 0; border-top: 1px dotted #c5c=
+5c5;">      <table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0" bor=
+der=3D"0" style=3D"table-layout:fixed;" role=3D"presentation">        <tb=
+ody><tr>                    <td width=3D"100%" style=3D"padding: 0; margi=
+n: 0;" valign=3D"top">            <p style=3D"font-family:'Lucida Grande'=
+,'Lucida Sans Unicode','Lucida Sans',Verdana,Tahoma,sans-serif; font-size=
+: 15px; line-height: 18px; margin-bottom: 0; margin-top: 0; padding: 0; c=
+olor:#1b1d1e;" dir=3D"ltr">                                              =
+  <strong>Jessica</strong> (Benevity Causes)                             =
+             </p>            <p style=3D"font-family:'Lucida Grande','Luc=
+ida Sans Unicode','Lucida Sans',Verdana,Tahoma,sans-serif; font-size: 13p=
+x; line-height: 25px; margin-bottom: 15px; margin-top: 0; padding: 0; col=
+or:#bbbbbb;" dir=3D"ltr">              Jan 11, 2024, 12:47 MST           =
+ </p>                                    <div class=3D"zd-comment" dir=3D=
+"auto" style=3D"color: #2b2e2f; line-height: 22px; margin: 15px 0">Hello,=
+<br>&nbsp;<br>Thanks for reaching out regarding your pending donation met=
+hod application. We would be happy to share an update with you.<br>&nbsp;=
+<br>All EFT applications submitted through the Causes Portal are manually=
+ reviewed by our Finance team. Please note that we are currently experien=
+cing over a month for review timelines. This delay is due to the implemen=
+tation of additional security measures in our system, along with an incre=
+ase in year-end volume.<br>&nbsp;<br>For organizations located in North A=
+merica, this does not affect your cause from receiving donations from Can=
+adian and US donors as you will receive Check payments in the interim. Fo=
+r organizations located outside of North America, we understand this is i=
+mpacting your donation eligibility.<br>&nbsp;<br>We are working as fast a=
+s possible to review all applications. There are no further steps to be t=
+aken as applications are reviewed in the order they are received. <strong=
+>You will receive an email when your EFT application has been reviewed.</=
+strong><br>&nbsp;<br>We appreciate your patience and apologize for any in=
+convenience.<br>&nbsp;<br>Kindest Regards,<br><br><br>=E2=80=8B=E2=80=8B<=
+a rel=3D"noopener noreferrer" href=3D"https://benevity.com/"><img style=3D=
+"max-width: 100%; width: 91px" src=3D"https://lh7-us.googleusercontent.co=
+m/obFFKwDOCACuFV7W5U8BxPVj7EY5m7V1YwznZ14sgtKm5Yr8GcfDGBhiiuiKwuAYKrDauC2=
+fHmhDoW9VM-QWSd4qYqmSjYz_WfDkjXTsi1MlRfPw42LjkGyM6GLMF0aMCptBRln0is7KMquh=
+6GhA6FU"></a>=E2=80=8B<br>Cause Support Team<br><br><i>This email contain=
+s confidential information intended for the addressee only. If you are no=
+t the intended recipient, please reply to let us know and then promptly d=
+elete the email. Copying, forwarding or other distribution of this email =
+or its contents by any means is prohibited. Thank you.</i><br></div><p di=
+r=3D"ltr">                      </p></td>        </tr>      </tbody></tab=
+le>    </td>  </tr></tbody></table><p dir=3D"ltr"></p><table width=3D"100=
+%" cellpadding=3D"0" cellspacing=3D"0" border=3D"0" role=3D"presentation"=
+>  <tbody><tr>    <td width=3D"100%" style=3D"padding: 15px 0; border-top=
+: 1px dotted #c5c5c5;">      <table width=3D"100%" cellpadding=3D"0" cell=
+spacing=3D"0" border=3D"0" style=3D"table-layout:fixed;" role=3D"presenta=
+tion">        <tbody><tr>                    <td width=3D"100%" style=3D"=
+padding: 0; margin: 0;" valign=3D"top">            <p style=3D"font-famil=
+y:'Lucida Grande','Lucida Sans Unicode','Lucida Sans',Verdana,Tahoma,sans=
+-serif; font-size: 15px; line-height: 18px; margin-bottom: 0; margin-top:=
+ 0; padding: 0; color:#1b1d1e;" dir=3D"ltr">                             =
+ <strong>Esther Chae</strong>                          </p>            <p=
+ style=3D"font-family:'Lucida Grande','Lucida Sans Unicode','Lucida Sans'=
+,Verdana,Tahoma,sans-serif; font-size: 13px; line-height: 25px; margin-bo=
+ttom: 15px; margin-top: 0; padding: 0; color:#bbbbbb;" dir=3D"ltr">      =
+        Jan 8, 2024, 13:18 MST            </p>                           =
+         <div class=3D"zd-comment zd-comment-pre-styled" dir=3D"auto"><di=
+v dir=3D"ltr"><div>Hi Benevity,</div><div>We have been trying to update o=
+ur bank account info on Benevity for several months now as we are switchi=
+ng banks from Seattle Credit Union to Washington State Employees Credit U=
+nion. The Benevity update process has delayed us several months in shutti=
+ng down our old bank account. Please approve the update to our info as qu=
+ickly as possible.<br></div><div>Thanks so much,</div><div>-Esther<br></d=
+iv></div><br><div><div dir=3D"ltr">On Thu, Dec 7, 2023 at 2:51=E2=80=AFPM=
+ The Benevity Team &lt;<a href=3D"mailto:causes@benevity.com" rel=3D"nore=
+ferrer">causes@benevity.com</a>&gt; wrote:<br></div><blockquote style=3D"=
+border-left-color: rgb(204,204,204); border-left-style: solid; border-lef=
+t-width: 1px; margin: 0px 0px 0px 0.8ex; padding-left: 1ex"><div><u></u><=
+div style=3D"background-color: rgb(0,26,97); height: 100%; margin: 0px; p=
+adding: 0px; width: 100%"><center><table align=3D"center" border=3D"0" ce=
+llpadding=3D"0" cellspacing=3D"0" height=3D"100%" width=3D"100%" style=3D=
+"background-color: rgb(0,26,97); border-collapse: collapse; height: 100%;=
+ margin: 0px; padding: 0px; width: 100%; background-color: rgb(0,26,97)">=
+<tbody><tr><td align=3D"center" valign=3D"top" style=3D"border-top-width:=
+ 0px; height: 100%; margin: 0px; padding: 10px; width: 100%"><table borde=
+r=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"borde=
+r: 0px; border-collapse: collapse; max-width: 600px"><tbody><tr><td valig=
+n=3D"top" style=3D"background: none no-repeat center center / cover; bord=
+er-bottom-width: 0px; border-top-width: 0px; padding-bottom: 0px; padding=
+-top: 0px"></td></tr><tr><td valign=3D"top" style=3D"background: rgb(0,26=
+,97) no-repeat center center / cover; border-bottom-width: 0px; border-to=
+p-width: 0px; padding-bottom: 20px; padding-top: 10px; background-color: =
+rgb(0,26,97)"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" wid=
+th=3D"100%" style=3D"border-collapse: collapse; min-width: 100%"><tbody><=
+tr><td valign=3D"top" style=3D"padding: 9px"><table align=3D"left" width=3D=
+"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" style=3D"border-c=
+ollapse: collapse; min-width: 100%"><tbody><tr><td valign=3D"top" style=3D=
+"padding: 0px 9px; text-align: center" align=3D"center"><img align=3D"mid=
+dle" alt=3D"" src=3D"https://mcusercontent.com/70b5c49552147c927e429c978/=
+images/f41f26a4-73bd-4050-96b4-f7c7b9ddf59f.png" width=3D"152.28" style=3D=
+"border: 0px; border-radius: 0%; display: inline; height: auto; max-width=
+: 626px; outline: none; padding-bottom: 0px; text-decoration: none; verti=
+cal-align: bottom"></td></tr></tbody></table></td></tr></tbody></table></=
+td></tr><tr><td valign=3D"top" style=3D"background: rgb(255,255,255) no-r=
+epeat center center / cover; border-bottom-color: rgb(234,234,234); borde=
+r-bottom-style: solid; border-bottom-width: 2px; border-top-width: 0px; p=
+adding-bottom: 20px; padding-top: 0px; background-color: rgb(255,255,255)=
+"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" =
+style=3D"border-collapse: collapse; min-width: 100%"><tbody><tr><td valig=
+n=3D"top" style=3D"padding-top: 9px"><table align=3D"left" border=3D"0" c=
+ellpadding=3D"0" cellspacing=3D"0" style=3D"border-collapse: collapse; ma=
+x-width: 100%; min-width: 100%" width=3D"100%"><tbody><tr><td valign=3D"t=
+op" style=3D"color: rgb(0,26,97);  font-size: 14px; line-height: 150%; pa=
+dding: 0px 18px 9px; text-align: center; word-break: break-word" align=3D=
+"center"><h2 style=3D"color: rgb(0,26,97); display: block;  font-size: 18=
+px; font-style: normal; font-weight: bold; letter-spacing: normal; line-h=
+eight: 125%; margin: 0px; padding: 0px; text-align: left" align=3D"left" =
+dir=3D"auto">&nbsp;</h2><div style=3D"text-align: left" align=3D"left">We=
+ have received your request to make changes to your nonprofit=E2=80=99s e=
+lectronic banking information.&nbsp; We are currently implementing additi=
+onal security measures on the Benevity Causes Portal and this has resulte=
+d in a delay in approving any requested changes.&nbsp;<br><br>=0D
+We are working as fast as possible to expedite these measures and impleme=
+nt your requested changes. We appreciate your patience and apologize for =
+any inconvenience this additional due diligence has caused.&nbsp;<br><br>=
+=0D
+You will receive a notification when your application has been reviewed.&=
+nbsp;<br><br>=0D
+Thank you,&nbsp;<br><br>=0D
+Benevity</div></td></tr></tbody></table></td></tr></tbody></table></td></=
+tr><tr><td valign=3D"top" style=3D"background: rgb(0,26,97) no-repeat cen=
+ter center / cover; border-bottom-width: 0px; border-top-width: 0px; padd=
+ing-bottom: 9px; padding-top: 9px; background-color: rgb(0,26,97)"><table=
+ border=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D=
+"border-collapse: collapse; min-width: 100%"><tbody><tr><td valign=3D"top=
+" style=3D"padding-top: 9px"><table align=3D"left" border=3D"0" cellpaddi=
+ng=3D"0" cellspacing=3D"0" style=3D"border-collapse: collapse; max-width:=
+ 100%; min-width: 100%" width=3D"100%"><tbody><tr><td valign=3D"top" styl=
+e=3D"color: rgb(255,255,255);  font-size: 13px; line-height: 100%; paddin=
+g: 0px 18px 9px; text-align: center; word-break: break-word" align=3D"cen=
+ter"><p style=3D"color: rgb(255,255,255);  font-size: 12px; line-height: =
+150%; margin: 10px 0px; padding: 0px; text-align: center" align=3D"center=
+" dir=3D"ltr"><a href=3D"https://benevity.us2.list-manage.com/unsubscribe=
+?u=3D70b5c49552147c927e429c978&amp;id=3D534890f220&amp;e=3D3d1e57e469&amp=
+;c=3Db1be87a2b7" style=3D"color: rgb(255,255,255); font-weight: normal; t=
+ext-decoration: underline" rel=3D"noreferrer">Unsubscribe</a></p><p style=
+=3D"color: rgb(255,255,255);  font-size: 12px; line-height: 150%; margin:=
+ 10px 0px; padding: 0px; text-align: center" align=3D"center" dir=3D"ltr"=
+>Copyright =C2=A9 2023 Benevity, Inc.<br>=0D
+Benevity, Inc.=0D
+700-611 Meredith Rd NE=0D
+Calgary, AB T2E 2W5=0D
+Canada</p><p style=3D"color: rgb(255,255,255);  font-size: 12px; line-hei=
+ght: 150%; margin: 10px 0px; padding: 0px; text-align: center" align=3D"c=
+enter" dir=3D"ltr">&nbsp;</p></td></tr></tbody></table></td></tr></tbody>=
+</table></td></tr></tbody></table></td></tr></tbody></table></center></di=
+v></div></blockquote></div></div><p dir=3D"ltr">                      </p=
+></td>        </tr>      </tbody></table>    </td>  </tr></tbody></table>=
+</div>=0D
+    <div style=3D"color: #aaaaaa; margin: 10px 0 14px 0; padding-top: 10p=
+x; border-top: 1px solid #eeeeee;">=0D
+    </div>=0D
+  </div>=0D
+<span style=3D"color:#FFFFFF" aria-hidden=3D"true">[Y73X9K-1K70K]</span>=0D=
+
+=0D
+<div itemscope=3D"" itemtype=3D"http://schema.org/EmailMessage" style=3D"=
+display:none">  <div itemprop=3D"action" itemscope=3D"" itemtype=3D"http:=
+//schema.org/ViewAction">    <link itemprop=3D"url" href=3D"https://cause=
+shelp.benevity.org/hc/requests/3534133">    <meta itemprop=3D"name" conte=
+nt=3D"View ticket">  </div></div></body></html>=
+
+----==_mimepart_65a045ed5e1c9_4339943529f3--
