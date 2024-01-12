@@ -55,7 +55,6 @@ cover/
 *.mo
 *.pot
 
-# DChaeo stuff:
 *.log
 local_settings.py
 db.sqlite3
