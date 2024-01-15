@@ -121,4 +121,12 @@ In the new file, create entries for:
 Now you should be able to see a list of interesting tickets, specifically for the user with the supplied API key.
 
     ./cli.py
-	
+
+
+## Build and Test
+
+A `Makefile` is provided with the following targets:
+- `venv`     : build a Python virtual environment ("venv") in `.venv`
+- `test`     : run the unit test suite
+- `coverage` : run the unit tests and generate a minimal coverage report
+- `htmlcov`  : run the unit tests and generate a full report in htmlcov/

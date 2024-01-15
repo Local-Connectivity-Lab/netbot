@@ -84,15 +84,15 @@ ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc
          tltg==
 ARC-Authentication-Results: i=1; mx.google.com;
        dkim=pass header.i=@gmail.com header.s=20230601 header.b=JfsvAniw;
-       spf=pass (google.com: domain of jang.esther@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=jang.esther@gmail.com;
+       spf=pass (google.com: domain of koolblu@example.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=koolblu@example.com;
        dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com
-Return-Path: <jang.esther@gmail.com>
+Return-Path: <koolblu@example.com>
 Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
         by mx.google.com with SMTPS id m28-20020a19711c000000b0050bbc100b94sor11683lfc.25.2023.11.29.16.56.37
         for <support@seattlecommunitynetwork.org>
         (Google Transport Security);
         Wed, 29 Nov 2023 16:56:38 -0800 (PST)
-Received-SPF: pass (google.com: domain of jang.esther@gmail.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+Received-SPF: pass (google.com: domain of koolblu@example.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=gmail.com; s=20230601; t=1701305797; x=1701910597; darn=seattlecommunitynetwork.org;
         h=cc:to:subject:message-id:date:from:in-reply-to:references
@@ -107,7 +107,7 @@ DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
 X-Google-Smtp-Source: AGHT+IG0akI/ozvFod0v9+eLv0zw0ZuD8D+IBaTLPoShaIFoiKQHExbr92k68zabGI54hFqJ1DnovQ==
 X-Received: by 2002:a05:6512:2210:b0:500:7cab:efc3 with SMTP id h16-20020a056512221000b005007cabefc3mr16436691lfu.11.1701305796757;
         Wed, 29 Nov 2023 16:56:36 -0800 (PST)
-Return-Path: <jang.esther@gmail.com>
+Return-Path: <koolblu@example.com>
 Received: from mail-lj1-f177.google.com (mail-lj1-f177.google.com. [209.85.208.177])
         by smtp.gmail.com with ESMTPSA id q17-20020a05651232b100b0050ab7b3d9a9sm6874lfe.1.2023.11.29.16.56.35
         for <support@seattlecommunitynetwork.org>
@@ -121,7 +121,7 @@ X-Received: by 2002:a2e:8606:0:b0:2c9:af18:2e8c with SMTP id
 MIME-Version: 1.0
 References: <CADP+R5BkkGLLCqUdXL43mws=LxivwHMNYorfCAivL_iF37Qx7A@mail.gmail.com>
 In-Reply-To: <CADP+R5BkkGLLCqUdXL43mws=LxivwHMNYorfCAivL_iF37Qx7A@mail.gmail.com>
-From: Fred Example <jang.esther@gmail.com>
+From: Fred Example <koolblu@example.com>
 Date: Wed, 29 Nov 2023 16:56:24 -0800
 X-Gmail-Original-Message-ID: <CAFcJ7OEPOU_1DPYgNk=CJN8Sqcmx3-2TMS5X0NaF5xDNA-SkpA@mail.gmail.com>
 Message-ID: <CAFcJ7OEPOU_1DPYgNk=CJN8Sqcmx3-2TMS5X0NaF5xDNA-SkpA@mail.gmail.com>

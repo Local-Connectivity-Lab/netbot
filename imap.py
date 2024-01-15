@@ -134,7 +134,7 @@ class Client(): ## imap.Client()
             if payload.startswith("<html>") or payload.startswith("<HTML>"):
                 # strip HTML
                 payload = self.strip_html_tags(payload)
-                #log.debug(f"HTML payload after: {payload}")
+                log.debug(f"HTML payload after: {payload}")
 
         payload = self.strip_forwards(payload)
         message.set_note(payload)
@@ -194,24 +194,25 @@ class Client(): ## imap.Client()
 
     def handle_message(self, msg_id:str, message:Message):
         first, last, addr = self.parse_email_address(message.from_address)
-        log.debug(f'uid:{msg_id} - from:{last}, {first}, email:{addr}, subject:{message.subject}')
+        subject = message.subject_cleaned()
+        log.debug(f'uid:{msg_id} - from:{last}, {first}, email:{addr}, subject:{subject}')
 
         ticket = None
         # first, search for a matching subject
-        tickets = self.redmine.search_tickets(message.subject_cleaned())
+        tickets = self.redmine.match_subject(subject)
         if len(tickets) == 1:
             # as expected
             ticket = tickets[0]
-            log.debug(f"found ticket id={ticket.id} for subject: {message.subject}")
+            log.debug(f"found ticket id={ticket.id} for subject: {subject}")
         elif len(tickets) >= 2:
             # more than expected
-            log.warning(f"subject query returned {len(tickets)} results, using first: {message.subject_cleaned()}")
+            log.warning(f"subject query returned {len(tickets)} results, using first: {subject}")
             ticket = tickets[0]
                     
         # next, find ticket using the subject, if possible           
         if ticket is None:
             # this uses a simple REGEX '#\d+' to match ticket numbers
-            ticket = self.redmine.find_ticket_from_str(message.subject)
+            ticket = self.redmine.find_ticket_from_str(subject)
 
         # get user id from from_address
         user = self.redmine.find_user(addr)
@@ -233,8 +234,8 @@ class Client(): ## imap.Client()
             log.info(f"Updated ticket #{ticket.id} with message from {user.login} and {len(message.attachments)} attachments")
         else:
             # no open tickets, create new ticket for the email message
-            self.redmine.create_ticket(user, message.subject, message.note, message.attachments)
-            log.info(f"Created new ticket for: {user.login}, with {len(message.attachments)} attachments")
+            self.redmine.create_ticket(user, subject, message.note, message.attachments)
+            log.info(f"Created new ticket for: {user.login}, {subject}, with {len(message.attachments)} attachments")
 
 
     def check_unseen(self):

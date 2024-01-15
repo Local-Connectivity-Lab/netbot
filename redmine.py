@@ -393,6 +393,19 @@ class Client(): ## redmine.Client()
         # todo url-encode term?
         # note: sort doesn't seem to be working for search
         query = f"/search.json?q={term}&titles_only=1&open_issues=1&limit=100"
+        
+        response = self.query(query)
+
+        ids = []
+        for result in response.results:
+            ids.append(str(result.id))
+
+        return self.get_tickets(ids)
+
+    def match_subject(self, subject):
+        # todo url-encode term?
+        # note: sort doesn't seem to be working for search
+        query = f"/search.json?q={subject}&all_words=1&titles_only=1&open_issues=1&limit=100"
 
         response = self.query(query)
 

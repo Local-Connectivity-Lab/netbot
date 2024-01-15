@@ -11,31 +11,31 @@ from netbot import NetBot
 
 log = logging.getLogger(__name__)
 
+# from https://github.com/tonyseek/python-base36/blob/master/base36.py
+def dumps(num:int)-> str:
+    """dump an in as a base36 lower-case string"""
+    alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
+    if not isinstance(num, int):
+        raise TypeError('number must be an integer')
+
+    if num < 0:
+        return '-' + dumps(-num)
+
+    value = ''
+
+    while num != 0:
+        num, index = divmod(num, len(alphabet))
+        value = alphabet[index] + value
+
+    return value or '0'
+
+
+def tagstr() -> str:
+    """convert the current timestamp in seconds to a base36 str"""
+    return dumps(int(time.time()))
+
 
 class BotTestCase(unittest.IsolatedAsyncioTestCase):
-    
-    # from https://github.com/tonyseek/python-base36/blob/master/base36.py
-    def dumps(self, num:int)-> str:
-        """dump an in as a base36 lower-case string"""
-        alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
-        if not isinstance(num, int):
-            raise TypeError('number must be an integer')
-
-        if num < 0:
-            return '-' + self.dumps(-num)
-
-        value = ''
-
-        while num != 0:
-            num, index = divmod(num, len(alphabet))
-            value = alphabet[index] + value
-
-        return value or '0'
-
-    def tagstr(self) -> str:
-        """convert the current timestamp in seconds to a base36 str"""
-        return self.dumps(int(time.time()))
-    
     
     def build_context(self) -> ApplicationContext:
         ctx = mock.AsyncMock(ApplicationContext)
@@ -51,7 +51,7 @@ class BotTestCase(unittest.IsolatedAsyncioTestCase):
         
         # create a test user. this could be a fixture!
         # create new test user name: test-12345@example.com, login test-12345
-        self.tag = self.tagstr()
+        self.tag = tagstr()
         first = "test-" + self.tag
         last = "Testy"
         self.fullName = f"{first} {last}"
