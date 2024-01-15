@@ -65,7 +65,7 @@ class NetBot(commands.Bot):
         
 
     def parse_thread_title(self, title: str) -> int:
-        match = re.match(r'^Ticket #(\d+):', title)
+        match = re.match(r'^Ticket #(\d+)', title)
         if match:
             return int(match.group(1))
 
