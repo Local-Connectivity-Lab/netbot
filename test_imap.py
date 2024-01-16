@@ -106,6 +106,7 @@ class TestMessages(unittest.TestCase):
         
         self.redmine.reindex_users()
         user = self.redmine.find_user(test_email)
+        self.assertIsNotNone(user, f"Couldn't find user for {test_email}")
         self.assertEqual(test_email, user.mail)
         self.assertTrue(self.redmine.is_user_in_team(user.login, "users"))
         

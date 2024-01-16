@@ -181,7 +181,7 @@ class TicketsCog(commands.Cog):
                 await thread.send(msg)
 
             # TODO format command for single ticket
-            await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
+            await ctx.send(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") # todo add some fancy formatting
             
