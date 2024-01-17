@@ -213,12 +213,12 @@ class Client(): ## redmine.Client()
         else:
             return None
         
-    def find_discord_user(self, user_id):
-        if user_id == None:
+    def find_discord_user(self, discord_user_id:str):
+        if discord_user_id == None:
             return None
         
-        if user_id in self.discord_users:
-            id = self.discord_users[user_id]
+        if discord_user_id in self.discord_users:
+            id = self.discord_users[discord_user_id]
             return self.user_ids[id]
         else:
             return None

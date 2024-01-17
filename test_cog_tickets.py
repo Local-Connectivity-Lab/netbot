@@ -30,7 +30,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         
     def setUp(self):
         super().setUp()
-
+        self.bot = NetBot(self.redmine)
         self.bot.load_extension("cog_tickets")
         self.cog = self.bot.cogs["TicketsCog"] # Note class name, note filename.
     
