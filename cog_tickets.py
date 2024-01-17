@@ -177,7 +177,7 @@ class TicketsCog(commands.Cog):
             # NOTE: There doesn't seem to be a method for acting as a specific user, 
             # so adding user and date to the sync note.
             for note in notes:
-                msg = f"> **{note.user.name}** at *{note.created_on}*\n\n{note.notes}\n"
+                msg = f"> **{note.user.name}** at *{note.created_on}*\n> {note.notes}\n\n"
                 await thread.send(msg)
 
             # TODO format command for single ticket

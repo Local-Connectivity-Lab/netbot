@@ -97,23 +97,26 @@ class NetBot(commands.Bot):
                 f"sync_new_message - unknown discord user: {message.author.name}, skipping message")
 
 
-    async def synchronize_ticket(self, ticket, thread, ctx: discord.ApplicationContext):
-        last_sync = self.redmine.get_field(ticket, "sync")
-        log.debug(f"ticket {ticket.id} last sync: {last_sync}, age: {self.redmine.get_field(ticket, 'age')}")
-
+    async def synchronize_ticket(self, ticket, thread):
         # start of the process, will become "last update"
         timestamp = dt.datetime.now(dt.timezone.utc)  # UTC
+        
+        last_sync = self.redmine.get_field(ticket, "sync")
+        if last_sync is None:
+            last_sync = timestamp - dt.timedelta(days=2*365) # 2 years
+    
+        log.debug(f"ticket {ticket.id} last sync: {last_sync}, age: {self.redmine.get_field(ticket, 'age')}")
 
         notes = self.redmine.get_notes_since(ticket.id, last_sync)
         log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread.name}")
 
         for note in notes:
-            msg = f"> **{note.user.name}** at *{note.created_on}*\n\n{note.notes}\n"
+            msg = f"> **{note.user.name}** at *{note.created_on}*\n> {note.notes}\n\n"
             await thread.send(msg)
 
         # query discord for updates to thread since last-update
         # see https://docs.pycord.dev/en/stable/api/models.html#discord.Thread.history
-        log.debug("calling history with thread={thread}, after={last_sync}")
+        log.debug(f"calling history with thread={thread}, after={last_sync}")
         #messages = await thread.history(after=last_sync, oldest_first=True).flatten()
         async for message in thread.history(after=last_sync, oldest_first=True):
             # ignore bot messages!
@@ -134,7 +137,7 @@ class NetBot(commands.Bot):
         self.redmine.update_syncdata(ticket.id, timestamp)
         log.info(f"completed sync for {ticket.id} <--> {thread.name}")
         
-    async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
+    async def xxx_on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
         """Bot-level error handler"""
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.respond("This command is currently on cooldown!")

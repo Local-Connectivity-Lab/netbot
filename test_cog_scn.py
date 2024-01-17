@@ -93,11 +93,11 @@ class TestSCNCog(test_utils.BotTestCase):
         
         ctx = self.build_context()
         ctx.channel = unittest.mock.AsyncMock(discord.Thread)
-        ctx.channel.name = f"Ticket #{test_ticket}: Search for subject match in email threading"
+        ctx.channel.name = f"Ticket #{test_ticket}"
         ctx.channel.id = self.tag
         
         await self.cog.sync(ctx)
-        ctx.respond.assert_called_with(f"SYNC ticket {test_ticket} to thread id: {self.tag} complete")
+        ctx.respond.assert_called_with(f"SYNC ticket {test_ticket} to thread: {ctx.channel.name} complete")
         # check for actual changes! updated timestamp!
 
 

@@ -13,7 +13,7 @@ from discord.commands import SlashCommandGroup
 
 from dotenv import load_dotenv
 
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +34,7 @@ class SCNCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.redmine = bot.redmine
+        self.sync_all_threads.start() # start the sync task
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
 
@@ -56,21 +57,50 @@ class SCNCog(commands.Cog):
             await ctx.respond(f"Discord user: {discord_name} has been paired with redmine user: {redmine_login}")
 
 
+    async def sync_thread(self, thread:discord.Thread):
+        """syncronize an existing ticket thread with redmine"""
+        # get the ticket id from the thread name
+        # FIXME: notice the series of calls to "self.bot": could be better encapsulated
+        ticket_id = self.bot.parse_thread_title(thread.name)
+        ticket = self.redmine.get_ticket(ticket_id, include_journals=True)
+        if ticket:
+            await self.bot.synchronize_ticket(ticket, thread)
+            return ticket
+        else:
+            return None
+
+
+    """
+    Configured to run every 5 minutes using the tasks.loop annotation.
+    Get all Threads and sync each one.
+    """
+    @tasks.loop(minutes=1.0) # FIXME to 5.0 minutes. set to 1 min for testing
+    async def sync_all_threads(self):
+        log.info(f"sync_all_threads: starting for {self.bot.guilds}")
+
+        # get all threads
+        for guild in self.bot.guilds:
+            for thread in guild.threads:
+                log.debug(f"THREAD: guild:{guild}, thread:{thread}")
+                # sync each thread, 
+                ticket = await self.sync_thread(thread)
+                if ticket:
+                    # successful sync
+                    log.debug(f"SYNC: thread:{thread.name} with ticket {ticket.id}")
+                else:
+                    log.debug(f"no ticket found for {thread.name}")
+
     @scn.command()
     async def sync(self, ctx:discord.ApplicationContext):
         """syncronize an existing ticket thread with redmine"""
         if isinstance(ctx.channel, discord.Thread):
-            # get the ticket id from the thread name
-            # FIXME: notice the series of calls to "self.bot": could be better encapsulated
-            ticket_id = self.bot.parse_thread_title(ctx.channel.name)
-            ticket = self.redmine.get_ticket(ticket_id, include_journals=True)
+            ticket = await self.sync_thread(ctx.channel)
             if ticket:
-                await self.bot.synchronize_ticket(ticket, ctx.channel, ctx)
-                await ctx.respond(f"SYNC ticket {ticket.id} to thread id: {ctx.channel.id} complete")
+                await ctx.respond(f"SYNC ticket {ticket.id} to thread: {ctx.channel.name} complete")
             else:
-                await ctx.respond(f"cant find ticket# in thread name: {ctx.channel.name}") # error
+                await ctx.respond(f"Cannot find ticket# in thread name: {ctx.channel.name}") # error
         else:
-            await ctx.respond(f"not a thread") # error
+            await ctx.respond(f"Not a thread.") # error
 
 
     @scn.command()

@@ -676,9 +676,8 @@ class Client(): ## redmine.Client()
                         timestr = ticket.custom_fields[1].value 
                         return dt.datetime.fromisoformat(timestr) ### UTC
                     except Exception as e:
-                        log.debug(f"sync tag not set, using epoch")
-                        # note to self: this might be too long ago
-                        return dt.datetime.fromtimestamp(0).astimezone(dt.timezone.utc)
+                        log.debug(f"sync tag not set")
+                        return None
         except AttributeError:
             return "" # or None?
     
