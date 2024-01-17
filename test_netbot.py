@@ -23,6 +23,7 @@ class TestNetbot(test_utils.BotTestCase):
         netbot.setup_logging() # for coverage?
         
         
+    @unittest.skip # On message is disabled
     async def test_new_message_synced_thread(self):
         test_ticket = 218
         note = f"This is a new note about ticket #{test_ticket} for test {self.tag}"
@@ -33,7 +34,7 @@ class TestNetbot(test_utils.BotTestCase):
         message = unittest.mock.AsyncMock(discord.Message)
         message.content = note
         message.channel = unittest.mock.AsyncMock(discord.Thread)
-        message.channel.name = f"Ticket #{test_ticket}: Search for subject match in email threading"
+        message.channel.name = f"Ticket #{test_ticket}"
         message.author = unittest.mock.AsyncMock(discord.Member)
         message.author.name = self.discord_user
         

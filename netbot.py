@@ -55,6 +55,7 @@ class NetBot(commands.Bot):
 
     async def on_ready(self):
         log.info(f"Logged in as {self.user} (ID: {self.user.id})")
+        log.debug(f"bot: {self}, guilds: {self.guilds}")
         
     async def on_guild_join(self, guild):
         log.info(f"Joined guild: {guild}, id={guild.id}")
@@ -70,16 +71,17 @@ class NetBot(commands.Bot):
             return int(match.group(1))
 
 
-    async def on_message(self, message: discord.Message):
+    # disabled for now... conflicting with the scheduled sync process
+    #async def on_message(self, message: discord.Message):
         # Make sure we won't be replying to ourselves.
         # if message.author.id == bot.user.id:
         #    return
-        if isinstance(message.channel, discord.Thread):
+    #    if isinstance(message.channel, discord.Thread):
             # get the ticket id from the thread name
-            ticket_id = self.parse_thread_title(message.channel.name)
+    #        ticket_id = self.parse_thread_title(message.channel.name)
             
-            if ticket_id:
-                await self.sync_new_message(ticket_id, message)
+    #        if ticket_id:
+    #            await self.sync_new_message(ticket_id, message)
             # else just a normal thread, do nothing
 
 
@@ -134,10 +136,10 @@ class NetBot(commands.Bot):
             log.debug(f"No new discord messages found since {last_sync}")
 
         # update the SYNC timestamp
-        self.redmine.update_syncdata(ticket.id, timestamp)
+        self.redmine.update_syncdata(ticket.id, dt.datetime.now(dt.timezone.utc)) # fresh timestamp, instead of 'timestamp'
         log.info(f"completed sync for {ticket.id} <--> {thread.name}")
         
-    async def xxx_on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
+    async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
         """Bot-level error handler"""
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.respond("This command is currently on cooldown!")

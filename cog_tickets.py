@@ -151,14 +151,14 @@ class TicketsCog(commands.Cog):
     async def create_thread(self, ticket, ctx):
         log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
         name = f"Ticket #{ticket.id}"
-        msg_txt = f"Syncing ticket {self.redmine.get_field(ticket, 'url')} to this thread."
+        msg_txt = f"Syncing ticket {self.redmine.get_field(ticket, 'url')} to new thread '{name}'"
         message = await ctx.send(msg_txt)
         return await message.create_thread(name=name)
         
 
     @commands.slash_command(description="Create a Discord thread for the specified ticket") 
     @option("ticket_id", description="ID of tick to create thread for")
-    async def thread(self, ctx: discord.ApplicationContext, ticket_id:int):
+    async def thread_ticket(self, ctx: discord.ApplicationContext, ticket_id:int):
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
             # create the thread...
@@ -171,14 +171,14 @@ class TicketsCog(commands.Cog):
             self.redmine.enable_discord_sync(ticket.id, user, note)
 
             # REFACTOR: We know the thread has just been created, just get messages-since in redmine.
-            notes = self.redmine.get_notes_since(ticket.id, None) # None since date for all.
-            log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread.name}")
+            #notes = self.redmine.get_notes_since(ticket.id, None) # None since date for all.
+            #log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread.name}")
 
             # NOTE: There doesn't seem to be a method for acting as a specific user, 
             # so adding user and date to the sync note.
-            for note in notes:
-                msg = f"> **{note.user.name}** at *{note.created_on}*\n> {note.notes}\n\n"
-                await thread.send(msg)
+            #for note in notes:
+            #    msg = f"> **{note.user.name}** at *{note.created_on}*\n> {note.notes}\n\n"
+            #    await thread.send(msg)
 
             # TODO format command for single ticket
             await ctx.send(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting

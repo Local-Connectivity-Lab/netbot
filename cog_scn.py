@@ -81,7 +81,7 @@ class SCNCog(commands.Cog):
         # get all threads
         for guild in self.bot.guilds:
             for thread in guild.threads:
-                log.debug(f"THREAD: guild:{guild}, thread:{thread}")
+                #log.debug(f"THREAD: guild:{guild}, thread:{thread}")
                 # sync each thread, 
                 ticket = await self.sync_thread(thread)
                 if ticket:
@@ -89,6 +89,7 @@ class SCNCog(commands.Cog):
                     log.debug(f"SYNC: thread:{thread.name} with ticket {ticket.id}")
                 else:
                     log.debug(f"no ticket found for {thread.name}")
+
 
     @scn.command()
     async def sync(self, ctx:discord.ApplicationContext):
