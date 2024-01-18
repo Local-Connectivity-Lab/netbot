@@ -15,19 +15,18 @@ from discord.ext import commands
 
 
 def setup_logging():
-    logging.basicConfig(level=logging.DEBUG,
-                        format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-
+    logging.basicConfig(level=logging.WARNING, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
-    logging.getLogger("discord.http").setLevel(logging.INFO)
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-    logging.getLogger("discord.client").setLevel(logging.INFO)
-    logging.getLogger("discord.webhook.async_").setLevel(logging.INFO)
+    logging.getLogger("discord.http").setLevel(logging.WARNING)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
+    logging.getLogger("discord.client").setLevel(logging.WARNING)
+    logging.getLogger("discord.webhook.async_").setLevel(logging.WARNING)
 
 
 log = logging.getLogger(__name__)
 
-log.info('initializing bot')
+
+log.info('initializing netbot')
 
 class NetBot(commands.Bot):
     def __init__(self, redmine: redmine.Client):

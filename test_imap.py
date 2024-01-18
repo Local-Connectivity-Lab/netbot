@@ -23,7 +23,6 @@ log = logging.getLogger(__name__)
 class TestMessages(unittest.TestCase):
     
     def setUp(self):
-        #load_dotenv()
         self.redmine = redmine.Client()
         self.imap = imap.Client()
         
@@ -60,9 +59,7 @@ class TestMessages(unittest.TestCase):
         self.assertEqual(addr, "freddy@example.com")
 
     # disabled so I don't flood the system with files
-    @unittest.skip
     def test_upload(self):
-
         with open("test/message-161.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
             #print(message)
