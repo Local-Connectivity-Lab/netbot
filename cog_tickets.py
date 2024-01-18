@@ -153,7 +153,8 @@ class TicketsCog(commands.Cog):
         name = f"Ticket #{ticket.id}"
         msg_txt = f"Syncing ticket {self.redmine.get_field(ticket, 'url')} to new thread '{name}'"
         message = await ctx.send(msg_txt)
-        return await message.create_thread(name=name)
+        thread = await message.create_thread(name=name)
+        return thread
         
 
     @commands.slash_command(description="Create a Discord thread for the specified ticket") 

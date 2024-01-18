@@ -438,7 +438,7 @@ class Client(): ## redmine.Client()
 
         return notes
     
-
+    """
     def discord_tickets(self):
         # todo: check updated field and track what's changed
         threaded_issue_query = "/issues.json?status_id=open&cf_1=1&sort=updated_on:desc"
@@ -449,6 +449,7 @@ class Client(): ## redmine.Client()
         else:
             log.info(f"No open tickets found for: {response.request.url}")
             return None
+    """
 
     def enable_discord_sync(self, ticket_id, user, note):
         fields = {
@@ -482,6 +483,7 @@ class Client(): ## redmine.Client()
         }
         self.update_user(user, fields)
 
+    """ not used
     def join_project(self, username, project:str):
         # look up user ID
         user = self.find_user(username)
@@ -510,7 +512,7 @@ class Client(): ## redmine.Client()
         else:
             resp = json.loads(r.text, object_hook=lambda x: SimpleNamespace(**x))
             log.error(f"Error joining group: {resp.errors}, status={r.status_code}: {r.request.url}, data={data}")
-            
+    """
 
     def join_team(self, username, teamname:str):
         # look up user ID
