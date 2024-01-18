@@ -82,12 +82,7 @@ class BotTestCase(unittest.IsolatedAsyncioTestCase):
     
     
     def setUp(self):
-        # use the fixture-created client, bot, user
-        #self.redmine = REDMINE
-        #self.bot = NETBOT
-        
-        self.tag = self.__class__.usertag
-        #self.user = USER
+        self.tag = self.__class__.usertag # TODO just rename usertag to tag - represents the suite run
         self.assertIsNotNone(self.tag)
         self.assertIsNotNone(self.user)
         

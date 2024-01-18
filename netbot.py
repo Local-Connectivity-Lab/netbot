@@ -53,16 +53,9 @@ class NetBot(commands.Bot):
         log.info(f"starting {self}")
         super().run(os.getenv('DISCORD_TOKEN'))
 
-    async def on_ready(self):
-        log.info(f"Logged in as {self.user} (ID: {self.user.id})")
-        log.debug(f"bot: {self}, guilds: {self.guilds}")
-        
-    async def on_guild_join(self, guild):
-        log.info(f"Joined guild: {guild}, id={guild.id}")
-
-    async def on_thread_join(self, thread):
-        await thread.join()
-        log.info(f"Joined thread: {thread}")
+    #async def on_ready(self):
+    #    log.info(f"Logged in as {self.user} (ID: {self.user.id})")
+    #    log.debug(f"bot: {self}, guilds: {self.guilds}")  
         
 
     def parse_thread_title(self, title: str) -> int:
@@ -71,6 +64,7 @@ class NetBot(commands.Bot):
             return int(match.group(1))
 
 
+    """
     # disabled for now... conflicting with the scheduled sync process
     #async def on_message(self, message: discord.Message):
         # Make sure we won't be replying to ourselves.
@@ -84,7 +78,6 @@ class NetBot(commands.Bot):
     #            await self.sync_new_message(ticket_id, message)
             # else just a normal thread, do nothing
 
-
     async def sync_new_message(self, ticket_id: int, message: discord.Message):
         # ticket = redmine.get_ticket(ticket_id, include_journals=True)
         # create a note with translated discord user id with the update (or one big one?)
@@ -97,9 +90,14 @@ class NetBot(commands.Bot):
         else:
             log.warning(
                 f"sync_new_message - unknown discord user: {message.author.name}, skipping message")
-
-
-    async def synchronize_ticket(self, ticket, thread):
+    """
+    
+    """
+    Synchronize a ticket to a thread
+    """
+    async def synchronize_ticket(self, ticket, thread:discord.Thread):
+        log.debug(f"ticket: {ticket.id}, thread: {thread}")
+        
         # start of the process, will become "last update"
         timestamp = dt.datetime.now(dt.timezone.utc)  # UTC
         
@@ -120,6 +118,7 @@ class NetBot(commands.Bot):
         # see https://docs.pycord.dev/en/stable/api/models.html#discord.Thread.history
         log.debug(f"calling history with thread={thread}, after={last_sync}")
         #messages = await thread.history(after=last_sync, oldest_first=True).flatten()
+        #for message in messages:
         async for message in thread.history(after=last_sync, oldest_first=True):
             # ignore bot messages!
             if message.author.id != self.user.id:
