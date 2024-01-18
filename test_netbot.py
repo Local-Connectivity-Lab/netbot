@@ -89,8 +89,6 @@ class TestNetbot(test_utils.BotTestCase):
         await self.bot.synchronize_ticket(ticket, thread)
         
         # assert method send called on mock thread, with the correct values
-        log.info(f"### call args:{type(thread.send.call_args)} {thread.send.call_args}")
-        #'> **test-s7fkwk Testy** at *2024-01-18T00:19:32Z*\n> Body for test s7fkwk __main__.TestNetbot.test_synchronize_ticket\n\n')
         self.assertIn(self.tag, thread.send.call_args.args[0])
         self.assertIn(self.fullName, thread.send.call_args.args[0])
         self.assertIn(body, thread.send.call_args.args[0])
@@ -98,13 +96,14 @@ class TestNetbot(test_utils.BotTestCase):
         # get notes from redmine, assert tags in most recent
         check_ticket = self.redmine.get_ticket(ticket.id, include_journals=True) # get the notes
         self.assertIsNotNone(ticket)
-        log.info(f"### ticket: {ticket}")
+        #log.info(f"### ticket: {ticket}")
         #self.assertIn(body, ticket.journals[-1].notes) NOT until thread history is working
+        
         
     async def test_on_application_command_error(self):
         ctx = self.build_context()
         error = discord.DiscordException("this is exception " + self.tag)
-        self.bot.on_application_command_error(ctx, error)
+        await self.bot.on_application_command_error(ctx, error)
         self.assertIn(self.tag, ctx.respond.call_args.args[0])
 
     

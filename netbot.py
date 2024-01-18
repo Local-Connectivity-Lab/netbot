@@ -143,9 +143,9 @@ class NetBot(commands.Bot):
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.respond("This command is currently on cooldown!")
         else:
-            log.error(f"{error.__cause__}", exc_info=True)
+            log.error(f"{error}", exc_info=True)
             #raise error  # Here we raise other errors to ensure they aren't ignored
-            await ctx.respond(f"{error.__cause__}")
+            await ctx.respond(f"{error}")
 
 
 def main():
