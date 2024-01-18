@@ -16,10 +16,10 @@ from netbot import NetBot
 import test_utils
 
 #logging.basicConfig(level=logging.INFO)
-logging.basicConfig(level=logging.ERROR, 
-                    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-logging.getLogger("asyncio").setLevel(logging.ERROR)
+#logging.basicConfig(level=logging.DEBUG, 
+#                    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+#logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+#logging.getLogger("asyncio").setLevel(logging.ERROR)
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class TestSCNCog(test_utils.BotTestCase):
         
     def setUp(self):
         super().setUp()
-        
+        self.bot = NetBot(self.redmine)
         self.bot.load_extension("cog_scn")
         self.cog = self.bot.cogs["SCNCog"] # Note class name, note filename.
         
@@ -93,11 +93,11 @@ class TestSCNCog(test_utils.BotTestCase):
         
         ctx = self.build_context()
         ctx.channel = unittest.mock.AsyncMock(discord.Thread)
-        ctx.channel.name = f"Ticket #{test_ticket}: Search for subject match in email threading"
+        ctx.channel.name = f"Ticket #{test_ticket}"
         ctx.channel.id = self.tag
         
         await self.cog.sync(ctx)
-        ctx.respond.assert_called_with(f"SYNC ticket {test_ticket} to thread id: {self.tag} complete")
+        ctx.respond.assert_called_with(f"SYNC ticket {test_ticket} to thread: {ctx.channel.name} complete")
         # check for actual changes! updated timestamp!
 
 

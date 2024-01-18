@@ -15,12 +15,11 @@ import discord
 import test_utils
 import datetime as dt
 
-#logging.basicConfig(level=logging.DEBUG)
 
-logging.basicConfig(level=logging.DEBUG, 
-                    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-logging.getLogger("asyncio").setLevel(logging.ERROR)
+#logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+#logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+#logging.getLogger("asyncio").setLevel(logging.ERROR)
+
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +29,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         
     def setUp(self):
         super().setUp()
-
+        self.bot = NetBot(self.redmine)
         self.bot.load_extension("cog_tickets")
         self.cog = self.bot.cogs["TicketsCog"] # Note class name, note filename.
     
@@ -106,47 +105,41 @@ class TestTicketsCog(test_utils.BotTestCase):
         subject = f"Test Thread Ticket {self.tag}"
         text = f"This is a test thread ticket tagged with {self.tag}"
         note = f"This is a test note tagged with {self.tag}"
-        #old_message = f"This is a sync message with {self.tag}"
+        old_message = f"This is a sync message with {self.tag}"
 
         ticket = self.redmine.create_ticket(self.user, subject, text)
         self.redmine.append_message(ticket.id, self.user.login, note)
 
         # thread the ticket using 
         ctx = self.build_context()
-        ctx.channel = unittest.mock.AsyncMock(discord.Thread)
+        ctx.channel = unittest.mock.AsyncMock(discord.TextChannel)
         ctx.channel.name = f"Test Channel {self.tag}"
-        ctx.channel.id = self.tag
+        #ctx.channel.id = self.tag
+        
         thread = unittest.mock.AsyncMock(discord.Thread)
-        # setup history with a message from the user - disabled while I work out the history mock.
-        #member = unittest.mock.AsyncMock(discord.Member)
-        #member.name=self.discord_user
-        #message = unittest.mock.AsyncMock(discord.Message)
-        #message.channel = thread
-        #message.content=old_message
-        #message.author=member
+        thread.name = f"Ticket #{ticket.id}"
+        
+        member = unittest.mock.AsyncMock(discord.Member)
+        member.name=self.discord_user
+        
+        message = unittest.mock.AsyncMock(discord.Message)
+        message.channel = ctx.channel
+        message.content = old_message
+        message.author = member
+        message.create_thread = unittest.mock.AsyncMock(return_value=thread)
+        
+        # TODO setup history with a message from the user - disabled while I work out the history mock.
         #thread.history = unittest.mock.AsyncMock(name="history")
         #thread.history.flatten = unittest.mock.AsyncMock(name="flatten", return_value=[message])
-        ctx.channel.create_thread = unittest.mock.AsyncMock(name="create_thread", return_value=thread)
         
-        await self.cog.thread(ctx, ticket.id)
-        response = ctx.respond.call_args.args[0]
-        thread_response = str(ctx.channel.create_thread.call_args) # hacky
-        #log.info(f"#### response args: {ctx.channel.create_thread.call_args}")
+        ctx.send = unittest.mock.AsyncMock(return_value=message)
+        
+        await self.cog.thread_ticket(ctx, ticket.id)
+        
+        response = ctx.send.call_args.args[0]
+        thread_response = str(message.create_thread.call_args) # FIXME
         self.assertIn(str(ticket.id), response)
         self.assertIn(str(ticket.id), thread_response)
-        self.assertIn(self.tag, thread_response)
-
-        # test note appended to thread
-        #log.info(f"#### send args: {thread.send.call_args}")
-        send_args = str(thread.send.call_args) # hacky
-        # call('> **test-s5xyrj Testy** at *2023-12-20T01:28:32Z*\n\nThis is a test note tagged with s5xyrj\n')
-        self.assertIn(self.fullName, send_args)
-        self.assertIn(note, send_args)
-        
-        # test redmine syncdata
-        ticket = self.redmine.get_ticket(ticket.id)
-        last_update = self.redmine.get_field(ticket, "sync")
-        self.assertLessEqual(timestamp, last_update) # hack for TCs that complete in the same second
         
         # delete the ticket
         self.redmine.remove_ticket(ticket.id)

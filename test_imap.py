@@ -13,8 +13,8 @@ import test_utils
 
 
 #logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+#logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+#logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +23,6 @@ log = logging.getLogger(__name__)
 class TestMessages(unittest.TestCase):
     
     def setUp(self):
-        #load_dotenv()
         self.redmine = redmine.Client()
         self.imap = imap.Client()
         
@@ -60,9 +59,7 @@ class TestMessages(unittest.TestCase):
         self.assertEqual(addr, "freddy@example.com")
 
     # disabled so I don't flood the system with files
-    @unittest.skip
     def test_upload(self):
-
         with open("test/message-161.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
             #print(message)
@@ -106,6 +103,7 @@ class TestMessages(unittest.TestCase):
         
         self.redmine.reindex_users()
         user = self.redmine.find_user(test_email)
+        self.assertIsNotNone(user, f"Couldn't find user for {test_email}")
         self.assertEqual(test_email, user.mail)
         self.assertTrue(self.redmine.is_user_in_team(user.login, "users"))
         

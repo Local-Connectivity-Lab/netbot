@@ -34,8 +34,44 @@ def tagstr() -> str:
     """convert the current timestamp in seconds to a base36 str"""
     return dumps(int(time.time()))
 
+def create_test_user(redmine:Client, tag:str):
+    # create new test user name: test-12345@example.com, login test-12345        
+    first = "test-" + tag
+    last = "Testy"
+    #fullname = f"{first} {last}" ### <--
+    email = first + "@example.com"
+    
+    # create new redmine user, using redmine api
+    user = redmine.create_user(email, first, last)
+    
+    # create temp discord mapping with redmine api, assert 
+    discord_user = "discord-" + tag ### <--
+    redmine.create_discord_mapping(user.login, discord_user)
+    
+    # reindex users and lookup based on login
+    redmine.reindex_users()
+    return redmine.find_user(user.login)
+
 
 class BotTestCase(unittest.IsolatedAsyncioTestCase):
+    redmine = None
+    usertag = None
+    user = None
+    
+    @classmethod
+    def setUpClass(cls):
+        log.info("Setting up test fixtures")
+        cls.redmine = Client()
+        cls.usertag = tagstr()
+        cls.user = create_test_user(cls.redmine, cls.usertag)
+        log.info(f"Created test user: {cls.user}")
+
+
+    @classmethod
+    def tearDownClass(cls):
+        log.info(f"Tearing down test fixtures: {cls.user}")
+        cls.redmine.remove_user(cls.user.id)
+    
     
     def build_context(self) -> ApplicationContext:
         ctx = mock.AsyncMock(ApplicationContext)
@@ -46,33 +82,14 @@ class BotTestCase(unittest.IsolatedAsyncioTestCase):
     
     
     def setUp(self):
-        self.redmine = Client()
-        self.bot = NetBot(self.redmine)
-        
-        # create a test user. this could be a fixture!
-        # create new test user name: test-12345@example.com, login test-12345
-        self.tag = tagstr()
-        first = "test-" + self.tag
-        last = "Testy"
-        self.fullName = f"{first} {last}"
-        email = first + "@example.com"
-        self.discord_user = "discord-" + self.tag 
-        # create new redmine user, using redmine api
-        self.user = self.redmine.create_user(email, first, last)
+        self.tag = self.__class__.usertag # TODO just rename usertag to tag - represents the suite run
+        self.assertIsNotNone(self.tag)
         self.assertIsNotNone(self.user)
-        self.assertEqual(email, self.user.login)
-        # create temp discord mapping with redmine api, assert 
-        self.redmine.create_discord_mapping(self.user.login, self.discord_user)
-        # reindex users and lookup based on login
-        self.redmine.reindex_users()
+        
+        self.fullName = self.user.firstname + " " +  self.user.lastname
+        self.discord_user = self.redmine.get_discord_id(self.user)
+
         self.assertIsNotNone(self.redmine.find_user(self.user.login))
         self.assertIsNotNone(self.redmine.find_user(self.discord_user))
-
-
-    def tearDown(self):
-        # delete user with redmine api, assert
-        self.redmine.remove_user(self.user.id)
-        self.redmine.reindex_users()
-        self.assertIsNone(self.redmine.find_user(self.user.login))
-        self.assertIsNone(self.redmine.find_user(self.discord_user))
-    
+        
+        log.debug(f"setUp user {self.user.login} {self.discord_user}")

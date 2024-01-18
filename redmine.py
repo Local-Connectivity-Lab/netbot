@@ -213,12 +213,12 @@ class Client(): ## redmine.Client()
         else:
             return None
         
-    def find_discord_user(self, user_id):
-        if user_id == None:
+    def find_discord_user(self, discord_user_id:str):
+        if discord_user_id == None:
             return None
         
-        if user_id in self.discord_users:
-            id = self.discord_users[user_id]
+        if discord_user_id in self.discord_users:
+            id = self.discord_users[discord_user_id]
             return self.user_ids[id]
         else:
             return None
@@ -438,7 +438,7 @@ class Client(): ## redmine.Client()
 
         return notes
     
-
+    """
     def discord_tickets(self):
         # todo: check updated field and track what's changed
         threaded_issue_query = "/issues.json?status_id=open&cf_1=1&sort=updated_on:desc"
@@ -449,6 +449,7 @@ class Client(): ## redmine.Client()
         else:
             log.info(f"No open tickets found for: {response.request.url}")
             return None
+    """
 
     def enable_discord_sync(self, ticket_id, user, note):
         fields = {
@@ -482,6 +483,7 @@ class Client(): ## redmine.Client()
         }
         self.update_user(user, fields)
 
+    """ not used
     def join_project(self, username, project:str):
         # look up user ID
         user = self.find_user(username)
@@ -510,7 +512,7 @@ class Client(): ## redmine.Client()
         else:
             resp = json.loads(r.text, object_hook=lambda x: SimpleNamespace(**x))
             log.error(f"Error joining group: {resp.errors}, status={r.status_code}: {r.request.url}, data={data}")
-            
+    """
 
     def join_team(self, username, teamname:str):
         # look up user ID
@@ -676,8 +678,8 @@ class Client(): ## redmine.Client()
                         timestr = ticket.custom_fields[1].value 
                         return dt.datetime.fromisoformat(timestr) ### UTC
                     except Exception as e:
-                        log.debug(f"sync tag not set, using epoch")
-                        return dt.datetime.fromtimestamp(0).astimezone(dt.timezone.utc)
+                        log.debug(f"sync tag not set")
+                        return None
         except AttributeError:
             return "" # or None?
     

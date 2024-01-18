@@ -15,19 +15,18 @@ from discord.ext import commands
 
 
 def setup_logging():
-    logging.basicConfig(level=logging.DEBUG,
-                        format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-
+    logging.basicConfig(level=logging.WARNING, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
-    logging.getLogger("discord.http").setLevel(logging.INFO)
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-    logging.getLogger("discord.client").setLevel(logging.INFO)
-    logging.getLogger("discord.webhook.async_").setLevel(logging.INFO)
+    logging.getLogger("discord.http").setLevel(logging.WARNING)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
+    logging.getLogger("discord.client").setLevel(logging.WARNING)
+    logging.getLogger("discord.webhook.async_").setLevel(logging.WARNING)
 
 
 log = logging.getLogger(__name__)
 
-log.info('initializing bot')
+
+log.info('initializing netbot')
 
 class NetBot(commands.Bot):
     def __init__(self, redmine: redmine.Client):
@@ -53,35 +52,30 @@ class NetBot(commands.Bot):
         log.info(f"starting {self}")
         super().run(os.getenv('DISCORD_TOKEN'))
 
-    async def on_ready(self):
-        log.info(f"Logged in as {self.user} (ID: {self.user.id})")
-        
-    async def on_guild_join(self, guild):
-        log.info(f"Joined guild: {guild}, id={guild.id}")
-
-    async def on_thread_join(self, thread):
-        await thread.join()
-        log.info(f"Joined thread: {thread}")
+    #async def on_ready(self):
+    #    log.info(f"Logged in as {self.user} (ID: {self.user.id})")
+    #    log.debug(f"bot: {self}, guilds: {self.guilds}")  
         
 
     def parse_thread_title(self, title: str) -> int:
-        match = re.match(r'^Ticket #(\d+):', title)
+        match = re.match(r'^Ticket #(\d+)', title)
         if match:
             return int(match.group(1))
 
 
-    async def on_message(self, message: discord.Message):
+    """
+    # disabled for now... conflicting with the scheduled sync process
+    #async def on_message(self, message: discord.Message):
         # Make sure we won't be replying to ourselves.
         # if message.author.id == bot.user.id:
         #    return
-        if isinstance(message.channel, discord.Thread):
+    #    if isinstance(message.channel, discord.Thread):
             # get the ticket id from the thread name
-            ticket_id = self.parse_thread_title(message.channel.name)
+    #        ticket_id = self.parse_thread_title(message.channel.name)
             
-            if ticket_id:
-                await self.sync_new_message(ticket_id, message)
+    #        if ticket_id:
+    #            await self.sync_new_message(ticket_id, message)
             # else just a normal thread, do nothing
-
 
     async def sync_new_message(self, ticket_id: int, message: discord.Message):
         # ticket = redmine.get_ticket(ticket_id, include_journals=True)
@@ -95,26 +89,35 @@ class NetBot(commands.Bot):
         else:
             log.warning(
                 f"sync_new_message - unknown discord user: {message.author.name}, skipping message")
-
-
-    async def synchronize_ticket(self, ticket, thread, ctx: discord.ApplicationContext):
-        last_sync = self.redmine.get_field(ticket, "sync")
-        log.debug(f"ticket {ticket.id} last sync: {last_sync}, age: {self.redmine.get_field(ticket, 'age')}")
-
+    """
+    
+    """
+    Synchronize a ticket to a thread
+    """
+    async def synchronize_ticket(self, ticket, thread:discord.Thread):
+        log.debug(f"ticket: {ticket.id}, thread: {thread}")
+        
         # start of the process, will become "last update"
         timestamp = dt.datetime.now(dt.timezone.utc)  # UTC
+        
+        last_sync = self.redmine.get_field(ticket, "sync")
+        if last_sync is None:
+            last_sync = timestamp - dt.timedelta(days=2*365) # 2 years
+    
+        log.debug(f"ticket {ticket.id} last sync: {last_sync}, age: {self.redmine.get_field(ticket, 'age')}")
 
         notes = self.redmine.get_notes_since(ticket.id, last_sync)
         log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread.name}")
 
         for note in notes:
-            msg = f"> **{note.user.name}** at *{note.created_on}*\n\n{note.notes}\n"
+            msg = f"> **{note.user.name}** at *{note.created_on}*\n> {note.notes}\n\n"
             await thread.send(msg)
 
         # query discord for updates to thread since last-update
         # see https://docs.pycord.dev/en/stable/api/models.html#discord.Thread.history
-        log.debug("calling history with thread={thread}, after={last_sync}")
+        log.debug(f"calling history with thread={thread}, after={last_sync}")
         #messages = await thread.history(after=last_sync, oldest_first=True).flatten()
+        #for message in messages:
         async for message in thread.history(after=last_sync, oldest_first=True):
             # ignore bot messages!
             if message.author.id != self.user.id:
@@ -131,7 +134,7 @@ class NetBot(commands.Bot):
             log.debug(f"No new discord messages found since {last_sync}")
 
         # update the SYNC timestamp
-        self.redmine.update_syncdata(ticket.id, timestamp)
+        self.redmine.update_syncdata(ticket.id, dt.datetime.now(dt.timezone.utc)) # fresh timestamp, instead of 'timestamp'
         log.info(f"completed sync for {ticket.id} <--> {thread.name}")
         
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
@@ -139,9 +142,9 @@ class NetBot(commands.Bot):
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.respond("This command is currently on cooldown!")
         else:
-            log.error(f"{error.__cause__}", exc_info=True)
+            log.error(f"{error}", exc_info=True)
             #raise error  # Here we raise other errors to ensure they aren't ignored
-            await ctx.respond(f"{error.__cause__}")
+            await ctx.respond(f"{error}")
 
 
 def main():
