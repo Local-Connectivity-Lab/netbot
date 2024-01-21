@@ -99,7 +99,21 @@ class SCNCog(commands.Cog):
             if ticket:
                 await ctx.respond(f"SYNC ticket {ticket.id} to thread: {ctx.channel.name} complete")
             else:
-                await ctx.respond(f"Cannot find ticket# in thread name: {ctx.channel.name}") # error
+                # ticket 379 http://10.10.0.218/issues/379
+                # create a new ticket
+                user = self.redmine.find_discord_user(ctx.user.name)
+                subject = ctx.channel.name # from the original thread creation
+                body = f"A ticket to capture the channel '{subject}', id={ctx.channel_id} in Discord."
+                ticket = self.redmine.create_ticket(user, subject, body)
+                if ticket:
+                    # update the thread name
+                    name = f"Ticket #{ticket.id}: {subject}"
+                    log.info(f"ticket #{ticket.id} created, updating thread-name to {name}")
+                    await ctx.channel.edit(name=name)
+                    await ctx.respond(f"Created new ticket for {subject}: {self.redmine.get_field(ticket, 'link')}")
+                else:
+                    log.error("Unable to create new ticket") ## TODO this should be an exception and try/except
+                    await ctx.respond(f"Unable to crate new ticket for thread '{subject}'") # error
         else:
             await ctx.respond(f"Not a thread.") # error
 
