@@ -16,9 +16,9 @@ import test_utils
 import datetime as dt
 
 
-#logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-#logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-#logging.getLogger("asyncio").setLevel(logging.ERROR)
+logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+logging.getLogger("asyncio").setLevel(logging.ERROR)
 
 
 log = logging.getLogger(__name__)
@@ -35,9 +35,9 @@ class TestTicketsCog(test_utils.BotTestCase):
     
     
     def parse_markdown_link(self, text:str) -> (str, str):
-        regex = "^\[(\d+)\]\((.+)\)"
-        m = re.match(regex, text)
-        self.assertIsNotNone(m, f"could not find ticket number in response str: {text}")
+        regex = "\[(\d+)\]\((.+)\)"
+        m = re.search(regex, text)
+        self.assertIsNotNone(m, f"could not find ticket number in response str: '{text}'")
         
         ticket_id = m.group(1)
         url = m.group(2)
@@ -50,6 +50,8 @@ class TestTicketsCog(test_utils.BotTestCase):
         ctx = self.build_context()
         await self.cog.create_new_ticket(ctx, test_title)
         response_str = ctx.respond.call_args.args[0]
+        
+        log.debug(f"### call args: {response_str}")
 
         ticket_id, url = self.parse_markdown_link(response_str)
         log.debug(f"created ticket: {ticket_id}, {url}")
