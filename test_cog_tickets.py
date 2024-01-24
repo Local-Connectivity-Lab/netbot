@@ -34,8 +34,9 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.cog = self.bot.cogs["TicketsCog"] # Note class name, note filename.
     
     
+    # thanks, https://docs.python.org/3/howto/regex.html#greedy-versus-non-greedy
     def parse_markdown_link(self, text:str) -> (str, str):
-        regex = "\[(\d+)\]\((.+)\)"
+        regex = "\[(\d+)\]\((.+?)\)"
         m = re.search(regex, text)
         self.assertIsNotNone(m, f"could not find ticket number in response str: '{text}'")
         
@@ -98,6 +99,76 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.redmine.remove_ticket(int(ticket_id))
         # check that the ticket has been removed
         self.assertIsNone(self.redmine.get_ticket(int(ticket_id)))
+
+ 
+    # new ticket with thread
+    # this might be tricky to test. use case being tested is "create ticket and matching thread",
+    # but setting up the mock objects required to make the test work require the ticket ID of the 
+    # ticket created by the use case (before the method has been called to create the ticket).
+    # might need a mock redmine in this case. UG.
+    # FIXME ??? refactor netbot and the cogs to separate discord from testable methods. 
+    # "more testability" by shimming pycode as close as possible.
+    @unittest.skip
+    async def test_new_ticket_w_thread(self):
+        # create ticket with discord user, assert
+        test_title = f"This is a test ticket {self.tag}"
+        
+        # thread the ticket using 
+        ctx = self.build_context()
+        ctx.channel = unittest.mock.AsyncMock(discord.TextChannel)
+        ctx.channel.name = f"Test Channel {self.tag}"
+        #ctx.channel.id = self.tag
+        
+        thread = unittest.mock.AsyncMock(discord.Thread)
+        thread.name = f"Ticket #{ticket_id}"
+        
+        member = unittest.mock.AsyncMock(discord.Member)
+        member.name=self.discord_user
+        
+        message = unittest.mock.AsyncMock(discord.Message)
+        message.channel = ctx.channel
+        message.content = f"This is a sync message with {self.tag}"
+        message.author = member
+        message.create_thread = unittest.mock.AsyncMock(return_value=thread)
+        
+        # TODO setup history with a message from the user - disabled while I work out the history mock.
+        #thread.history = unittest.mock.AsyncMock(name="history")
+        #thread.history.flatten = unittest.mock.AsyncMock(name="flatten", return_value=[message])
+        
+        ctx.send = unittest.mock.AsyncMock(return_value=message)
+        
+        await self.cog.create_new_ticket(ctx, test_title, add_thread=True)
+        
+        response_str = ctx.respond.call_args.args[0]
+        log.debug(f"### call args: {response_str}")
+        # Created ticket: [467](http://localhost/issues/467) with thread: ...
+
+        ticket_id, url = self.parse_markdown_link(response_str)
+        log.debug(f"created ticket: {ticket_id}, {url}")
+        self.assertIsNotNone(ticket_id)
+        self.assertIn(ticket_id, url)
+
+        # get the ticket using id
+        ctx = self.build_context()
+        await self.cog.tickets(ctx, ticket_id)
+        response_str = ctx.respond.call_args.args[0]
+        self.assertIn(ticket_id, response_str)
+        self.assertIn(url, response_str)
+        
+        # confirm the thread
+        response = ctx.send.call_args #.args[0]
+        thread_response = str(message.create_thread.call_args) # FIXME
+        log.debug(f"### send: {response}")
+        log.debug(f"### create_thread: {message.create_thread.call_args}")
+
+        self.assertIn(str(ticket_id), response)
+        self.assertIn(str(ticket_id), thread_response)
+        
+        # delete ticket with redmine api, assert
+        self.redmine.remove_ticket(int(ticket_id))
+        # check that the ticket has been removed
+        self.assertIsNone(self.redmine.get_ticket(int(ticket_id)))
+
 
     # create thread/sync 
     async def test_thread_sync(self):

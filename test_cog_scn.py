@@ -101,5 +101,38 @@ class TestSCNCog(test_utils.BotTestCase):
         # check for actual changes! updated timestamp!
 
 
+    # sync existing ticket
+    async def test_sync_existing_ticket(self):
+        test_ticket = 218
+        
+        ctx = self.build_context()
+        ctx.channel = unittest.mock.AsyncMock(discord.Thread)
+        ctx.channel.name = f"Ticket #{test_ticket}"
+        ctx.channel.id = self.tag
+        
+        await self.cog.sync(ctx)
+        ctx.respond.assert_called_with(f"SYNC ticket {test_ticket} to thread: {ctx.channel.name} complete")
+        # check for actual changes! updated timestamp!
+        
+        
+    # sync existing thread
+    async def test_sync_existing_thread(self):
+        # build a thread with history
+        ctx = self.build_context()
+        ctx.channel = unittest.mock.AsyncMock(discord.Thread)
+        ctx.channel.name = f"Test thread subject {self.tag}"
+        ctx.channel.id = self.tag
+        
+        # sync
+        await self.cog.sync(ctx)
+        ## parse called args for the ticket id
+        #ctx.respond.assert_called_with(f"SYNC ticket {test_ticket} to thread: {ctx.channel.name} complete")
+        
+        # get the ticket to confirm
+        
+        # check for actual changes! updated timestamp!
+        
+
+
 if __name__ == '__main__':
     unittest.main()

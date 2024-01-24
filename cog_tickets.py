@@ -170,6 +170,7 @@ class TicketsCog(commands.Cog):
         
         return thread
 
+
     @commands.slash_command(name="thread", description="Create a Discord thread for the specified ticket") 
     @option("ticket_id", description="ID of ticket to create thread for")
     async def thread_ticket(self, ctx: discord.ApplicationContext, ticket_id:int):
