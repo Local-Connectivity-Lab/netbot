@@ -734,7 +734,7 @@ class Client(): ## redmine.Client()
         for group in response.groups:
             self.groups[group.name] = group
 
-        log.info(f"indexed {len(self.groups)} groups")
+        log.debug(f"indexed {len(self.groups)} groups")
 
 
     def is_user_in_team(self, username:str, teamname:str) -> bool:
@@ -749,7 +749,6 @@ class Client(): ## redmine.Client()
 
 
     def reindex(self):
-        log.info("reindixing")
         self.reindex_users()
         self.reindex_groups()
 

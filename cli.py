@@ -23,7 +23,6 @@ from rich.table import Table
 from rich import box
 
 
-#logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 # redmine client

@@ -8,12 +8,11 @@ from dotenv import load_dotenv
 import imap
 
 # configure logging
-logpath = Path("logs")
-logpath.mkdir(parents=True, exist_ok=True)
-logfile = logpath.joinpath("threader-" + dt.datetime.now().strftime('%Y%m%d-%H%M') + ".log")
-logging.basicConfig(filename=logfile, filemode='a',
-    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{',
-    level=logging.INFO) # TODO Add cmdline switch for log level.
+logging.basicConfig(level=logging.INFO, 
+                    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+logging.getLogger("urllib3.connectionpool").setLevel(logging.ERROR)
+logging.getLogger("asyncio").setLevel(logging.ERROR)
+
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +28,7 @@ def main():
     }
 
     for name, service in services.items():
-        log.info(f"synchronizing {name}")
+        log.info(f"starting synchronize for {name}")
         service.synchronize()
 
 

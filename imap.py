@@ -63,6 +63,7 @@ class Message():
     def __str__(self):
         return f"from:{self.from_address}, subject:{self.subject}, attached:{len(self.attachments)}; {self.note[0:20]}" 
 
+
 # from https://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
 class MLStripper(HTMLParser):
     def __init__(self):
@@ -76,12 +77,12 @@ class MLStripper(HTMLParser):
     def get_data(self):
         return self.text.getvalue()
 
+
 class Client(): ## imap.Client()
     def __init__(self):
         self.host = os.getenv('IMAP_HOST')
         self.user = os.getenv('IMAP_USER')
         self.passwd = os.getenv('IMAP_PASSWORD')
-        self.port = 993
         self.redmine = redmine.Client()
 
     # note: not happy with this method of dealing with complex email address
@@ -116,14 +117,12 @@ class Client(): ## imap.Client()
 
         for part in root.walk():
             content_type = part.get_content_type()
-            #print(f"### type={content_type}: {len(part.as_string())}")
             if part.is_attachment():
                 message.add_attachment( Attachment(
                     name=part.get_filename(), 
                     type=content_type,
                     payload=part.get_payload(decode=True)))
                 log.debug(f"Added attachment: {part.get_filename()} {content_type}")
-            # FIXME ticket 208 - http://10.10.0.218/issues/208
             elif content_type == 'text/plain': # FIXME std const?
                 payload = part.get_payload(decode=True).decode('UTF-8')
                 
@@ -238,42 +237,49 @@ class Client(): ## imap.Client()
             log.info(f"Created new ticket for: {user.login}, {subject}, with {len(message.attachments)} attachments")
 
 
-    def check_unseen(self):
-        with IMAPClient(host=self.host, port=self.port, ssl=True) as server:
-            server.login(self.user, self.passwd)
-            server.select_folder("INBOX", readonly=False)
-            log.info(f'logged into imap {self.host}')
-
-            messages = server.search("UNSEEN")
-            for uid, message_data in server.fetch(messages, "RFC822").items():
-                data = message_data[b"RFC822"]
-
-                # process each message returned by the query
-                try:
-                    # decode the message
-                    message = self.parse_message(data)
-
-                    # handle the message
-                    self.handle_message(uid, message)
-
-                    #  mark msg uid seen and deleted, as per redmine imap.rb
-                    server.add_flags(uid, [SEEN, DELETED])
-
-                except Exception as e:
-                    log.error(f"Message {uid} can not be processed: {e}")
-                    traceback.print_exc()
-                    # save the message data in a file
-                    with open(f"message-err-{uid}.eml", "wb") as file:
-                        file.write(data)
-                    server.add_flags(uid, [SEEN])
-            log.info(f"processed {len(messages)} new messages")
-    
     def synchronize(self):
-        self.check_unseen()
+        try:
+            with IMAPClient(host=self.host, ssl=True) as server:
+                # https://imapclient.readthedocs.io/en/3.0.1/api.html#imapclient.IMAPClient.oauthbearer_login
+                # NOTE: self.user -> IMAP_USER -> identity, self.user -> IMAP_PASSWD -> token
+                server.login(self.user, self.passwd)
+                #server.oauthbearer_login(self.user, self.passwd)
+                #server.oauth2_login(self.user, self.passwd)
+                
+                server.select_folder("INBOX", readonly=False)
+                log.info(f'logged into imap {self.host}')
 
-# this behavior mirrors that of threader.py, for now.
-# in the furute, this will run the imap threading, while
-# threader.py will coordinate all the threaders.
+                messages = server.search("UNSEEN")
+                log.info(f"processing {len(messages)} new messages from {self.host}")
+
+                for uid, message_data in server.fetch(messages, "RFC822").items():
+                    # process each message returned by the query
+                    try:
+                        # decode the message
+                        data = message_data[b"RFC822"]
+                        message = self.parse_message(data)
+
+                        # handle the message
+                        self.handle_message(uid, message)
+
+                        #  mark msg uid seen and deleted, as per redmine imap.rb
+                        server.add_flags(uid, [SEEN, DELETED])
+
+                    except Exception as e:
+                        log.error(f"Message {uid} can not be processed: {e}")
+                        traceback.print_exc()
+                        # save the message data in a file
+                        with open(f"message-err-{uid}.eml", "wb") as file:
+                            file.write(data)
+                        server.add_flags(uid, [SEEN])
+                        
+                log.info(f"done. processed {len(messages)} messages")
+        except Exception as ex:
+            log.error(f"caught exception syncing IMAP: {ex}")
+            traceback.print_exc()
+
+
+# Run the IMAP sync process
 if __name__ == '__main__':
     log.info('initializing IMAP threader')
 
@@ -281,8 +287,5 @@ if __name__ == '__main__':
     load_dotenv()
 
     # construct the client and run the email check
-    Client().check_unseen()
+    Client().synchronize()
 
-    #with open("test_messages/message-126.eml", 'rb') as file:
-    #    message = parse_message(file.read())
-    #    Client().handle_message("126", message)
