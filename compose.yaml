@@ -9,3 +9,4 @@ services:
       - NETBOX_URL=${NETBOX_URL}
       - REDMINE_TOKEN=${REDMINE_TOKEN}
       - REDMINE_URL=${REDMINE_URL}
+    restart: always
