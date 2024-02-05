@@ -15,7 +15,7 @@ from discord.ext import commands
 
 
 def setup_logging():
-    logging.basicConfig(level=logging.WARNING, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+    logging.basicConfig(level=logging.INFO, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
     logging.getLogger("discord.http").setLevel(logging.WARNING)
     logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
