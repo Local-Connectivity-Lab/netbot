@@ -3,6 +3,7 @@
 import os
 import re
 import logging
+import asyncio
 import datetime as dt
 
 import discord
@@ -15,7 +16,7 @@ from discord.ext import commands
 
 
 def setup_logging():
-    logging.basicConfig(level=logging.INFO, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
     logging.getLogger("discord.http").setLevel(logging.WARNING)
     logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
@@ -33,6 +34,8 @@ class NetBot(commands.Bot):
         log.info(f'initializing {self}')
         intents = discord.Intents.default()
         intents.message_content = True
+        
+        self.lock = asyncio.Lock()
 
         self.redmine = redmine
         #guilds = os.getenv('DISCORD_GUILDS').split(', ')
@@ -95,56 +98,65 @@ class NetBot(commands.Bot):
     Synchronize a ticket to a thread
     """
     async def synchronize_ticket(self, ticket, thread:discord.Thread):
-        log.debug(f"ticket: {ticket.id}, thread: {thread}")
+        # as this is an async method call, and we don't want to lock bot-level event processing,
+        # we need to create a per-ticket lock to make sure the same
+        # TODO per-ticket lock? trying bot-level lock first
+        if self.lock.locked():
+            log.debug(f"sync locked. skipping sync in progress for ticket #{ticket.id}")
+            return  
         
-        # start of the process, will become "last update"
-        timestamp = dt.datetime.now(dt.timezone.utc)  # UTC
+        async with self.lock:            
+            log.debug(f"sync lock acquired, syncing id: {ticket.id}, thread: {thread}")
+
+            # start of the process, will become "last update"
+            sync_start = dt.datetime.now(dt.timezone.utc)  # UTC
+            
+            last_sync = self.redmine.get_field(ticket, "sync")
+            if last_sync is None:
+                last_sync = sync_start - dt.timedelta(days=2*365) # initialize to 2 years ago
         
-        last_sync = self.redmine.get_field(ticket, "sync")
-        if last_sync is None:
-            last_sync = timestamp - dt.timedelta(days=2*365) # 2 years
-    
-        log.debug(f"ticket {ticket.id} last sync: {last_sync}, age: {self.redmine.get_field(ticket, 'age')}")
+            log.debug(f"ticket {ticket.id} last sync: {last_sync}")
 
-        notes = self.redmine.get_notes_since(ticket.id, last_sync)
-        log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread.name}")
+            # get the new notes from the ticket
+            notes = self.redmine.get_notes_since(ticket.id, last_sync)
+            log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread.name}")
 
-        for note in notes:
-            msg = f"> **{note.user.name}** at *{note.created_on}*\n> {note.notes}\n\n"
-            await thread.send(msg)
+            for note in notes:
+                # Write the note to the discord thread
+                msg = f"> **{note.user.name}** at *{note.created_on}*\n> {note.notes}\n\n"
+                await thread.send(msg)
 
-        # query discord for updates to thread since last-update
-        # see https://docs.pycord.dev/en/stable/api/models.html#discord.Thread.history
-        log.debug(f"calling history with thread={thread}, after={last_sync}")
-        #messages = await thread.history(after=last_sync, oldest_first=True).flatten()
-        #for message in messages:
-        async for message in thread.history(after=last_sync, oldest_first=True):
-            # ignore bot messages!
-            if message.author.id != self.user.id:
-                # for each, create a note with translated discord user id with the update (or one big one?)
-                user = self.redmine.find_discord_user(message.author.name)
+            # query discord for updates to thread since last-update
+            # see https://docs.pycord.dev/en/stable/api/models.html#discord.Thread.history
+            log.debug(f"calling history with thread={thread}, after={last_sync}")
+            async for message in thread.history(after=last_sync, oldest_first=True):
+                # ignore bot messages!
+                if message.author.id != self.user.id:
+                    # for each, create a note with translated discord user id with the update (or one big one?)
+                    user = self.redmine.find_discord_user(message.author.name)
 
-                if user:
-                    log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
-                    self.redmine.append_message(ticket.id, user.login, message.content)
-                else:
-                    log.warning(
-                        f"synchronize_ticket - unknown discord user: {message.author.name}, skipping message")
-        else:
-            log.debug(f"No new discord messages found since {last_sync}")
+                    if user:
+                        log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
+                        self.redmine.append_message(ticket.id, user.login, message.content)
+                    else:
+                        log.info(
+                            f"synchronize_ticket - unknown discord user: {message.author.name}, skipping message")
+            else:
+                log.debug(f"No new discord messages found since {last_sync}")
 
-        # update the SYNC timestamp
-        self.redmine.update_syncdata(ticket.id, dt.datetime.now(dt.timezone.utc)) # fresh timestamp, instead of 'timestamp'
-        log.info(f"completed sync for {ticket.id} <--> {thread.name}")
+            # update the SYNC timestamp
+            self.redmine.update_syncdata(ticket.id, dt.datetime.now(dt.timezone.utc)) # fresh timestamp, instead of 'timestamp'
+            log.info(f"completed sync for {ticket.id} <--> {thread.name}")
+
         
     async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
         """Bot-level error handler"""
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.respond("This command is currently on cooldown!")
         else:
-            log.error(f"{error}", exc_info=True)
+            log.error(f"{ctx} - {error}", exc_info=True)
             #raise error  # Here we raise other errors to ensure they aren't ignored
-            await ctx.respond(f"{error}")
+            await ctx.respond(f"Error processing your request: {error}")
 
 
 def main():

@@ -77,6 +77,7 @@ class SCNCog(commands.Cog):
     @tasks.loop(minutes=1.0) # FIXME to 5.0 minutes. set to 1 min for testing
     async def sync_all_threads(self):
         log.info(f"sync_all_threads: starting for {self.bot.guilds}")
+        # LOCK acquire sync lock. - 1 lock, bot-level, to block
 
         # get all threads
         for guild in self.bot.guilds:
