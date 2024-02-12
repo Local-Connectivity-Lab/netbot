@@ -1,25 +1,18 @@
 #!/usr/bin/env python3
-
-import os
-import re
+"""Cog to manage SCN-related functions"""
 import logging
-import datetime as dt
 
 import discord
-import redmine
 
-from discord.commands import option
 from discord.commands import SlashCommandGroup
-
-from dotenv import load_dotenv
-
 from discord.ext import commands, tasks
+
 
 log = logging.getLogger(__name__)
 
 # scn add redmine_login - setup discord userid in redmine
-# scn sync - manually sychs the current thread, or replies with warning 
-# scn sync 
+# scn sync - manually sychs the current thread, or replies with warning
+# scn sync
 
 # scn join teamname - discord user joins team teamname (and maps user id)
 # scn leave teamname - discord user leaves team teamname (and maps user id)
@@ -28,13 +21,14 @@ log = logging.getLogger(__name__)
 
 def setup(bot):
     bot.add_cog(SCNCog(bot))
-    log.info(f"initialized SCN cog")
+    log.info("initialized SCN cog")
 
 class SCNCog(commands.Cog):
+    """Cog to mange SCN-related functions"""
     def __init__(self, bot):
         self.bot = bot
         self.redmine = bot.redmine
-        self.sync_all_threads.start() # start the sync task
+        self.sync_all_threads.start() # pylint: disable=no-member
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
 
@@ -49,7 +43,7 @@ class SCNCog(commands.Cog):
             discord_name = member.name
 
         user = self.redmine.find_discord_user(discord_name)
-        
+
         if user:
             await ctx.respond(f"Discord user: {discord_name} is already configured as redmine user: {user.login}")
         else:
@@ -70,20 +64,20 @@ class SCNCog(commands.Cog):
             return None
 
 
-    """
-    Configured to run every 5 minutes using the tasks.loop annotation.
-    Get all Threads and sync each one.
-    """
+
     @tasks.loop(minutes=1.0) # FIXME to 5.0 minutes. set to 1 min for testing
     async def sync_all_threads(self):
+        """
+        Configured to run every minute using the tasks.loop annotation.
+        Get all Threads and sync each one.
+        """
         log.info(f"sync_all_threads: starting for {self.bot.guilds}")
-        # LOCK acquire sync lock. - 1 lock, bot-level, to block
 
         # get all threads
         for guild in self.bot.guilds:
             for thread in guild.threads:
                 #log.debug(f"THREAD: guild:{guild}, thread:{thread}")
-                # sync each thread, 
+                # sync each thread,
                 ticket = await self.sync_thread(thread)
                 if ticket:
                     # successful sync
@@ -102,14 +96,14 @@ class SCNCog(commands.Cog):
             else:
                 await ctx.respond(f"Cannot find ticket# in thread name: {ctx.channel.name}") # error
         else:
-            await ctx.respond(f"Not a thread.") # error
+            await ctx.respond("Not a thread.") # error
 
 
     @scn.command()
     async def reindex(self, ctx:discord.ApplicationContext):
         """reindex the user and team information"""
         self.redmine.reindex()
-        await ctx.respond(f"Rebuilt redmine indices.")
+        await ctx.respond("Rebuilt redmine indices.")
 
 
     @scn.command(description="join the specified team")
@@ -118,7 +112,7 @@ class SCNCog(commands.Cog):
         if member:
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
             discord_name = member.name
-            
+
         user = self.redmine.find_discord_user(discord_name)
         if user is None:
             await ctx.respond(f"Unknown user, no Discord mapping: {discord_name}")
@@ -136,13 +130,12 @@ class SCNCog(commands.Cog):
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
             discord_name = member.name
         user = self.redmine.find_discord_user(discord_name)
-        
+
         if user:
             self.redmine.leave_team(user.login, teamname)
             await ctx.respond(f"**{discord_name}** has left *{teamname}*")
         else:
             await ctx.respond(f"Unknown Discord user: {discord_name}.")
-        pass
 
 
     @scn.command(description="list teams and members")
@@ -170,9 +163,9 @@ class SCNCog(commands.Cog):
     async def print_team(self, ctx, team):
         msg = f"> **{team.name}**\n"
         for user_rec in team.users:
-            user = self.redmine.get_user(user_rec.id)
+            #user = self.redmine.get_user(user_rec.id)
             #discord_user = user.custom_fields[0].value or ""  # FIXME cf_* lookup
-            msg += f"{user_rec.name}, " 
+            msg += f"{user_rec.name}, "
             #msg += f"[{user.id}] **{user_rec.name}** {user.login} {user.mail} {user.custom_fields[0].value}\n"
         msg = msg[:-2] + '\n\n'
         await ctx.channel.send(msg)
