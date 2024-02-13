@@ -26,7 +26,6 @@ def setup(bot):
     log.info("initialized tickets cog")
 
 
-
 class TicketsCog(commands.Cog):
     """encapsulate Discord ticket functions"""
     def __init__(self, bot):
@@ -145,7 +144,7 @@ class TicketsCog(commands.Cog):
 
     async def create_thread(self, ticket, ctx):
         log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
-        name = f"Ticket #{ticket.id}"
+        name = f"Ticket #{ticket.id}: {ticket.subject}"
         msg_txt = f"Syncing ticket {self.redmine.get_field(ticket, 'url')} to new thread '{name}'"
         message = await ctx.send(msg_txt)
         thread = await message.create_thread(name=name)
@@ -166,18 +165,7 @@ class TicketsCog(commands.Cog):
             user = self.redmine.find_discord_user(ctx.user.name)
             self.redmine.enable_discord_sync(ticket.id, user, note)
 
-            # REFACTOR: We know the thread has just been created, just get messages-since in redmine.
-            #notes = self.redmine.get_notes_since(ticket.id, None) # None since date for all.
-            #log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread.name}")
-
-            # NOTE: There doesn't seem to be a method for acting as a specific user,
-            # so adding user and date to the sync note.
-            #for note in notes:
-            #    msg = f"> **{note.user.name}** at *{note.created_on}*\n> {note.notes}\n\n"
-            #    await thread.send(msg)
-
-            # TODO format command for single ticket
-            await ctx.send(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
+            await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") # todo add some fancy formatting
 

@@ -109,7 +109,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         #ctx.channel.id = self.tag
 
         thread = unittest.mock.AsyncMock(discord.Thread)
-        thread.name = f"Ticket #{ticket.id}"
+        thread.name = f"Ticket #{ticket.id}: {subject}"
 
         member = unittest.mock.AsyncMock(discord.Member)
         member.name=self.discord_user
@@ -132,6 +132,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         thread_response = str(message.create_thread.call_args) # FIXME
         self.assertIn(str(ticket.id), response)
         self.assertIn(str(ticket.id), thread_response)
+        self.assertIn(subject, thread_response)
 
         # delete the ticket
         self.redmine.remove_ticket(ticket.id)
