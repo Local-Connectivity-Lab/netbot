@@ -11,7 +11,7 @@ from types import SimpleNamespace
 import requests
 from dotenv import load_dotenv
 
-from synctime import SyncRecord, parse_millis
+import synctime
 
 log = logging.getLogger(__name__)
 
@@ -469,19 +469,14 @@ class Client(): ## redmine.Client()
         ticket = self.get_ticket(ticket_id, include_journals=True)
         log.debug(f"got ticket {ticket_id} with {len(ticket.journals)} notes")
 
-        #try:
         for note in ticket.journals:
             # note.notes is a text field with notes, or empty. if there are no notes, ignore the journal
             if note.notes and timestamp:
-                #log.debug(f"### get_notes_since - fromisoformat: {note.created_on}")
-                created = dt.datetime.fromisoformat(note.created_on) ## creates UTC
-                #log.debug(f"note {note.id} created {created} {age(created)} <--> {timestamp} {age(timestamp)}")
+                created = synctime.parse_str(note.created_on)
                 if created > timestamp:
                     notes.append(note)
             elif note.notes:
                 notes.append(note) # append all notes when there's no timestamp
-        #except Exception as e:
-        #    log.error(f"oops: {e}")
 
         return notes
 
@@ -644,7 +639,7 @@ class Client(): ## redmine.Client()
             return None
 
 
-    def get_sync_record(self, ticket, expected_channel: int) -> SyncRecord:
+    def get_sync_record(self, ticket, expected_channel: int) -> synctime.SyncRecord:
         # Parse custom_field into datetime
         # lookup field by name
         token = None
@@ -652,24 +647,36 @@ class Client(): ## redmine.Client()
             for field in ticket.custom_fields:
                 if field.name == SYNC_FIELD_NAME:
                     token = field.value
+                    log.debug(f"found {field.name} => '{field.value}'")
                     break
         except AttributeError:
-            # custom field not set
+            # custom_fields not set, handle same as no sync field
             pass
 
-        if token is None:
-            # no token implies not-yet-initialized
-            last_sync = parse_millis(24*60*60*1000) # one day past the epoch
-            record = SyncRecord(ticket.id, expected_channel, last_sync)
-            # apply the new sync record back to redmine
-            self.update_sync_record(record)
-        else:
-            record = SyncRecord.from_token(ticket.id, token, expected_channel)
+        if token:
+            record = synctime.SyncRecord.from_token(ticket.id, token)
+            if record:
+                # check channel
+                if record.channel_id == 0:
+                    # no valid channel set in sync data, assume lagacy
+                    record.channel_id = expected_channel
+                    # update the record in redmine after adding the channel info
+                    self.update_sync_record(record)
+                    return record
+                elif record.channel_id != expected_channel:
+                    log.debug(f"channel mismatch: rec={record.channel_id} =/= {expected_channel}, token={token}")
+                    return None
+
+        # no token implies not-yet-initialized
+        last_sync = synctime.parse_millis(24*60*60*1000) # one day past the epoch
+        record = synctime.SyncRecord(ticket.id, expected_channel, last_sync)
+        # apply the new sync record back to redmine
+        self.update_sync_record(record)
 
         return record
 
 
-    def update_sync_record(self, record:SyncRecord):
+    def update_sync_record(self, record:synctime.SyncRecord):
         log.debug(f"Updating sync record in redmine: {record}")
         fields = {
             "custom_fields": [
@@ -677,6 +684,9 @@ class Client(): ## redmine.Client()
             ]
         }
         self.update_ticket(record.ticket_id, fields)
+
+    def get_updated_field(self, ticket) -> dt.datetime:
+        return synctime.parse_str(ticket.updated_on)
 
 
     # NOTE: This implies that ticket should be a full object with methods.
@@ -753,7 +763,7 @@ class Client(): ## redmine.Client()
                 discord_id = self.get_discord_id(user)
                 if discord_id:
                     self.discord_users[discord_id] = user.id
-            log.info(f"indexed {len(self.users)} users")
+            log.debug(f"indexed {len(self.users)} users")
         else:
             log.error(f"No users: {response}")
 
@@ -785,8 +795,10 @@ class Client(): ## redmine.Client()
 
 
     def reindex(self):
+        start = synctime.now()
         self.reindex_users()
         self.reindex_groups()
+        log.debug(f"reindex took {synctime.age(start)}")
 
 
 if __name__ == '__main__':

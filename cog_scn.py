@@ -81,7 +81,7 @@ class SCNCog(commands.Cog):
                 ticket = await self.sync_thread(thread)
                 if ticket:
                     # successful sync
-                    log.debug(f"SYNC: thread:{thread.name} with ticket {ticket.id}")
+                    log.debug(f"SYNC complete for ticket #{ticket.id} to {thread.name}")
                 else:
                     log.debug(f"no ticket found for {thread.name}")
 

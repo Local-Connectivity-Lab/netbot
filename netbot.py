@@ -27,8 +27,6 @@ def setup_logging():
 log = logging.getLogger(__name__)
 
 
-log.info('initializing netbot')
-
 class NetBot(commands.Bot):
     """netbot"""
     def __init__(self, client: redmine.Client):
@@ -70,13 +68,49 @@ class NetBot(commands.Bot):
             return int(match.group(1))
 
 
+    async def gather_discord_notes(self, thread: discord.Thread, sync_rec:synctime.SyncRecord):
+        log.debug(f"calling history with thread={thread}, after={sync_rec}")
+        # TODO I'm sure there's a more python way to do this
+        notes = []
+        async for message in thread.history(after=sync_rec.last_sync, oldest_first=True):
+            # ignore bot messages
+            if message.author.id != self.user.id:
+                notes.append(message)
+        return notes
+
+
+    def format_discord_note(self, note):
+        """Format a note for Discord"""
+        age = synctime.age(synctime.parse_str(note.created_on))
+        return f"> **{note.user.name}** *{age} ago*\n> {note.notes}\n\n"
+        #TODO Move format table
+
+
+    def gather_redmine_notes(self, ticket, sync_rec:synctime.SyncRecord):
+        notes = []
+        # get the new notes from the redmine ticket
+        redmine_notes = self.redmine.get_notes_since(ticket.id, sync_rec.last_sync)
+        for note in redmine_notes:
+            if not note.notes.startswith('"Discord":'):
+                # skip anything that start with the Discord tag
+                notes.append(note)
+        return notes
+
+
+    def format_redmine_note(self, message: discord.Message):
+        """Format a discord message for redmine"""
+        # redmine link format: "Link Text":http://whatever
+        return f'"Discord":{message.jump_url}: {message.content}' # NOTE: message.clean_content
+
+
     async def synchronize_ticket(self, ticket, thread:discord.Thread):
         """
         Synchronize a ticket to a thread
         """
         # as this is an async method call, and we don't want to lock bot-level event processing,
         # we need to create a per-ticket lock to make sure the same
-        # TODO per-ticket lock? trying bot-level lock first
+
+        # TODO Sync files and attachments discord -> redmine, use ticket query to get them
 
         # get the self lock before checking the lock collection
         async with self.lock:
@@ -93,37 +127,30 @@ class NetBot(commands.Bot):
         sync_rec = self.redmine.get_sync_record(ticket, expected_channel=thread.id)
         log.debug(f"sync record: {sync_rec}")
 
-        # get the new notes from the ticket
-        notes = self.redmine.get_notes_since(ticket.id, sync_rec.last_sync)
-        # TODO between last_sync and sync_start
-        log.debug(f"syncing {len(notes)} notes from {ticket.id} --> {thread.name}")
-
-        for note in notes:
+        # get the new notes from the redmine ticket
+        redmine_notes = self.gather_redmine_notes(ticket, sync_rec)
+        for note in redmine_notes:
             # Write the note to the discord thread
-            msg = f"> **{note.user.name}** at *{note.created_on}*\n> {note.notes}\n\n"
-            await thread.send(msg)
-            # TODO: How do I make sure all these complete before moving on?
+            await thread.send(self.format_discord_note(note))
+        log.debug(f"synced {len(redmine_notes)} notes from #{ticket.id} --> {thread}")
 
-        # query discord for updates to thread since last-update
-        # see https://docs.pycord.dev/en/stable/api/models.html#discord.Thread.history
-        log.debug(f"calling history with thread={thread}, after={sync_rec}")
-        async for message in thread.history(after=sync_rec.last_sync, oldest_first=True):
-            # TODO between last_sync and sync_start, and flatten
-            # ignore bot messages!
-            if message.author.id != self.user.id:
-                # for each, create a note with translated discord user id
-                # with the update (or one big one?)
-                user = self.redmine.find_discord_user(message.author.name)
-                if user:
-                    log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
-                    self.redmine.append_message(ticket.id, user.login, message.content)
-                else:
-                    # FIXME
-                    log.info(f"SYNC unknown Discord user: {message.author.name}, skipping")
-        else:
-            log.debug(f"No new discord messages found since {sync_rec}")
+        # get the new notes from discord
+        discord_notes = await self.gather_discord_notes(thread, sync_rec)
+        for message in discord_notes:
+            # make sure a user mapping exists
+            user = self.redmine.find_discord_user(message.author.name)
+            if user:
+                # format and write the note
+                log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
+                formatted = self.format_redmine_note(message)
+                self.redmine.append_message(ticket.id, user.login, formatted)
+            else:
+                # FIXME
+                log.info(f"SYNC unknown Discord user: {message.author.name}, skipping")
+        log.debug(f"synced {len(discord_notes)} notes from {thread} -> #{ticket.id}")
 
         # update the SYNC timestamp
+        # TODO only update if something has changed.
         sync_rec.last_sync = sync_start
         self.redmine.update_sync_record(sync_rec)
 

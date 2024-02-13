@@ -20,7 +20,10 @@ def parse_millis(timestamp:int) -> dt.datetime:
     return dt.datetime.fromtimestamp(timestamp, dt.timezone.utc)
 
 def parse_str(timestamp:str) -> dt.datetime:
-    return dt.datetime.fromisoformat(timestamp)
+    if timestamp is not None and len(timestamp) > 0:
+        return dt.datetime.fromisoformat(timestamp)
+    else:
+        return None
 
 def age(time:dt.datetime) -> dt.timedelta:
     return now() - time
@@ -32,30 +35,38 @@ def age_str(time:dt.datetime) -> str:
 class SyncRecord():
     """encapulates the record of the last ticket syncronization"""
     def __init__(self, ticket_id: int, channel_id: int, last_sync: dt.datetime):
+        assert last_sync.tzinfo is dt.timezone.utc # make sure TZ is set and correct
         self.ticket_id = ticket_id
         self.channel_id = channel_id
         self.last_sync = last_sync
 
 
     @classmethod
-    def from_token(cls, ticket_id: int, token: str, expected_channel: int):
+    def from_token(cls, ticket_id: int, token: str):
+        """Parse a custom field token into a SyncRecord.
+        If the token is legacy, channel=0 is returned with legacy sync.
+        If the token is empty, channel=0 is returned with last_sync=0 (epoch).
+        If the token is invalid, it's treated as empty and a new token is
+        returned
+        """
         if '|' in token:
             # token format {channel_id}|{last_sync_ms}, where
             # channel_id is the ID of the Discord Thread
             # last_sync is the ms-since-utc-epoch sunce the last
             parts = token.split('|')
-            channel_id = int(parts[0])
-            last_sync = int(parts[1])
+            try:
+                channel_id = int(parts[0])
+            except ValueError:
+                log.exception(f"error parsing {token}: -> {parts[0]}")
+                channel_id = 0
 
-            if channel_id != expected_channel:
-                log.info(f"skipping mismatched thread ID: expected={expected_channel}, got={channel_id}")
-                return None
-            else:
-                return cls(ticket_id, channel_id, last_sync)
+            last_sync = parse_str(parts[1])
+
+            return cls(ticket_id, channel_id, last_sync)
         else:
             # legacy token - assume UTC ZULU
             last_sync = parse_str(token)
-            return cls(ticket_id, expected_channel, last_sync)
+            return cls(ticket_id, 0, last_sync)
 
 
     def age(self) -> dt.timedelta:
