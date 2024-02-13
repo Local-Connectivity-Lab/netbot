@@ -11,9 +11,6 @@ import synctime
 import test_utils
 
 
-#logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 
 log = logging.getLogger(__name__)
 
@@ -57,4 +54,7 @@ class TestTime(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+
     unittest.main()

@@ -13,13 +13,6 @@ from netbot import NetBot
 import test_utils
 
 
-#logging.basicConfig(level=logging.INFO)
-#logging.basicConfig(level=logging.DEBUG,
-#                    format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-#logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-#logging.getLogger("asyncio").setLevel(logging.ERROR)
-
-
 log = logging.getLogger(__name__)
 
 test_username: str = "acmerocket"
@@ -72,7 +65,7 @@ class TestSCNCog(test_utils.BotTestCase):
         # confirm in team via cog teams response
         ctx = self.build_context()
         await self.cog.teams(ctx, test_team_name)
-        self.assertIn(self.fullName, str(ctx.respond.call_args))
+        self.assertIn(self.full_name, str(ctx.respond.call_args))
 
         # leave team users
         ctx = self.build_context()
@@ -85,7 +78,7 @@ class TestSCNCog(test_utils.BotTestCase):
         # confirm not in team via cog teams response
         ctx = self.build_context()
         await self.cog.teams(ctx, test_team_name)
-        self.assertNotIn(self.fullName, str(ctx.respond.call_args))
+        self.assertNotIn(self.full_name, str(ctx.respond.call_args))
 
 
     async def test_thread_sync(self):
@@ -102,4 +95,9 @@ class TestSCNCog(test_utils.BotTestCase):
 
 
 if __name__ == '__main__':
+    # when running this main, turn on DEBUG
+    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+    logging.getLogger("asyncio").setLevel(logging.ERROR)
+
     unittest.main()

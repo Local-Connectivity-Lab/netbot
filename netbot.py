@@ -13,17 +13,6 @@ import synctime
 import redmine
 
 
-def setup_logging():
-    """set up logging for netbot"""
-    logging.basicConfig(level=logging.DEBUG,
-                        format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-    logging.getLogger("discord.gateway").setLevel(logging.WARNING)
-    logging.getLogger("discord.http").setLevel(logging.WARNING)
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
-    logging.getLogger("discord.client").setLevel(logging.WARNING)
-    logging.getLogger("discord.webhook.async_").setLevel(logging.WARNING)
-
-
 log = logging.getLogger(__name__)
 
 
@@ -112,6 +101,8 @@ class NetBot(commands.Bot):
 
         # TODO Sync files and attachments discord -> redmine, use ticket query to get them
 
+        dirty_flag: bool = False
+
         # get the self lock before checking the lock collection
         async with self.lock:
             if ticket.id in self.ticket_locks:
@@ -125,39 +116,45 @@ class NetBot(commands.Bot):
         # start of the process, will become "last update"
         sync_start = synctime.now()
         sync_rec = self.redmine.get_sync_record(ticket, expected_channel=thread.id)
-        log.debug(f"sync record: {sync_rec}")
+        if sync_rec:
+            log.debug(f"sync record: {sync_rec}")
 
-        # get the new notes from the redmine ticket
-        redmine_notes = self.gather_redmine_notes(ticket, sync_rec)
-        for note in redmine_notes:
-            # Write the note to the discord thread
-            await thread.send(self.format_discord_note(note))
-        log.debug(f"synced {len(redmine_notes)} notes from #{ticket.id} --> {thread}")
+            # get the new notes from the redmine ticket
+            redmine_notes = self.gather_redmine_notes(ticket, sync_rec)
+            for note in redmine_notes:
+                # Write the note to the discord thread
+                dirty_flag = True
+                await thread.send(self.format_discord_note(note))
+            log.debug(f"synced {len(redmine_notes)} notes from #{ticket.id} --> {thread}")
 
-        # get the new notes from discord
-        discord_notes = await self.gather_discord_notes(thread, sync_rec)
-        for message in discord_notes:
-            # make sure a user mapping exists
-            user = self.redmine.find_discord_user(message.author.name)
-            if user:
-                # format and write the note
-                log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
-                formatted = self.format_redmine_note(message)
-                self.redmine.append_message(ticket.id, user.login, formatted)
-            else:
-                # FIXME
-                log.info(f"SYNC unknown Discord user: {message.author.name}, skipping")
-        log.debug(f"synced {len(discord_notes)} notes from {thread} -> #{ticket.id}")
+            # get the new notes from discord
+            discord_notes = await self.gather_discord_notes(thread, sync_rec)
+            for message in discord_notes:
+                # make sure a user mapping exists
+                user = self.redmine.find_discord_user(message.author.name)
+                if user:
+                    # format and write the note
+                    dirty_flag = True
+                    log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
+                    formatted = self.format_redmine_note(message)
+                    self.redmine.append_message(ticket.id, user.login, formatted)
+                else:
+                    # FIXME
+                    log.info(f"SYNC unknown Discord user: {message.author.name}, skipping")
+            log.debug(f"synced {len(discord_notes)} notes from {thread} -> #{ticket.id}")
 
-        # update the SYNC timestamp
-        # TODO only update if something has changed.
-        sync_rec.last_sync = sync_start
-        self.redmine.update_sync_record(sync_rec)
+            # update the SYNC timestamp
+            # only update if something has changed
+            if dirty_flag:
+                sync_rec.last_sync = sync_start
+                self.redmine.update_sync_record(sync_rec)
 
-        # unset the sync lock
-        del self.ticket_locks[ticket.id]
+            # unset the sync lock
+            del self.ticket_locks[ticket.id]
 
-        log.info(f"DONE sync {ticket.id} <-> {thread.name}, took {synctime.age_str(sync_start)}")
+            log.info(f"DONE sync {ticket.id} <-> {thread.name}, took {synctime.age_str(sync_start)}")
+        else:
+            log.debug(f"empty sync_rec for channel={thread.id}, assuming mismatch and skipping")
 
 
     async def on_application_command_error(self, context: discord.ApplicationContext,
@@ -173,9 +170,7 @@ class NetBot(commands.Bot):
 
 def main():
     """netbot main function"""
-    setup_logging()
-
-    log.info(f"initializing {__name__}")
+    log.info(f"loading .env for {__name__}")
     load_dotenv()
 
     client = redmine.Client()
@@ -189,5 +184,16 @@ def main():
     bot.run_bot()
 
 
+def setup_logging():
+    """set up logging for netbot"""
+    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+    logging.getLogger("discord.gateway").setLevel(logging.WARNING)
+    logging.getLogger("discord.http").setLevel(logging.WARNING)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
+    logging.getLogger("discord.client").setLevel(logging.WARNING)
+    logging.getLogger("discord.webhook.async_").setLevel(logging.WARNING)
+
+
 if __name__ == '__main__':
+    setup_logging()
     main()
