@@ -58,7 +58,7 @@ class NetBot(commands.Bot):
 
 
     async def gather_discord_notes(self, thread: discord.Thread, sync_rec:synctime.SyncRecord):
-        log.debug(f"calling history with thread={thread}, after={sync_rec}")
+        log.debug(f"calling history with thread={thread}, after={sync_rec.last_sync}, ts={sync_rec.last_sync.timestamp()}")
         # TODO I'm sure there's a more python way to do this
         notes = []
         async for message in thread.history(after=sync_rec.last_sync, oldest_first=True):
@@ -70,7 +70,7 @@ class NetBot(commands.Bot):
 
     def format_discord_note(self, note):
         """Format a note for Discord"""
-        age = synctime.age(synctime.parse_str(note.created_on))
+        age = synctime.age_str(synctime.parse_str(note.created_on))
         return f"> **{note.user.name}** *{age} ago*\n> {note.notes}\n\n"
         #TODO Move format table
 
@@ -186,7 +186,8 @@ def main():
 
 def setup_logging():
     """set up logging for netbot"""
-    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+    logging.basicConfig(level=logging.INFO,
+                        format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
     logging.getLogger("discord.http").setLevel(logging.WARNING)
     logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)

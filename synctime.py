@@ -19,6 +19,11 @@ def now_millis() -> int:
 def parse_millis(timestamp:int) -> dt.datetime:
     return dt.datetime.fromtimestamp(timestamp, dt.timezone.utc)
 
+def epoch_datetime() -> dt.datetime:
+    # discord API fails when using 0 as a timestamp,
+    # so generate one for "three yeas ago"
+    return now() - dt.timedelta(days=3*365)
+
 def parse_str(timestamp:str) -> dt.datetime:
     if timestamp is not None and len(timestamp) > 0:
         return dt.datetime.fromisoformat(timestamp)
@@ -36,6 +41,7 @@ class SyncRecord():
     """encapulates the record of the last ticket syncronization"""
     def __init__(self, ticket_id: int, channel_id: int, last_sync: dt.datetime):
         assert last_sync.tzinfo is dt.timezone.utc # make sure TZ is set and correct
+        assert last_sync.timestamp() > 0
         self.ticket_id = ticket_id
         self.channel_id = channel_id
         self.last_sync = last_sync
@@ -45,7 +51,6 @@ class SyncRecord():
     def from_token(cls, ticket_id: int, token: str):
         """Parse a custom field token into a SyncRecord.
         If the token is legacy, channel=0 is returned with legacy sync.
-        If the token is empty, channel=0 is returned with last_sync=0 (epoch).
         If the token is invalid, it's treated as empty and a new token is
         returned
         """
@@ -57,7 +62,7 @@ class SyncRecord():
             try:
                 channel_id = int(parts[0])
             except ValueError:
-                log.exception(f"error parsing {token}: -> {parts[0]}")
+                log.exception(f"error parsing channel ID: {parts[0]}, from token: '{token}'")
                 channel_id = 0
 
             last_sync = parse_str(parts[1])

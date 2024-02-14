@@ -655,6 +655,7 @@ class Client(): ## redmine.Client()
 
         if token:
             record = synctime.SyncRecord.from_token(ticket.id, token)
+            log.debug(f"created sync_rec from token: {record}")
             if record:
                 # check channel
                 if record.channel_id == 0:
@@ -666,14 +667,14 @@ class Client(): ## redmine.Client()
                 elif record.channel_id != expected_channel:
                     log.debug(f"channel mismatch: rec={record.channel_id} =/= {expected_channel}, token={token}")
                     return None
-
-        # no token implies not-yet-initialized
-        last_sync = synctime.parse_millis(24*60*60*1000) # one day past the epoch
-        record = synctime.SyncRecord(ticket.id, expected_channel, last_sync)
-        # apply the new sync record back to redmine
-        self.update_sync_record(record)
-
-        return record
+                else:
+                    return record
+        else:
+            # no token implies not-yet-initialized
+            record = synctime.SyncRecord(ticket.id, expected_channel, synctime.epoch_datetime())
+            # apply the new sync record back to redmine
+            self.update_sync_record(record)
+            return record
 
 
     def update_sync_record(self, record:synctime.SyncRecord):
