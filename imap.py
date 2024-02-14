@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""IMAP module"""
 
 import os
 import logging
@@ -8,19 +9,19 @@ import email.policy
 import re
 import traceback
 
-import redmine
+from io import StringIO
+from html.parser import HTMLParser
 
 from imapclient import IMAPClient, SEEN, DELETED
 from dotenv import load_dotenv
 
-from io import StringIO
-from html.parser import HTMLParser
+import redmine
+
 
 # imapclient docs: https://imapclient.readthedocs.io/en/3.0.0/index.html
 # source code: https://github.com/mjs/imapclient
 
 
-## logging ##
 log = logging.getLogger(__name__)
 
 
@@ -28,10 +29,12 @@ log = logging.getLogger(__name__)
 # Message will represent everything needed for creating and updating tickets,
 # including attachments.
 class Attachment():
-    def __init__(self, name:str, type:str, payload):
+    """email attachment"""
+    def __init__(self, name:str, content_type:str, payload):
         self.name = name
-        self.content_type = type
+        self.content_type = content_type
         self.payload = payload
+        self.token = None
 
     def upload(self, client, user_id):
         self.token = client.upload_file(user_id, self.payload, self.name, self.content_type)
@@ -41,6 +44,7 @@ class Attachment():
 
 
 class Message():
+    """email message"""
     def __init__(self, from_addr:str, subject:str):
         self.from_address = from_addr
         self.subject = subject
@@ -53,32 +57,35 @@ class Message():
 
     def add_attachment(self, attachment:Attachment):
         self.attachments.append(attachment)
-        
+
     def subject_cleaned(self) -> str:
         # strip any re: and forwarded from a subject line
         # from: https://stackoverflow.com/questions/9153629/regex-code-for-removing-fwd-re-etc-from-email-subject
         p = re.compile(r'^([\[\(] *)?(RE?S?|FYI|RIF|I|FS|VB|RV|ENC|ODP|PD|YNT|ILT|SV|VS|VL|AW|WG|ΑΠ|ΣΧΕΤ|ΠΡΘ|תגובה|הועבר|主题|转发|FWD?) *([-:;)\]][ :;\])-]*|$)|\]+ *$', re.IGNORECASE)
         return p.sub('', self.subject).strip()
-        
+
     def __str__(self):
-        return f"from:{self.from_address}, subject:{self.subject}, attached:{len(self.attachments)}; {self.note[0:20]}" 
+        return f"from:{self.from_address}, subject:{self.subject}, attached:{len(self.attachments)}; {self.note[0:20]}"
 
 
 # from https://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
 class MLStripper(HTMLParser):
+    """strip HTML from a string"""
     def __init__(self):
         super().__init__()
         self.reset()
         self.strict = False
         self.convert_charrefs= True
         self.text = StringIO()
-    def handle_data(self, d):
-        self.text.write(d + '\n') # force a newline
+    def handle_data(self, data):
+        self.text.write(data + '\n') # force a newline
     def get_data(self):
         return self.text.getvalue()
 
 
 class Client(): ## imap.Client()
+    """IMAP Client"""
+
     def __init__(self):
         self.host = os.getenv('IMAP_HOST')
         self.user = os.getenv('IMAP_USER')
@@ -109,7 +116,7 @@ class Client(): ## imap.Client()
     def parse_message(self, data):
         # NOTE this policy setting is important, default is "compat-mode" amd we need "default"
         root = email.message_from_bytes(data, policy=email.policy.default)
-        
+
         from_address = root.get("From")
         subject = root.get("Subject")
         message = Message(from_address, subject)
@@ -119,13 +126,13 @@ class Client(): ## imap.Client()
             content_type = part.get_content_type()
             if part.is_attachment():
                 message.add_attachment( Attachment(
-                    name=part.get_filename(), 
-                    type=content_type,
+                    name=part.get_filename(),
+                    content_type=content_type,
                     payload=part.get_payload(decode=True)))
                 log.debug(f"Added attachment: {part.get_filename()} {content_type}")
             elif content_type == 'text/plain': # FIXME std const?
                 payload = part.get_payload(decode=True).decode('UTF-8')
-                
+
         # http://10.10.0.218/issues/208
         if payload == "":
             payload = root.get_body().get_content()
@@ -138,7 +145,7 @@ class Client(): ## imap.Client()
         payload = self.strip_forwards(payload)
         message.set_note(payload)
         log.debug(f"Setting note: {payload}")
-        
+
         return message
 
     def strip_html_tags(self, text:str) -> str:
@@ -166,13 +173,13 @@ class Client(): ## imap.Client()
         idx = text.find(forward_tag)
         if idx > -1:
             text = text[0:idx]
-            
+
         # search for "On ... wrote:"
         p = re.compile(r"^On .* <.*>\s+wrote:", flags=re.MULTILINE)
         match = p.search(text)
         if match:
             text = text[0:match.start()]
-            
+
         # TODO search for --
 
         # look for google content, as in http://10.10.0.218/issues/323
@@ -183,7 +190,7 @@ class Client(): ## imap.Client()
             for skip_str in self.skip_strs:
                 if line.startswith(skip_str):
                     skip = True
-                    break;
+                    break
             if skip:
                 log.debug(f"skipping {line}")
             else:
@@ -207,15 +214,15 @@ class Client(): ## imap.Client()
             # more than expected
             log.warning(f"subject query returned {len(tickets)} results, using first: {subject}")
             ticket = tickets[0]
-                    
-        # next, find ticket using the subject, if possible           
+
+        # next, find ticket using the subject, if possible
         if ticket is None:
             # this uses a simple REGEX '#\d+' to match ticket numbers
             ticket = self.redmine.find_ticket_from_str(subject)
 
         # get user id from from_address
         user = self.redmine.find_user(addr)
-        if user == None:
+        if user is None:
             log.debug(f"Unknown email address, no user found: {addr}, {message.from_address}")
             # create new user
             user = self.redmine.create_user(addr, first, last)
@@ -245,7 +252,7 @@ class Client(): ## imap.Client()
                 server.login(self.user, self.passwd)
                 #server.oauthbearer_login(self.user, self.passwd)
                 #server.oauth2_login(self.user, self.passwd)
-                
+
                 server.select_folder("INBOX", readonly=False)
                 log.info(f'logged into imap {self.host}')
 
@@ -272,7 +279,7 @@ class Client(): ## imap.Client()
                         with open(f"message-err-{uid}.eml", "wb") as file:
                             file.write(data)
                         server.add_flags(uid, [SEEN])
-                        
+
                 log.info(f"done. processed {len(messages)} messages")
         except Exception as ex:
             log.error(f"caught exception syncing IMAP: {ex}")
@@ -283,9 +290,8 @@ class Client(): ## imap.Client()
 if __name__ == '__main__':
     log.info('initializing IMAP threader')
 
-    # load credentials 
+    # load credentials
     load_dotenv()
 
     # construct the client and run the email check
     Client().synchronize()
-
