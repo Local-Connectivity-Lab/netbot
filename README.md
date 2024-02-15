@@ -44,7 +44,7 @@ To enable netbot on your Discord server, you need to generate a valid `DISCORD_T
 4. In the OAuth2/URL Generator section, generate a URL for a **bot** with **Administrator** permissions.
 5. That URL will look something like:
     https://discord.com/api/oauth2/authorize?client_id=[client-id]&permissions=8&scope=bot
-6. Open a browser with that URL and and login.
+6. Open a browser with that URL and login.
 7. You'll be presented with a window to add your bot to any server you have admin permissions for.
 8. Select your server and click OK.
 4. Back in the bot setup, in the "Bot" section, under "Build-A-Bot", **Copy** the Token. This is the DISCORD_TOKEN

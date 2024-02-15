@@ -1,25 +1,20 @@
 #!/usr/bin/env python3
 
-import os
-import re
+"""encapsulate Discord ticket functions"""
+
 import logging
-import datetime as dt
 
 import discord
-import redmine
 
 from discord.commands import option
-from discord.commands import SlashCommandGroup
-
-from dotenv import load_dotenv
-
 from discord.ext import commands
+
 
 log = logging.getLogger(__name__)
 
 # scn add redmine_login - setup discord userid in redmine
-# scn sync - manually sychs the current thread, or replies with warning 
-# scn sync 
+# scn sync - manually sychs the current thread, or replies with warning
+# scn sync
 
 # scn join teamname - discord user joins team teamname (and maps user id)
 # scn leave teamname - discord user leaves team teamname (and maps user id)
@@ -28,11 +23,11 @@ log = logging.getLogger(__name__)
 
 def setup(bot):
     bot.add_cog(TicketsCog(bot))
-    log.info(f"initialized tickets cog")
-
+    log.info("initialized tickets cog")
 
 
 class TicketsCog(commands.Cog):
+    """encapsulate Discord ticket functions"""
     def __init__(self, bot):
         self.bot = bot
         self.redmine = bot.redmine
@@ -52,8 +47,8 @@ class TicketsCog(commands.Cog):
     def resolve_query_term(self, term):
         # special cases: ticket num and team name
         try:
-            id = int(term)
-            ticket = self.redmine.get_ticket(id)
+            int_id = int(term)
+            ticket = self.redmine.get_ticket(int_id)
             return [ticket]
         except ValueError:
             # not a numeric id, check team
@@ -62,7 +57,7 @@ class TicketsCog(commands.Cog):
             else:
                 # assume a search term
                 return self.redmine.search_tickets(term)
-            
+
     @commands.slash_command()     # guild_ids=[...] # Create a slash command for the supplied guilds.
     async def tickets(self, ctx: discord.ApplicationContext, params: str = ""):
         """List tickets for you, or filtered by parameter"""
@@ -82,7 +77,7 @@ class TicketsCog(commands.Cog):
             await self.print_tickets(self.redmine.my_tickets(user.login), ctx)
         elif len(args) == 1:
             await self.print_tickets(self.resolve_query_term(args[0]), ctx)
-            
+
 
     @commands.slash_command()
     async def ticket(self, ctx: discord.ApplicationContext, ticket_id:int, action:str="show"):
@@ -105,7 +100,7 @@ class TicketsCog(commands.Cog):
                     if ticket:
                         await ctx.respond(self.format_ticket(ticket)[:2000]) #trunc
                     else:
-                        await ctx.respond(f"Ticket {ticket_id} not found.")                
+                        await ctx.respond(f"Ticket {ticket_id} not found.")
                 case "unassign":
                     self.redmine.unassign_ticket(ticket_id, user.login)
                     await self.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
@@ -124,12 +119,11 @@ class TicketsCog(commands.Cog):
                 case _:
                     await ctx.respond("unknown command: {action}")
         except Exception as e:
-            msg = f"Error {action} {ticket_id}: {e}"
-            log.error(msg)
-            await ctx.respond(msg)
+            log.exception(e)
+            await ctx.respond(f"Error {action} {ticket_id}: {e}")
 
 
-    @commands.slash_command(name="new", description="Create a new ticket") 
+    @commands.slash_command(name="new", description="Create a new ticket")
     @option("title", description="Title of the new SCN ticket")
     @option("add_thread", description="Create a Discord thread for the new ticket", default=False)
     async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str):
@@ -137,27 +131,27 @@ class TicketsCog(commands.Cog):
         if user is None:
             await ctx.respond(f"Unknown user: {ctx.user.name}")
             return
-        
+
         # text templating
         text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
         ticket = self.redmine.create_ticket(user, title, text)
         if ticket:
             await ctx.respond(self.format_ticket(ticket)[:2000]) #trunc
-        # error handling? exception? 
+        # error handling? exception?
         else:
             await ctx.respond(f"error creating ticket with title={title}")
 
 
     async def create_thread(self, ticket, ctx):
         log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
-        name = f"Ticket #{ticket.id}"
+        name = f"Ticket #{ticket.id}: {ticket.subject}"
         msg_txt = f"Syncing ticket {self.redmine.get_field(ticket, 'url')} to new thread '{name}'"
         message = await ctx.send(msg_txt)
         thread = await message.create_thread(name=name)
         return thread
-        
 
-    @commands.slash_command(description="Create a Discord thread for the specified ticket") 
+
+    @commands.slash_command(name="thread", description="Create a Discord thread for the specified ticket")
     @option("ticket_id", description="ID of tick to create thread for")
     async def thread_ticket(self, ctx: discord.ApplicationContext, ticket_id:int):
         ticket = self.redmine.get_ticket(ticket_id)
@@ -171,27 +165,16 @@ class TicketsCog(commands.Cog):
             user = self.redmine.find_discord_user(ctx.user.name)
             self.redmine.enable_discord_sync(ticket.id, user, note)
 
-            # REFACTOR: We know the thread has just been created, just get messages-since in redmine.
-            #notes = self.redmine.get_notes_since(ticket.id, None) # None since date for all.
-            #log.info(f"syncing {len(notes)} notes from {ticket.id} --> {thread.name}")
-
-            # NOTE: There doesn't seem to be a method for acting as a specific user, 
-            # so adding user and date to the sync note.
-            #for note in notes:
-            #    msg = f"> **{note.user.name}** at *{note.created_on}*\n> {note.notes}\n\n"
-            #    await thread.send(msg)
-
-            # TODO format command for single ticket
-            await ctx.send(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
+            await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") # todo add some fancy formatting
-            
+
 
     ### formatting ###
 
     async def print_tickets(self, tickets, ctx):
         msg = self.format_tickets(tickets)
-        
+
         if len(msg) > 2000:
             log.warning("message over 2000 chars. truncing.")
             msg = msg[:2000]
@@ -199,23 +182,29 @@ class TicketsCog(commands.Cog):
 
     async def print_ticket(self, ticket, ctx):
         msg = self.format_ticket(ticket)
-        
+
         if len(msg) > 2000:
             log.warning("message over 2000 chars. truncing.")
             msg = msg[:2000]
         await ctx.respond(msg)
 
-    def format_tickets(self, tickets, fields=["link","priority","updated","assigned","subject"]):
+    def format_tickets(self, tickets, fields=None):
         if tickets is None:
             return "No tickets found."
-        
+
+        if fields is None:
+            fields = ["link","priority","updated","assigned","subject"]
+
         section = ""
         for ticket in tickets:
             section += self.format_ticket(ticket, fields) + "\n" # append each ticket
         return section.strip()
 
-    def format_ticket(self, ticket, fields=["link","priority","updated","assigned","subject"]):
+    def format_ticket(self, ticket, fields=None):
         section = ""
+        if fields is None:
+            fields = ["link","priority","updated","assigned","subject"]
+
         for field in fields:
             section += self.redmine.get_field(ticket, field) + " " # spacer, one space
         return section.strip() # remove trailing whitespace

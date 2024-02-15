@@ -1,15 +1,18 @@
 #test utils
+"""Utilities to help testing"""
 
 import time
 import logging
 import unittest
+from unittest import mock
+
 import discord
 from discord import ApplicationContext
-from unittest import mock
 from redmine import Client
-from netbot import NetBot
+
 
 log = logging.getLogger(__name__)
+
 
 # from https://github.com/tonyseek/python-base36/blob/master/base36.py
 def dumps(num:int)-> str:
@@ -35,29 +38,30 @@ def tagstr() -> str:
     return dumps(int(time.time()))
 
 def create_test_user(redmine:Client, tag:str):
-    # create new test user name: test-12345@example.com, login test-12345        
+    # create new test user name: test-12345@example.com, login test-12345
     first = "test-" + tag
     last = "Testy"
     #fullname = f"{first} {last}" ### <--
     email = first + "@example.com"
-    
+
     # create new redmine user, using redmine api
     user = redmine.create_user(email, first, last)
-    
-    # create temp discord mapping with redmine api, assert 
+
+    # create temp discord mapping with redmine api, assert
     discord_user = "discord-" + tag ### <--
     redmine.create_discord_mapping(user.login, discord_user)
-    
+
     # reindex users and lookup based on login
     redmine.reindex_users()
     return redmine.find_user(user.login)
 
 
 class BotTestCase(unittest.IsolatedAsyncioTestCase):
+    """Abstract base class for testing Bot features"""
     redmine = None
     usertag = None
     user = None
-    
+
     @classmethod
     def setUpClass(cls):
         log.info("Setting up test fixtures")
@@ -71,25 +75,25 @@ class BotTestCase(unittest.IsolatedAsyncioTestCase):
     def tearDownClass(cls):
         log.info(f"Tearing down test fixtures: {cls.user}")
         cls.redmine.remove_user(cls.user.id)
-    
-    
+
+
     def build_context(self) -> ApplicationContext:
         ctx = mock.AsyncMock(ApplicationContext)
         ctx.user = mock.AsyncMock(discord.Member)
         ctx.user.name = self.discord_user
         log.debug(f"created ctx with {self.discord_user}: {ctx}")
         return ctx
-    
-    
+
+
     def setUp(self):
         self.tag = self.__class__.usertag # TODO just rename usertag to tag - represents the suite run
         self.assertIsNotNone(self.tag)
         self.assertIsNotNone(self.user)
-        
-        self.fullName = self.user.firstname + " " +  self.user.lastname
+
+        self.full_name = self.user.firstname + " " +  self.user.lastname
         self.discord_user = self.redmine.get_discord_id(self.user)
 
         self.assertIsNotNone(self.redmine.find_user(self.user.login))
         self.assertIsNotNone(self.redmine.find_user(self.discord_user))
-        
+
         log.debug(f"setUp user {self.user.login} {self.discord_user}")
