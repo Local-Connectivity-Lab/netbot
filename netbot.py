@@ -89,10 +89,20 @@ class NetBot(commands.Bot):
         return notes
 
 
-    def format_redmine_note(self, message: discord.Message):
+    def append_redmine_note(self, ticket, message: discord.Message) -> None:
         """Format a discord message for redmine"""
         # redmine link format: "Link Text":http://whatever
-        return f'"Discord":{message.jump_url}: {message.content}' # NOTE: message.clean_content
+
+        # check user mapping exists
+        user = self.redmine.find_discord_user(message.author.name)
+        if user:
+            # format the note
+            formatted = f'"Discord":{message.jump_url}: {message.content}'
+            self.redmine.append_message(ticket.id, user.login, formatted)
+        else:
+            log.debug(f"SYNC unknown Discord user: {message.author.name}")
+            formatted = f'"Discord":{message.jump_url} {message.author.name}: {message.content}'
+            self.redmine.append_message(ticket.id, "admin", formatted) # admin user?
 
 
     async def synchronize_ticket(self, ticket, thread:discord.Thread) -> bool:
@@ -134,17 +144,9 @@ class NetBot(commands.Bot):
             # get the new notes from discord
             discord_notes = await self.gather_discord_notes(thread, sync_rec)
             for message in discord_notes:
-                # make sure a user mapping exists
-                user = self.redmine.find_discord_user(message.author.name)
-                if user:
-                    # format and write the note
-                    dirty_flag = True
-                    log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
-                    formatted = self.format_redmine_note(message)
-                    self.redmine.append_message(ticket.id, user.login, formatted)
-                else:
-                    # FIXME
-                    log.info(f"SYNC unknown Discord user: {message.author.name}, skipping")
+                dirty_flag = True
+                self.append_redmine_note(ticket, message)
+
             log.debug(f"synced {len(discord_notes)} notes from {thread} -> #{ticket.id}")
 
             # update the SYNC timestamp
