@@ -7,6 +7,8 @@ import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands, tasks
 
+from netbot import NetbotException
+
 
 log = logging.getLogger(__name__)
 
@@ -58,11 +60,13 @@ class SCNCog(commands.Cog):
         ticket_id = self.bot.parse_thread_title(thread.name)
         ticket = self.redmine.get_ticket(ticket_id, include_journals=True)
         if ticket:
-            await self.bot.synchronize_ticket(ticket, thread)
-            return ticket
-        else:
-            return None
+            completed = await self.bot.synchronize_ticket(ticket, thread)
+            if completed:
+                return ticket
+            else:
+                raise NetbotException(f"Ticket {ticket.id} is locked for syncronization.")
 
+        return None
 
 
     @tasks.loop(minutes=1.0) # FIXME to 5.0 minutes. set to 1 min for testing

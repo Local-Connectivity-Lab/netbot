@@ -82,16 +82,21 @@ class TestSCNCog(test_utils.BotTestCase):
 
 
     async def test_thread_sync(self):
-        test_ticket = 218
+        subject = f"Test Sync Ticket {self.tag}"
+        text = f"This is a test sync ticket tagged with {self.tag}."
+        ticket = self.redmine.create_ticket(self.user, subject, text)
 
         ctx = self.build_context()
         ctx.channel = unittest.mock.AsyncMock(discord.Thread)
-        ctx.channel.name = f"Ticket #{test_ticket}"
+        ctx.channel.name = f"Ticket #{ticket.id}"
         #ctx.channel.id = 4321
 
         await self.cog.sync(ctx)
-        ctx.respond.assert_called_with(f"SYNC ticket {test_ticket} to thread: {ctx.channel.name} complete")
+        ctx.respond.assert_called_with(f"SYNC ticket {ticket.id} to thread: {ctx.channel.name} complete")
         # check for actual changes! updated timestamp!
+
+        # cleanup
+        self.redmine.remove_ticket(ticket.id)
 
 
 if __name__ == '__main__':

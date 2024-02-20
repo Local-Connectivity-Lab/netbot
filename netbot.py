@@ -15,6 +15,9 @@ import redmine
 
 log = logging.getLogger(__name__)
 
+class NetbotException(Exception):
+    """netbot exception"""
+
 
 class NetBot(commands.Bot):
     """netbot"""
@@ -92,9 +95,10 @@ class NetBot(commands.Bot):
         return f'"Discord":{message.jump_url}: {message.content}' # NOTE: message.clean_content
 
 
-    async def synchronize_ticket(self, ticket, thread:discord.Thread):
+    async def synchronize_ticket(self, ticket, thread:discord.Thread) -> bool:
         """
         Synchronize a ticket to a thread
+        returns True after a sucessful sync or if there are no changes, false if a sync is in progress.
         """
         # as this is an async method call, and we don't want to lock bot-level event processing,
         # we need to create a per-ticket lock to make sure the same
@@ -107,7 +111,7 @@ class NetBot(commands.Bot):
         async with self.lock:
             if ticket.id in self.ticket_locks:
                 log.debug(f"ticket #{ticket.id} locked, skipping")
-                return
+                return False # locked
             else:
                 # create lock flag
                 self.ticket_locks[ticket.id] = True
@@ -153,8 +157,10 @@ class NetBot(commands.Bot):
             del self.ticket_locks[ticket.id]
 
             log.info(f"DONE sync {ticket.id} <-> {thread.name}, took {synctime.age_str(sync_start)}")
+            return True # processed as expected
         else:
             log.debug(f"empty sync_rec for channel={thread.id}, assuming mismatch and skipping")
+            return False # not found
 
 
     async def on_application_command_error(self, context: discord.ApplicationContext,
