@@ -52,6 +52,21 @@ class NetBot(commands.Bot):
     #    log.info(f"Logged in as {self.user} (ID: {self.user.id})")
     #    log.debug(f"bot: {self}, guilds: {self.guilds}")
 
+    async def on_message(self, message:discord.Message):
+        if message.author.id != self.user.id:
+            # not the bot user
+            if isinstance(message.channel, discord.Thread):
+                # IS a thread, check the name
+                ticket_id = self.parse_thread_title(message.channel.name)
+                if ticket_id > 0:
+                    user = self.redmine.find_discord_user(message.author.name)
+                    if user:
+                        log.debug(f"known user commenting on ticket #{ticket_id}: redmine={user.login}, discord={message.author.name}")
+                    else:
+                        # ticket 480 - notify the user that they can add themselves to redmine
+                        log.info(f"Unknown discord user, {message.author.name}, commenting on ticket #{ticket_id}")
+                        await message.reply(f"User {message.author.name} not mapped to redmine. Use `/scn add` to create the mapping.")
+
 
     def parse_thread_title(self, title: str) -> int:
         """parse the thread title to get the ticket number"""
@@ -102,7 +117,8 @@ class NetBot(commands.Bot):
         else:
             log.debug(f"SYNC unknown Discord user: {message.author.name}")
             formatted = f'"Discord":{message.jump_url} {message.author.name}: {message.content}'
-            self.redmine.append_message(ticket.id, "admin", formatted) # admin user?
+            # force user_login to None to use default user based on token (the admin)
+            self.redmine.append_message(ticket.id, user_login=None, note=formatted)
 
 
     async def synchronize_ticket(self, ticket, thread:discord.Thread) -> bool:
