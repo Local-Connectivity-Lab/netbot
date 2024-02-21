@@ -276,6 +276,10 @@ class Client(): ## redmine.Client()
     #GET /issues.xml?issue_id=1,2
     def get_tickets(self, ticket_ids):
         """get several tickets based on a list of IDs"""
+        if ticket_ids is None or len(ticket_ids) == 0:
+            log.debug("No ticket numbers supplied to get_tickets.")
+            return []
+
         response = self.query(f"/issues.json?issue_id={','.join(ticket_ids)}&sort={DEFAULT_SORT}")
         if response is not None and response.total_count > 0:
             return response.issues
@@ -456,11 +460,15 @@ class Client(): ## redmine.Client()
 
         response = self.query(query)
 
-        ids = []
-        for result in response.results:
-            ids.append(str(result.id))
+        if response:
+            ids = []
+            for result in response.results:
+                ids.append(str(result.id))
 
-        return self.get_tickets(ids)
+            return self.get_tickets(ids)
+        else:
+            log.debug(f"subject matched nothing: {subject}")
+            return []
 
     # get the
     def get_notes_since(self, ticket_id, timestamp=None):

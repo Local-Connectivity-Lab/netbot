@@ -113,6 +113,17 @@ class Client(): ## imap.Client()
         return first, last, addr
 
 
+    def is_html_doc(self, payload: str) -> bool:
+        # check the first few chars to see if they contain any HTML tags
+        tags = [ "<html>", "<!doctype html>" ]
+        head = payload[:20].strip().lower()
+        for tag in tags:
+            if head.startswith(tag):
+                return True
+        # no html tag found
+        return False
+
+
     def parse_message(self, data):
         # NOTE this policy setting is important, default is "compat-mode" amd we need "default"
         root = email.message_from_bytes(data, policy=email.policy.default)
@@ -137,7 +148,7 @@ class Client(): ## imap.Client()
         if payload == "":
             payload = root.get_body().get_content()
             # search for HTML
-            if payload.startswith("<html>") or payload.startswith("<HTML>"):
+            if self.is_html_doc(payload):
                 # strip HTML
                 payload = self.strip_html_tags(payload)
                 log.debug(f"HTML payload after: {payload}")
