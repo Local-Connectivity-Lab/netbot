@@ -88,6 +88,8 @@ class SCNCog(commands.Cog):
                 # no user exists for that login
                 modal = NewUserModal(self.redmine, title="Create new user in Redmine")
                 await ctx.send_modal(modal)
+            # reindex users after changes
+            self.redmine.reindex_users()
 
 
     async def sync_thread(self, thread:discord.Thread):
