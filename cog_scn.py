@@ -8,6 +8,7 @@ from discord.commands import SlashCommandGroup
 from discord.ext import commands, tasks
 
 from netbot import NetbotException
+from redmine import Client
 
 
 log = logging.getLogger(__name__)
@@ -25,11 +26,41 @@ def setup(bot):
     bot.add_cog(SCNCog(bot))
     log.info("initialized SCN cog")
 
+class NewUserModal(discord.ui.Modal):
+    """modal dialog to collect new user info"""
+    def __init__(self, redmine: Client, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.redmine = redmine
+        self.add_item(discord.ui.InputText(label="First Name"))
+        self.add_item(discord.ui.InputText(label="Last Name"))
+        self.add_item(discord.ui.InputText(label="Email"))
+
+    async def callback(self, interaction: discord.Interaction):
+        email = self.children[2].value
+        first = self.children[0].value
+        last = self.children[1].value
+
+        log.debug(f"new user callback: email={email}, first={first}, last={last}")
+
+        embed = discord.Embed(title="Created User")
+        embed.add_field(name="First", value=first)
+        embed.add_field(name="Last", value=last)
+        embed.add_field(name="Email", value=email)
+
+        user = self.redmine.create_user(email, first, last)
+
+        if user is None:
+            log.error(f"Unable to create user from {first}, {last}, {email}, {interaction.user.name}")
+        else:
+            self.redmine.create_discord_mapping(user.login, interaction.user.name)
+            await interaction.response.send_message(embeds=[embed])
+
+
 class SCNCog(commands.Cog):
     """Cog to mange SCN-related functions"""
     def __init__(self, bot):
         self.bot = bot
-        self.redmine = bot.redmine
+        self.redmine: Client = bot.redmine
         self.sync_all_threads.start() # pylint: disable=no-member
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
@@ -49,8 +80,14 @@ class SCNCog(commands.Cog):
         if user:
             await ctx.respond(f"Discord user: {discord_name} is already configured as redmine user: {user.login}")
         else:
-            self.redmine.create_discord_mapping(redmine_login, discord_name)
-            await ctx.respond(f"Discord user: {discord_name} has been paired with redmine user: {redmine_login}")
+            user = self.redmine.find_user(redmine_login)
+            if user:
+                self.redmine.create_discord_mapping(redmine_login, discord_name)
+                await ctx.respond(f"Discord user: {discord_name} has been paired with redmine user: {redmine_login}")
+            else:
+                # no user exists for that login
+                modal = NewUserModal(self.redmine, title="Create new user in Redmine")
+                await ctx.send_modal(modal)
 
 
     async def sync_thread(self, thread:discord.Thread):

@@ -115,8 +115,9 @@ class NetBot(commands.Bot):
             formatted = f'"Discord":{message.jump_url}: {message.content}'
             self.redmine.append_message(ticket.id, user.login, formatted)
         else:
+            # no user mapping
             log.debug(f"SYNC unknown Discord user: {message.author.name}")
-            formatted = f'"Discord":{message.jump_url} {message.author.name}: {message.content}'
+            formatted = f'"Discord":{message.jump_url} user *{message.author.name}* said: {message.content}'
             # force user_login to None to use default user based on token (the admin)
             self.redmine.append_message(ticket.id, user_login=None, note=formatted)
 
@@ -210,7 +211,7 @@ def main():
 
 def setup_logging():
     """set up logging for netbot"""
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
                         format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
     logging.getLogger("discord.http").setLevel(logging.WARNING)
