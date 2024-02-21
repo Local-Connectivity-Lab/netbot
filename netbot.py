@@ -52,6 +52,21 @@ class NetBot(commands.Bot):
     #    log.info(f"Logged in as {self.user} (ID: {self.user.id})")
     #    log.debug(f"bot: {self}, guilds: {self.guilds}")
 
+    async def on_message(self, message:discord.Message):
+        if message.author.id != self.user.id:
+            # not the bot user
+            if isinstance(message.channel, discord.Thread):
+                # IS a thread, check the name
+                ticket_id = self.parse_thread_title(message.channel.name)
+                if ticket_id > 0:
+                    user = self.redmine.find_discord_user(message.author.name)
+                    if user:
+                        log.debug(f"known user commenting on ticket #{ticket_id}: redmine={user.login}, discord={message.author.name}")
+                    else:
+                        # ticket 480 - notify the user that they can add themselves to redmine
+                        log.info(f"Unknown discord user, {message.author.name}, commenting on ticket #{ticket_id}")
+                        await message.reply(f"User {message.author.name} not mapped to redmine. Use `/scn add` to create the mapping.")
+
 
     def parse_thread_title(self, title: str) -> int:
         """parse the thread title to get the ticket number"""
@@ -89,10 +104,22 @@ class NetBot(commands.Bot):
         return notes
 
 
-    def format_redmine_note(self, message: discord.Message):
+    def append_redmine_note(self, ticket, message: discord.Message) -> None:
         """Format a discord message for redmine"""
         # redmine link format: "Link Text":http://whatever
-        return f'"Discord":{message.jump_url}: {message.content}' # NOTE: message.clean_content
+
+        # check user mapping exists
+        user = self.redmine.find_discord_user(message.author.name)
+        if user:
+            # format the note
+            formatted = f'"Discord":{message.jump_url}: {message.content}'
+            self.redmine.append_message(ticket.id, user.login, formatted)
+        else:
+            # no user mapping
+            log.debug(f"SYNC unknown Discord user: {message.author.name}")
+            formatted = f'"Discord":{message.jump_url} user *{message.author.name}* said: {message.content}'
+            # force user_login to None to use default user based on token (the admin)
+            self.redmine.append_message(ticket.id, user_login=None, note=formatted)
 
 
     async def synchronize_ticket(self, ticket, thread:discord.Thread) -> bool:
@@ -134,17 +161,9 @@ class NetBot(commands.Bot):
             # get the new notes from discord
             discord_notes = await self.gather_discord_notes(thread, sync_rec)
             for message in discord_notes:
-                # make sure a user mapping exists
-                user = self.redmine.find_discord_user(message.author.name)
-                if user:
-                    # format and write the note
-                    dirty_flag = True
-                    log.debug(f"SYNC: ticket={ticket.id}, user={user.login}, msg={message.content}")
-                    formatted = self.format_redmine_note(message)
-                    self.redmine.append_message(ticket.id, user.login, formatted)
-                else:
-                    # FIXME
-                    log.info(f"SYNC unknown Discord user: {message.author.name}, skipping")
+                dirty_flag = True
+                self.append_redmine_note(ticket, message)
+
             log.debug(f"synced {len(discord_notes)} notes from {thread} -> #{ticket.id}")
 
             # update the SYNC timestamp
@@ -192,7 +211,7 @@ def main():
 
 def setup_logging():
     """set up logging for netbot"""
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
                         format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
     logging.getLogger("discord.http").setLevel(logging.WARNING)

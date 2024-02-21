@@ -502,6 +502,7 @@ class Client(): ## redmine.Client()
             ]
         }
         self.update_user(user, fields)
+        # TODO rebuild user index automatically?
 
 
     def join_team(self, username, teamname:str):
