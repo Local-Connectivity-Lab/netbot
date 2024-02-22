@@ -60,13 +60,22 @@ class TestMessages(unittest.TestCase):
     def test_upload(self):
         with open("test/message-161.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
-            #print(message)
             self.redmine.upload_attachments("philion", message.attachments)
+
+
+    def test_doctype_head(self):
+        # NOTING for future: This doc shows a need for much better HTML stripping, but I'm not
+        # rewriting that this afternoon, this tests the fix for the actual bug (ignoring DOCTYPE)
+        with open("test/message-doctype.eml", 'rb') as file:
+            message = self.imap.parse_message(file.read())
+            #log.info(f"### message: {message}")
+            self.assertFalse(message.note.startswith("<!doctype html>"))
+
 
     def test_more_recent_ticket(self):
         ticket = self.redmine.most_recent_ticket_for("philion")
         self.assertIsNotNone(ticket)
-        #print(ticket)
+
 
     def test_email_address_parsing2(self):
         addr = 'philion <philion@gmail.com>'
@@ -109,6 +118,7 @@ class TestMessages(unittest.TestCase):
         self.redmine.reindex_users()
         self.assertIsNone(self.redmine.find_user(test_email))
 
+
     def test_subject_search(self):
         # create a new ticket with unique subject
         tag = test_utils.tagstr()
@@ -120,6 +130,8 @@ class TestMessages(unittest.TestCase):
 
         # search for the ticket
         tickets = self.redmine.match_subject(subject)
+        for check in tickets:
+            log.debug(f"### tickets: {check.subject}")
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
         self.assertEqual(ticket.id, tickets[0].id)
