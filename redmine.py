@@ -441,9 +441,10 @@ class Client(): ## redmine.Client()
             return None
 
     def search_tickets(self, term):
+        """search all text of all tickets (not just open) for the supplied terms"""
         # todo url-encode term?
         # note: sort doesn't seem to be working for search
-        query = f"/search.json?q={term}&titles_only=1&open_issues=1&limit=100"
+        query = f"/search.json?q={term}&issues=1&limit=100&sort={DEFAULT_SORT}"
 
         response = self.query(query)
 
