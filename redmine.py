@@ -224,6 +224,7 @@ class Client(): ## redmine.Client()
             token = self.upload_file(user_id, a.payload, a.name, a.content_type)
             a.set_token(token)
 
+
     def find_team(self, name):
         """find a team by name"""
         response = self.query("/groups.json")
@@ -232,6 +233,31 @@ class Client(): ## redmine.Client()
                 return group
         # not found
         return None
+
+
+    def create_team(self, teamname:str):
+        if teamname is None or len(teamname.strip()) == 0:
+            raise RedmineException(f"Invalid team name: '{teamname}'", "n/a")
+
+        # POST to /groups.json
+        data = {
+            "group": {
+                "name": teamname,
+            }
+        }
+
+        response = requests.post(
+            url=f"{self.url}/groups.json",
+            data=json.dumps(data),
+            timeout=TIMEOUT,
+            headers=self.get_headers())
+
+        # check status
+        if response.ok:
+            log.info(f"OK create_team {teamname}")
+        else:
+            raise RedmineException(f"create_team {teamname} failed", response.headers['X-Request-Id'])
+
 
     def get_user(self, user_id:int):
         """get a user by ID"""
@@ -273,6 +299,12 @@ class Client(): ## redmine.Client()
 
 
     def block_user(self, user) -> None:
+        # check if the blocked team exists
+        blocked_team = self.find_team(BLOCKED_TEAM_NAME)
+        if blocked_team is None:
+            # create blocked team
+            self.create_team(BLOCKED_TEAM_NAME)
+
         self.join_team(user.login, BLOCKED_TEAM_NAME)
 
 
