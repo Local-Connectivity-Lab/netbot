@@ -145,6 +145,35 @@ class TestMessages(unittest.TestCase):
         self.redmine.remove_ticket(ticket.id)
 
 
+    def test_ticket_query(self):
+        # FIXME move to test_redmine.py
+
+        # create a ticket with the tag in the body, not the subject
+        tag = test_utils.tagstr()
+        user = self.redmine.find_user("admin")
+        self.assertIsNotNone(user)
+        body = f"Body with {self.id} and {tag}"
+        ticket = self.redmine.create_ticket(user, "Boring test ticket", body)
+        self.assertIsNotNone(ticket)
+
+        # search for the ticket
+        tickets = self.redmine.search_tickets(tag)
+
+        for check in tickets:
+            log.debug(f"### tickets: {check}")
+
+        self.assertIsNotNone(tickets)
+        self.assertEqual(1, len(tickets))
+        self.assertEqual(ticket.id, tickets[0].id)
+
+        tickets = self.redmine.search_tickets(self.id)
+        self.assertIsNotNone(tickets)
+        self.assertEqual(1, len(tickets))
+        self.assertEqual(ticket.id, tickets[0].id)
+
+        # clean up
+        self.redmine.remove_ticket(ticket.id)
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)

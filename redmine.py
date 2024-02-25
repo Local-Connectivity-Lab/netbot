@@ -280,7 +280,11 @@ class Client(): ## redmine.Client()
             log.debug("No ticket numbers supplied to get_tickets.")
             return []
 
-        response = self.query(f"/issues.json?issue_id={','.join(ticket_ids)}&sort={DEFAULT_SORT}")
+        tickets = ','.join(ticket_ids)
+        log.debug(f"ids: {tickets}")
+
+        response = self.query(f"/issues.json?issue_id={tickets}&status_id=*&sort={DEFAULT_SORT}")
+        log.debug(f"query response: {response}")
         if response is not None and response.total_count > 0:
             return response.issues
         else:
@@ -441,9 +445,10 @@ class Client(): ## redmine.Client()
             return None
 
     def search_tickets(self, term):
+        """search all text of all tickets (not just open) for the supplied terms"""
         # todo url-encode term?
         # note: sort doesn't seem to be working for search
-        query = f"/search.json?q={term}&titles_only=1&open_issues=1&limit=100"
+        query = f"/search.json?q={term}&issues=1&limit=100&sort={DEFAULT_SORT}"
 
         response = self.query(query)
 
