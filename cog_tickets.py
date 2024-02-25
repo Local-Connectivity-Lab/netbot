@@ -9,6 +9,8 @@ import discord
 from discord.commands import option
 from discord.ext import commands
 
+from redmine import Client
+
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +32,7 @@ class TicketsCog(commands.Cog):
     """encapsulate Discord ticket functions"""
     def __init__(self, bot):
         self.bot = bot
-        self.redmine = bot.redmine
+        self.redmine: Client = bot.redmine
         log.debug(f"Initialized with {self.redmine}")
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
@@ -74,9 +76,11 @@ class TicketsCog(commands.Cog):
         args = params.split()
 
         if len(args) == 0 or args[0] == "me":
-            await self.print_tickets(self.redmine.my_tickets(user.login), ctx)
+            await self.print_tickets("My Tickets", self.redmine.my_tickets(user.login), ctx)
         elif len(args) == 1:
-            await self.print_tickets(self.resolve_query_term(args[0]), ctx)
+            query = args[0]
+            results = self.resolve_query_term(query)
+            await self.print_tickets(f"Search for '{query}'", results, ctx)
 
 
     @commands.slash_command()
@@ -172,13 +176,14 @@ class TicketsCog(commands.Cog):
 
     ### formatting ###
 
-    async def print_tickets(self, tickets, ctx):
-        msg = self.format_tickets(tickets)
+    async def print_tickets(self, title, tickets, ctx):
+        msg = self.format_tickets(title, tickets)
 
         if len(msg) > 2000:
             log.warning("message over 2000 chars. truncing.")
             msg = msg[:2000]
         await ctx.respond(msg)
+
 
     async def print_ticket(self, ticket, ctx):
         msg = self.format_ticket(ticket)
@@ -188,17 +193,25 @@ class TicketsCog(commands.Cog):
             msg = msg[:2000]
         await ctx.respond(msg)
 
-    def format_tickets(self, tickets, fields=None):
+
+    def format_tickets(self, title, tickets, fields=None, max_len=2000):
         if tickets is None:
             return "No tickets found."
 
         if fields is None:
             fields = ["link","priority","updated","assigned","subject"]
 
-        section = ""
+        section = "**" + title + "**\n"
         for ticket in tickets:
-            section += self.format_ticket(ticket, fields) + "\n" # append each ticket
+            ticket_line = self.format_ticket(ticket, fields)
+            if len(section) + len(ticket_line) + 1 < max_len:
+                # make sure the lenght is less that the max
+                section += ticket_line + "\n" # append each ticket
+            else:
+                break # max_len hit
+
         return section.strip()
+
 
     def format_ticket(self, ticket, fields=None):
         section = ""

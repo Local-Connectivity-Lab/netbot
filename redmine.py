@@ -280,7 +280,11 @@ class Client(): ## redmine.Client()
             log.debug("No ticket numbers supplied to get_tickets.")
             return []
 
-        response = self.query(f"/issues.json?issue_id={','.join(ticket_ids)}&sort={DEFAULT_SORT}")
+        tickets = ','.join(ticket_ids)
+        log.debug(f"ids: {tickets}")
+
+        response = self.query(f"/issues.json?issue_id={tickets}&status_id=*&sort={DEFAULT_SORT}")
+        log.debug(f"query response: {response}")
         if response is not None and response.total_count > 0:
             return response.issues
         else:
