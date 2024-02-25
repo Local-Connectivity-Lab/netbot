@@ -15,9 +15,11 @@ import synctime
 
 log = logging.getLogger(__name__)
 
+
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
 TIMEOUT = 2 # seconds
 SYNC_FIELD_NAME = "syncdata"
+BLOCKED_TEAM_NAME = "blocked"
 
 
 class RedmineException(Exception):
@@ -45,11 +47,17 @@ class Client(): ## redmine.Client()
         self.groups = {}
         self.reindex()
 
+
     def create_ticket(self, user, subject, body, attachments=None):
         """create a redmine ticket"""
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
-        # tracker_id = 13 is test tracker.
-        # would need full param handling to pass that thru discord to get to this invocation....
+        # would need full param handling to pass that thru discord to get to this invocation
+        # this would be resolved by a Ticket class to emcapsulate.
+
+        # ticket 484 - http://10.10.0.218/issues/484
+        # validate user is not in blocked group
+        if self.is_user_blocked(user):
+            raise RedmineException(f"User {user.login} blocked", "[blocked]")
 
         data = {
             'issue': {
@@ -255,6 +263,22 @@ class Client(): ## redmine.Client()
             return self.user_ids[user_id]
         else:
             return None
+
+
+    def is_user_blocked(self, user) -> bool:
+        if self.is_user_in_team(user.login, BLOCKED_TEAM_NAME):
+            return True
+        else:
+            return False
+
+
+    def block_user(self, user) -> None:
+        self.join_team(user.login, BLOCKED_TEAM_NAME)
+
+
+    def unblock_user(self, user) -> None:
+        self.leave_team(user.login, BLOCKED_TEAM_NAME)
+
 
     def get_ticket(self, ticket_id:int, include_journals:bool = False):
         """get a ticket by ID"""
@@ -518,18 +542,16 @@ class Client(): ## redmine.Client()
         # TODO rebuild user index automatically?
 
 
-    def join_team(self, username, teamname:str):
+    def join_team(self, username, teamname:str) -> None:
         # look up user ID
         user = self.find_user(username)
         if user is None:
-            log.warning(f"Unknown user name: {username}")
-            return None
+            raise RedmineException(f"Unknown user name: {username}", "[n/a]")
 
         # map teamname to team
         team = self.find_team(teamname)
         if team is None:
-            log.warning(f"Unknown team name: {teamname}")
-            return None
+            raise RedmineException(f"Unknown team name: {teamname}", "[n/a]")
 
         # POST to /group/ID/users.json
         data = {
@@ -544,7 +566,7 @@ class Client(): ## redmine.Client()
 
         # check status
         if response.ok:
-            log.info(f"join_team {username}, {teamname}")
+            log.info(f"OK join_team {username}, {teamname}")
         else:
             raise RedmineException(f"join_team failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
 
