@@ -77,6 +77,7 @@ class Client(): ## redmine.Client()
         # check status
         if response.ok:
             root = json.loads(response.text, object_hook= lambda x: SimpleNamespace(**x))
+            log.debug(f"create ticket: status=[{response.status_code}] {response.reason} reqid={response.headers['X-Request-Id']}")
             return root.issue
         else:
             raise RedmineException(
@@ -738,6 +739,67 @@ class Client(): ## redmine.Client()
                 #        return None
         except AttributeError:
             return "" # or None?
+
+    def get_custom_fields(self, project_name:str) -> dict:
+        """get the custom fields in redmine"""
+        ticket_fields = {}
+        # http://<redmine-host>/custom_fields.json
+        response = self.query("/custom_fields.json")
+        if response:
+            log.debug(f"response: {response}")
+            for field in response.custom_fields:
+                ticket_fields[field.name] = field.id
+        else:
+            log.debug(f"empty response from custom field query for project={project_name}")
+        return ticket_fields
+
+    ### REMOVE
+    def get_custom_ticket_fields(self, project_name:str) -> dict:
+        """get the custom fields in redmine"""
+        ticket_fields = {}
+        # http://<redmine-host>/projects/scn.json?include=issue_custom_fields
+        response = self.query(f"/projects/{project_name}.json?include=issue_custom_fields")
+        if response:
+            log.debug(f"response: {response}")
+            for field in response.issue_custom_fields:
+                ticket_fields[field.name] = field.id
+        else:
+            log.debug(f"empty response from custom field query for project={project_name}")
+        return ticket_fields
+
+
+    def add_custom_field(self, name:str, customized_type="issue"):
+        """add a custom field to tickets in redmine, defaults to 'issue', could be 'user' """
+        # namespace(id=4, name='syncdata',
+        #     customized_type='issue',
+        #     field_format='string',
+        #     is_filter=True,
+        data = {
+            'custom_field': {
+                'name': name,
+                'customized_type': customized_type,
+                'field_format': 'string',
+                'is_filter': True,
+                'searchable': True,
+            }
+        }
+
+        user = self.find_user("admin")
+
+        r = requests.post(
+            url=f"{self.url}/custom_fields.json",
+            timeout=TIMEOUT,
+            data=json.dumps(data),
+            headers=self.get_headers(user.login))
+
+        # check status
+        if r.ok:
+            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
+            log.info(f"{root}")
+        else:
+            log.error(f"request: {vars(r.request)}")
+            raise RedmineException(f"create_ticket failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
+
 
     def get_discord_id(self, user):
         if user:
