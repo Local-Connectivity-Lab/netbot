@@ -37,7 +37,7 @@ An administrator can also use `/scn add` to add other Discord users to Redmine:
 
 This will behave as above, except that all operations will be performed as if by @member.
 
-### `scn teams` - List teams
+### `/scn teams` - List teams
 
 To list all the teams, and their members, configured on Redmine:
 ```
@@ -107,22 +107,22 @@ Should be the same as `/scn teams blocked`.
 The `/tickets` command is used to information about tickets in Redmine
 
 ### /tickets
-- My Tickets (default)
+- My tickets
 
 ### /tickets team
-- tickets assigned to team [team]
+- Tickets assigned to team [team]
 
 ### /tickets user
-- tickets assigned to a specific [user]
+- Tickets assigned to a specific [user]
 
 ### /tickets query-term
-- full text search for all tickets (open and closed) that match the query-term
+- Full text search for all tickets (open and closed) that match the query-term
 
 ### /ticket 42
-- (default) show ticket info for ticket 42
+- Show ticket info for ticket 42
 
 ### /ticket 42 details
-- show ticket 42 with all notes (in a decent format)
+- Show ticket 42 with all notes (in a decent format)
 
 ### /ticket 42 assign
 - Assign ticket 42 to yourself (the invoking user)
