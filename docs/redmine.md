@@ -14,7 +14,9 @@ The SCN email threader collects new IMAP email messages to publish to Redmine as
 `threader.sh` relies on the following environment settings:
 * `IMAP_HOST`: The IMAP server
 * `IMAP_USER`: The IMAP username
-* `IMAP_PASSWORD` : Password for the IMAP user.
+* `IMAP_PASSWORD`: Password for the IMAP user
+* `REDMINE_TOKEN`: Secure Redmine API token
+* `REDMINE_URL`: URL of Redmine service
 
 These values will be loaded from a `.env` file in the same directory as `threader.py`.
 
