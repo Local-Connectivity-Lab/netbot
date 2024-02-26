@@ -222,6 +222,18 @@ class SCNCog(commands.Cog):
             await ctx.respond(f"Unknown user: {username}")
 
 
+    @scn.command(description="unblock specific a email address")
+    async def unblock(self, ctx:discord.ApplicationContext, username:str):
+        log.debug(f"unblocking {username}")
+        user = self.redmine.find_user(username)
+        if user:
+            self.redmine.unblock_user(user)
+            await ctx.respond(f"Unblocked user: {user.login}")
+        else:
+            log.debug("trying to unblock unknown user '{username}', ignoring")
+            await ctx.respond(f"Unknown user: {username}")
+
+
     async def print_team(self, ctx, team):
         msg = f"> **{team.name}**\n"
         for user_rec in team.users:
