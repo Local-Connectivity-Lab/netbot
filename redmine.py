@@ -20,6 +20,8 @@ DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
 TIMEOUT = 2 # seconds
 SYNC_FIELD_NAME = "syncdata"
 BLOCKED_TEAM_NAME = "blocked"
+SCN_PROJECT_ID = 1  # could lookup scn in projects
+STATUS_REJECT = 5 # could to status lookup, based on "reject"
 
 
 class RedmineException(Exception):
@@ -54,14 +56,9 @@ class Client(): ## redmine.Client()
         # would need full param handling to pass that thru discord to get to this invocation
         # this would be resolved by a Ticket class to emcapsulate.
 
-        # ticket 484 - http://10.10.0.218/issues/484
-        # validate user is not in blocked group
-        if self.is_user_blocked(user):
-            raise RedmineException(f"User {user.login} blocked", "[blocked]")
-
         data = {
             'issue': {
-                'project_id': 1, #FIXME hard-coded project ID
+                'project_id': SCN_PROJECT_ID, #FIXME hard-coded project ID
                 'subject': subject,
                 'description': body,
             }
@@ -85,7 +82,16 @@ class Client(): ## redmine.Client()
         # check status
         if response.ok:
             root = json.loads(response.text, object_hook= lambda x: SimpleNamespace(**x))
-            return root.issue
+            ticket = root.issue
+
+            # ticket 484 - http://10.10.0.218/issues/484
+            # if the user is blocked, "reject" the new ticket
+            if self.is_user_blocked(user):
+                log.debug(f"Rejecting ticket #{ticket.id} based on blocked user {user.login}")
+                self.reject_ticket(ticket.id)
+                return self.get_ticket(ticket.id) # refresh the ticket?
+            else:
+                return ticket
         else:
             raise RedmineException(
                 f"create_ticket failed, status=[{response.status_code}] {response.reason}",
@@ -326,7 +332,7 @@ class Client(): ## redmine.Client()
         if response:
             return response.issue
         else:
-            log.warning(f"Unknown ticket number: {ticket_id}")
+            log.debug(f"Unknown ticket number: {ticket_id}")
             return None
 
     #GET /issues.xml?issue_id=1,2
@@ -415,8 +421,10 @@ class Client(): ## redmine.Client()
             headers=self.get_headers())
 
         # check status
-        if r.status_code != 204:
-            log.error(f"Error removing user status={r.status_code}, url={r.request.url}")
+        if r.ok:
+            log.info(f"deleted user {user_id}")
+        else:
+            log.error(f"Error removing user status={r.status_code}, url={r.request.url}, req_id={r.headers['X-Request-Id']}")
 
 
     def remove_ticket(self, ticket_id:int):
@@ -671,10 +679,17 @@ class Client(): ## redmine.Client()
 
 
     def progress_ticket(self, ticket_id, user_id=None): # TODO notes
-
         fields = {
             "assigned_to_id": "me",
             "status_id": "2", # "In Progress"
+        }
+        self.update_ticket(ticket_id, fields, user_id)
+
+
+    def reject_ticket(self, ticket_id, user_id=None): # TODO notes
+        fields = {
+            "assigned_to_id": "",
+            "status_id": "5", # "Reject"
         }
         self.update_ticket(ticket_id, fields, user_id)
 

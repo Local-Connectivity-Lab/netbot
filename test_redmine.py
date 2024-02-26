@@ -35,7 +35,7 @@ class TestRedmine(unittest.TestCase):
         self.assertFalse(self.redmine.is_user_blocked(user))
 
         # remove the test user
-        self.redmine.remove_user(user)
+        self.redmine.remove_user(user.id)
 
 
     def test_blocked_create_ticket(self):
@@ -43,20 +43,18 @@ class TestRedmine(unittest.TestCase):
         tag = test_utils.tagstr()
         user = test_utils.create_test_user(self.redmine, tag)
 
-        # block
-        self.redmine.block_user(user)
-        self.assertTrue(self.redmine.is_user_blocked(user))
-
-        # create ticket, expect exception
-        # NOPE self.assertRaises(redmine.RedmineException, self.redmine.create_ticket(user, "subject", "body"))
         try:
-            self.redmine.create_ticket(user, "subject", "body")
-            self.fail("Expected exception, none thrown.")
-        except redmine.RedmineException as ex:
-            self.assertEqual("[blocked]", ex.request_id)
+            # block
+            self.redmine.block_user(user)
+            self.assertTrue(self.redmine.is_user_blocked(user))
+
+            # create ticket for blocked
+            ticket = self.redmine.create_ticket(user, "subject", "body")
+            self.assertEqual("Reject", ticket.status.name)
+
         finally:
             # remove the test user
-            self.redmine.remove_user(user)
+            self.redmine.remove_user(user.id)
 
 
 if __name__ == '__main__':

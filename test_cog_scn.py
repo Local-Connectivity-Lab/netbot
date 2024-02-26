@@ -13,6 +13,8 @@ from netbot import NetBot
 import test_utils
 
 
+logging.basicConfig(level=logging.FATAL)
+
 log = logging.getLogger(__name__)
 
 test_username: str = "acmerocket"
@@ -45,7 +47,8 @@ class TestSCNCog(test_utils.BotTestCase):
         # reindex using cog
         ctx = self.build_context()
         await self.cog.reindex(ctx) # invoke cog to add uer
-        await asyncio.sleep(0.01) # needed? smaller?
+        #await asyncio.sleep(0.01) # needed? smaller?
+
         # 4.5 check reindex result, and lookup based on login and discord id
         ctx.respond.assert_called_with("Rebuilt redmine indices.")
         self.assertIsNotNone(self.redmine.find_user(self.user.login))
