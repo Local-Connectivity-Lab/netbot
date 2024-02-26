@@ -270,6 +270,25 @@ class Client(): ## redmine.Client()
         if user_id:
             return self.user_ids[user_id]
 
+
+    def lookup_user(self, username:str):
+        """Get a user based on ID, directly from redmine"""
+        if username is None or len(username) == 0:
+            log.debug("Empty user ID")
+            return None
+
+        #response = self.query(f"/users/{user_id}.json")
+        response = self.query(f"/users.json?name={username}")
+
+        log.debug(f"lookup_user: {username} -> {response.users}")
+
+        if len(response.users) > 0:
+            return response.users[0] # fragile
+        else:
+            log.debug(f"Unknown user: {username}")
+            return None
+
+
     def find_user(self, name):
         """find a user by name"""
         # check if name is int, raw user id. then look up in userids
@@ -342,10 +361,7 @@ class Client(): ## redmine.Client()
             log.debug("No ticket numbers supplied to get_tickets.")
             return []
 
-        tickets = ','.join(ticket_ids)
-        log.debug(f"ids: {tickets}")
-
-        response = self.query(f"/issues.json?issue_id={tickets}&status_id=*&sort={DEFAULT_SORT}")
+        response = self.query(f"/issues.json?issue_id={','.join(ticket_ids)}&status_id=*&sort={DEFAULT_SORT}")
         log.debug(f"query response: {response}")
         if response is not None and response.total_count > 0:
             return response.issues
@@ -868,13 +884,19 @@ class Client(): ## redmine.Client()
 
 
     def is_user_in_team(self, username:str, teamname:str) -> bool:
-        user_id = self.find_user(username).id
-        team = self.get_team(teamname) # requires an API call, could be cashed? only used for testing
+        if username is None or teamname is None:
+            return False
 
-        if team:
-            for user in team.users:
-                if user.id == user_id:
-                    return True
+        user = self.find_user(username)
+        if user:
+            user_id = user.id
+            team = self.get_team(teamname) # requires an API call, could be cashed? only used for testing
+
+            if team:
+                for team_user in team.users:
+                    if team_user.id == user_id:
+                        return True
+
         return False
 
 

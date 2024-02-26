@@ -67,6 +67,8 @@ class TestNetbot(test_utils.BotTestCase):
         #log.info(f"### ticket: {ticket}")
         #self.assertIn(body, ticket.journals[-1].notes) NOT until thread history is working
 
+        self.redmine.remove_ticket(ticket.id)
+
 
     async def test_on_application_command_error(self):
         ctx = self.build_context()
