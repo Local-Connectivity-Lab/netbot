@@ -4,6 +4,8 @@ FIXME - design details
 
 ## netbot
 
+### user mapping
+
 ## threader
 
 ## block system
