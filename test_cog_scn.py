@@ -9,6 +9,7 @@ import discord
 from dotenv import load_dotenv
 
 from netbot import NetBot
+from cog_scn import SCNCog
 
 import test_utils
 
@@ -30,7 +31,7 @@ class TestSCNCog(test_utils.BotTestCase):
         super().setUp()
         self.bot = NetBot(self.redmine)
         self.bot.load_extension("cog_scn")
-        self.cog = self.bot.cogs["SCNCog"] # Note class name, note filename.
+        self.cog:SCNCog = self.bot.cogs["SCNCog"] # Note class name, note filename.
 
 
     async def test_team_join_leave(self):
@@ -100,6 +101,25 @@ class TestSCNCog(test_utils.BotTestCase):
 
         # cleanup
         self.redmine.remove_ticket(ticket.id)
+
+
+    async def test_block_user(self):
+        # create a ticket
+        ticket = self.create_test_ticket()
+        try:
+            # call block
+            ctx = self.build_context()
+            await self.cog.block(ctx, self.user.login)
+
+            # confirmed blocked
+            self.assertTrue(self.redmine.is_user_blocked(self.user))
+
+            # confirm ticket rejected
+            check_ticket = self.redmine.get_ticket(ticket.id)
+            self.assertEqual("Reject", check_ticket.status.name)
+        finally:
+            # cleanup
+            self.redmine.remove_ticket(ticket.id)
 
 
 if __name__ == '__main__':

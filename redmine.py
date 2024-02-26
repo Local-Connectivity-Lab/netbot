@@ -337,6 +337,16 @@ class Client(): ## redmine.Client()
         self.leave_team(user.login, BLOCKED_TEAM_NAME)
 
 
+    def get_tickets_by(self, user):
+        # GET /issues.json?author_id=6
+        response = self.query(f"/issues.json?author_id={user.id}")
+        if response:
+            return response.issues
+        else:
+            log.debug(f"Unknown user: {user}")
+            return None
+
+
     def get_ticket(self, ticket_id:int, include_journals:bool = False):
         """get a ticket by ID"""
         if ticket_id is None or ticket_id == 0:
