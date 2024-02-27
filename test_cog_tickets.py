@@ -12,6 +12,8 @@ from netbot import NetBot
 import test_utils
 
 
+logging.basicConfig(level=logging.FATAL)
+
 log = logging.getLogger(__name__)
 
 

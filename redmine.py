@@ -15,9 +15,13 @@ import synctime
 
 log = logging.getLogger(__name__)
 
+
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
 TIMEOUT = 2 # seconds
 SYNC_FIELD_NAME = "syncdata"
+BLOCKED_TEAM_NAME = "blocked"
+SCN_PROJECT_ID = 1  # could lookup scn in projects
+STATUS_REJECT = 5 # could to status lookup, based on "reject"
 
 
 class RedmineException(Exception):
@@ -45,15 +49,16 @@ class Client(): ## redmine.Client()
         self.groups = {}
         self.reindex()
 
+
     def create_ticket(self, user, subject, body, attachments=None):
         """create a redmine ticket"""
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
-        # tracker_id = 13 is test tracker.
-        # would need full param handling to pass that thru discord to get to this invocation....
+        # would need full param handling to pass that thru discord to get to this invocation
+        # this would be resolved by a Ticket class to emcapsulate.
 
         data = {
             'issue': {
-                'project_id': 1, #FIXME hard-coded project ID
+                'project_id': SCN_PROJECT_ID, #FIXME hard-coded project ID
                 'subject': subject,
                 'description': body,
             }
@@ -77,8 +82,16 @@ class Client(): ## redmine.Client()
         # check status
         if response.ok:
             root = json.loads(response.text, object_hook= lambda x: SimpleNamespace(**x))
-            log.debug(f"create ticket: status=[{response.status_code}] {response.reason} reqid={response.headers['X-Request-Id']}")
-            return root.issue
+            ticket = root.issue
+
+            # ticket 484 - http://10.10.0.218/issues/484
+            # if the user is blocked, "reject" the new ticket
+            if self.is_user_blocked(user):
+                log.debug(f"Rejecting ticket #{ticket.id} based on blocked user {user.login}")
+                self.reject_ticket(ticket.id)
+                return self.get_ticket(ticket.id) # refresh the ticket?
+            else:
+                return ticket
         else:
             raise RedmineException(
                 f"create_ticket failed, status=[{response.status_code}] {response.reason}",
@@ -217,6 +230,7 @@ class Client(): ## redmine.Client()
             token = self.upload_file(user_id, a.payload, a.name, a.content_type)
             a.set_token(token)
 
+
     def find_team(self, name):
         """find a team by name"""
         response = self.query("/groups.json")
@@ -226,10 +240,54 @@ class Client(): ## redmine.Client()
         # not found
         return None
 
+
+    def create_team(self, teamname:str):
+        if teamname is None or len(teamname.strip()) == 0:
+            raise RedmineException(f"Invalid team name: '{teamname}'", "n/a")
+
+        # POST to /groups.json
+        data = {
+            "group": {
+                "name": teamname,
+            }
+        }
+
+        response = requests.post(
+            url=f"{self.url}/groups.json",
+            data=json.dumps(data),
+            timeout=TIMEOUT,
+            headers=self.get_headers())
+
+        # check status
+        if response.ok:
+            log.info(f"OK create_team {teamname}")
+        else:
+            raise RedmineException(f"create_team {teamname} failed", response.headers['X-Request-Id'])
+
+
     def get_user(self, user_id:int):
         """get a user by ID"""
         if user_id:
             return self.user_ids[user_id]
+
+
+    def lookup_user(self, username:str):
+        """Get a user based on ID, directly from redmine"""
+        if username is None or len(username) == 0:
+            log.debug("Empty user ID")
+            return None
+
+        #response = self.query(f"/users/{user_id}.json")
+        response = self.query(f"/users.json?name={username}")
+
+        log.debug(f"lookup_user: {username} -> {response.users}")
+
+        if len(response.users) > 0:
+            return response.users[0] # fragile
+        else:
+            log.debug(f"Unknown user: {username}")
+            return None
+
 
     def find_user(self, name):
         """find a user by name"""
@@ -257,6 +315,38 @@ class Client(): ## redmine.Client()
         else:
             return None
 
+
+    def is_user_blocked(self, user) -> bool:
+        if self.is_user_in_team(user.login, BLOCKED_TEAM_NAME):
+            return True
+        else:
+            return False
+
+
+    def block_user(self, user) -> None:
+        # check if the blocked team exists
+        blocked_team = self.find_team(BLOCKED_TEAM_NAME)
+        if blocked_team is None:
+            # create blocked team
+            self.create_team(BLOCKED_TEAM_NAME)
+
+        self.join_team(user.login, BLOCKED_TEAM_NAME)
+
+
+    def unblock_user(self, user) -> None:
+        self.leave_team(user.login, BLOCKED_TEAM_NAME)
+
+
+    def get_tickets_by(self, user):
+        # GET /issues.json?author_id=6
+        response = self.query(f"/issues.json?author_id={user.id}")
+        if response:
+            return response.issues
+        else:
+            log.debug(f"Unknown user: {user}")
+            return None
+
+
     def get_ticket(self, ticket_id:int, include_journals:bool = False):
         """get a ticket by ID"""
         if ticket_id is None or ticket_id == 0:
@@ -271,7 +361,7 @@ class Client(): ## redmine.Client()
         if response:
             return response.issue
         else:
-            log.warning(f"Unknown ticket number: {ticket_id}")
+            log.debug(f"Unknown ticket number: {ticket_id}")
             return None
 
     #GET /issues.xml?issue_id=1,2
@@ -281,7 +371,8 @@ class Client(): ## redmine.Client()
             log.debug("No ticket numbers supplied to get_tickets.")
             return []
 
-        response = self.query(f"/issues.json?issue_id={','.join(ticket_ids)}&sort={DEFAULT_SORT}")
+        response = self.query(f"/issues.json?issue_id={','.join(ticket_ids)}&status_id=*&sort={DEFAULT_SORT}")
+        log.debug(f"query response: {response}")
         if response is not None and response.total_count > 0:
             return response.issues
         else:
@@ -356,8 +447,10 @@ class Client(): ## redmine.Client()
             headers=self.get_headers())
 
         # check status
-        if r.status_code != 204:
-            log.error(f"Error removing user status={r.status_code}, url={r.request.url}")
+        if r.ok:
+            log.info(f"deleted user {user_id}")
+        else:
+            log.error(f"Error removing user status={r.status_code}, url={r.request.url}, req_id={r.headers['X-Request-Id']}")
 
 
     def remove_ticket(self, ticket_id:int):
@@ -442,9 +535,10 @@ class Client(): ## redmine.Client()
             return None
 
     def search_tickets(self, term):
+        """search all text of all tickets (not just open) for the supplied terms"""
         # todo url-encode term?
         # note: sort doesn't seem to be working for search
-        query = f"/search.json?q={term}&titles_only=1&open_issues=1&limit=100"
+        query = f"/search.json?q={term}&issues=1&limit=100&sort={DEFAULT_SORT}"
 
         response = self.query(query)
 
@@ -514,18 +608,16 @@ class Client(): ## redmine.Client()
         # TODO rebuild user index automatically?
 
 
-    def join_team(self, username, teamname:str):
+    def join_team(self, username, teamname:str) -> None:
         # look up user ID
         user = self.find_user(username)
         if user is None:
-            log.warning(f"Unknown user name: {username}")
-            return None
+            raise RedmineException(f"Unknown user name: {username}", "[n/a]")
 
         # map teamname to team
         team = self.find_team(teamname)
         if team is None:
-            log.warning(f"Unknown team name: {teamname}")
-            return None
+            raise RedmineException(f"Unknown team name: {teamname}", "[n/a]")
 
         # POST to /group/ID/users.json
         data = {
@@ -540,7 +632,7 @@ class Client(): ## redmine.Client()
 
         # check status
         if response.ok:
-            log.info(f"join_team {username}, {teamname}")
+            log.info(f"OK join_team {username}, {teamname}")
         else:
             raise RedmineException(f"join_team failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
 
@@ -613,10 +705,17 @@ class Client(): ## redmine.Client()
 
 
     def progress_ticket(self, ticket_id, user_id=None): # TODO notes
-
         fields = {
             "assigned_to_id": "me",
             "status_id": "2", # "In Progress"
+        }
+        self.update_ticket(ticket_id, fields, user_id)
+
+
+    def reject_ticket(self, ticket_id, user_id=None): # TODO notes
+        fields = {
+            "assigned_to_id": "",
+            "status_id": "5", # "Reject"
         }
         self.update_ticket(ticket_id, fields, user_id)
 
@@ -767,8 +866,8 @@ class Client(): ## redmine.Client()
             log.debug(f"empty response from custom field query for project={project_name}")
         return ticket_fields
 
-
-    def add_custom_field(self, name:str, customized_type="issue"):
+    # this is currently NOT supported by Redmine
+    def XXX_add_custom_field(self, name:str, customized_type="issue"):
         """add a custom field to tickets in redmine, defaults to 'issue', could be 'user' """
         # namespace(id=4, name='syncdata',
         #     customized_type='issue',
@@ -856,13 +955,19 @@ class Client(): ## redmine.Client()
 
 
     def is_user_in_team(self, username:str, teamname:str) -> bool:
-        user_id = self.find_user(username).id
-        team = self.get_team(teamname) # requires an API call, could be cashed? only used for testing
+        if username is None or teamname is None:
+            return False
 
-        if team:
-            for user in team.users:
-                if user.id == user_id:
-                    return True
+        user = self.find_user(username)
+        if user:
+            user_id = user.id
+            team = self.get_team(teamname) # requires an API call, could be cashed? only used for testing
+
+            if team:
+                for team_user in team.users:
+                    if team_user.id == user_id:
+                        return True
+
         return False
 
 

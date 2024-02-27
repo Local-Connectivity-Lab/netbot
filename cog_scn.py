@@ -203,6 +203,37 @@ class SCNCog(commands.Cog):
             await ctx.respond(buff[:2000]) # truncate!
 
 
+    # ticket 484 - http://10.10.0.218/issues/484
+    # block users based on name (not discord membership)
+    @scn.command(description="block specific a email address and reject all related tickets")
+    async def block(self, ctx:discord.ApplicationContext, username:str):
+        log.debug(f"blocking {username}")
+        #user = self.redmine.lookup_user(username)
+        user = self.redmine.find_user(username)
+        if user:
+            # add the user to the blocked list
+            self.redmine.block_user(user)
+            # search and reject all tickets from that user
+            for ticket in self.redmine.get_tickets_by(user):
+                self.redmine.reject_ticket(ticket.id)
+            await ctx.respond(f"Blocked user: {user.login} and rejected all created tickets")
+        else:
+            log.debug("trying to block unknown user '{username}', ignoring")
+            await ctx.respond(f"Unknown user: {username}")
+
+
+    @scn.command(description="unblock specific a email address")
+    async def unblock(self, ctx:discord.ApplicationContext, username:str):
+        log.debug(f"unblocking {username}")
+        user = self.redmine.find_user(username)
+        if user:
+            self.redmine.unblock_user(user)
+            await ctx.respond(f"Unblocked user: {user.login}")
+        else:
+            log.debug("trying to unblock unknown user '{username}', ignoring")
+            await ctx.respond(f"Unknown user: {username}")
+
+
     async def print_team(self, ctx, team):
         msg = f"> **{team.name}**\n"
         for user_rec in team.users:

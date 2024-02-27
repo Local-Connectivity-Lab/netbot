@@ -7,6 +7,7 @@ import logging
 from dotenv import load_dotenv
 
 import redmine
+import test_utils
 
 
 log = logging.getLogger(__name__)
@@ -20,26 +21,40 @@ class TestRedmine(unittest.TestCase):
         self.redmine = redmine.Client()
 
 
-    def test_custom_fields(self):
+    def test_blocked_user(self):
+        # create test user
+        tag = test_utils.tagstr()
+        user = test_utils.create_test_user(self.redmine, tag)
 
-        # create test ticket
-        admin = self.redmine.find_user("admin")
-        ticket = self.redmine.create_ticket(admin, subject="subject", body="body")
-        # delete test ticket
-        self.redmine.remove_ticket(ticket.id)
+        # block
+        self.redmine.block_user(user)
+        self.assertTrue(self.redmine.is_user_blocked(user))
 
-        fields = self.redmine.get_custom_fields("scn")
-        log.debug(f"fields: {fields}")
-        self.assertEqual(fields["syncdata"], 4)
+        # unblock
+        self.redmine.unblock_user(user)
+        self.assertFalse(self.redmine.is_user_blocked(user))
 
-        self.redmine.add_custom_field("cf_yoyo")
-        fields2 = self.redmine.get_custom_fields("scn")
-        self.assertIsNotNone(fields2["cf_yoyo"])
-
-        # delete?
+        # remove the test user
+        self.redmine.remove_user(user.id)
 
 
+    def test_blocked_create_ticket(self):
+        # create test user
+        tag = test_utils.tagstr()
+        user = test_utils.create_test_user(self.redmine, tag)
 
+        try:
+            # block
+            self.redmine.block_user(user)
+            self.assertTrue(self.redmine.is_user_blocked(user))
+
+            # create ticket for blocked
+            ticket = self.redmine.create_ticket(user, "subject", "body")
+            self.assertEqual("Reject", ticket.status.name)
+
+        finally:
+            # remove the test user
+            self.redmine.remove_user(user.id)
 
 
 if __name__ == '__main__':
