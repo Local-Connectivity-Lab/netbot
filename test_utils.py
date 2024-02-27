@@ -85,6 +85,12 @@ class BotTestCase(unittest.IsolatedAsyncioTestCase):
         return ctx
 
 
+    def create_test_ticket(self):
+        subject = f"{unittest.TestCase.id(self)} {self.tag}"
+        text = f"This is a ticket for {unittest.TestCase.id(self)} with {self.tag}."
+        return self.redmine.create_ticket(self.user, subject, text)
+
+
     def setUp(self):
         self.tag = self.__class__.usertag # TODO just rename usertag to tag - represents the suite run
         self.assertIsNotNone(self.tag)

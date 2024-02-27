@@ -94,29 +94,37 @@ class TestMessages(unittest.TestCase):
 
 
     def test_new_account_from_email(self):
+        # make sure neither the email or subject exist
+        # note: these are designed to fail-fast, because trying to manage the user and subject as part of the test failed.
         test_email = "philion@acmerocket.com"
+        user = self.redmine.lookup_user(test_email)
+        self.assertIsNone(user, "Found existing user: {test_email}")
 
-        user = self.redmine.find_user(test_email)
-        log.info(f"found {user} for {test_email}")
-        if user:
-            self.redmine.remove_user(user.id) # remove the user, for testing
-            self.redmine.reindex_users()
-            log.info(f"removed user id={user.id} and reindexed for test")
+        subject = "Search for subject match in email threading"
+        tickets = self.redmine.match_subject(subject)
+        self.assertEqual(0, len(tickets), "Found ticket matching: '{subject}' - {tickets[0].id}, please delete.")
 
-        #email = "test/message-190.eml"
         with open("test/message-190.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
+            log.debug(f"loaded message: {message}")
             self.imap.handle_message("test", message)
 
-        self.redmine.reindex_users()
-        user = self.redmine.find_user(test_email)
+        user = self.redmine.lookup_user(test_email)
         self.assertIsNotNone(user, f"Couldn't find user for {test_email}")
         self.assertEqual(test_email, user.mail)
-        self.assertTrue(self.redmine.is_user_in_team(user.login, "users"))
 
-        self.redmine.remove_user(user.id) # remove the user, for testing
-        self.redmine.reindex_users()
-        self.assertIsNone(self.redmine.find_user(test_email))
+        # validate the ticket created by message-190
+        #subject = "Search for subject match in email threading"
+        tickets = self.redmine.match_subject(subject)
+        self.assertEqual(1, len(tickets))
+        self.assertEqual(subject, tickets[0].subject)
+        self.assertEqual(user.id, tickets[0].author.id)
+
+        # remove the ticket
+        self.redmine.remove_ticket(tickets[0].id)
+
+        # remove the user after the test
+        self.redmine.remove_user(user.id)
 
 
     def test_subject_search(self):
@@ -130,8 +138,8 @@ class TestMessages(unittest.TestCase):
 
         # search for the ticket
         tickets = self.redmine.match_subject(subject)
-        for check in tickets:
-            log.debug(f"### tickets: {check.subject}")
+        #for check in tickets:
+        #    log.debug(f"### tickets: {check.subject}")
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
         self.assertEqual(ticket.id, tickets[0].id)
@@ -159,8 +167,8 @@ class TestMessages(unittest.TestCase):
         # search for the ticket
         tickets = self.redmine.search_tickets(tag)
 
-        for check in tickets:
-            log.debug(f"### tickets: {check}")
+        #for check in tickets:
+        #    log.debug(f"### tickets: {check}")
 
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
