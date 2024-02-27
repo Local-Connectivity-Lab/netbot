@@ -866,39 +866,6 @@ class Client(): ## redmine.Client()
             log.debug(f"empty response from custom field query for project={project_name}")
         return ticket_fields
 
-    # this is currently NOT supported by Redmine
-    def XXX_add_custom_field(self, name:str, customized_type="issue"):
-        """add a custom field to tickets in redmine, defaults to 'issue', could be 'user' """
-        # namespace(id=4, name='syncdata',
-        #     customized_type='issue',
-        #     field_format='string',
-        #     is_filter=True,
-        data = {
-            'custom_field': {
-                'name': name,
-                'customized_type': customized_type,
-                'field_format': 'string',
-                'is_filter': True,
-                'searchable': True,
-            }
-        }
-
-        user = self.find_user("admin")
-
-        r = requests.post(
-            url=f"{self.url}/custom_fields.json",
-            timeout=TIMEOUT,
-            data=json.dumps(data),
-            headers=self.get_headers(user.login))
-
-        # check status
-        if r.ok:
-            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-            log.info(f"{root}")
-        else:
-            log.error(f"request: {vars(r.request)}")
-            raise RedmineException(f"create_ticket failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
-
 
     def get_discord_id(self, user):
         if user:
