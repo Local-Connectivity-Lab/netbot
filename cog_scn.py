@@ -119,15 +119,20 @@ class SCNCog(commands.Cog):
         # get all threads
         for guild in self.bot.guilds:
             for thread in guild.threads:
-                #log.debug(f"THREAD: guild:{guild}, thread:{thread}")
-                # sync each thread,
-                ticket = await self.sync_thread(thread)
-                if ticket:
-                    # successful sync
-                    log.debug(f"SYNC complete for ticket #{ticket.id} to {thread.name}")
-                else:
-                    log.debug(f"no ticket found for {thread.name}")
-
+                try:
+                    # try syncing each thread. if there's no ticket found, there's no thread to sync.
+                    ticket = await self.sync_thread(thread)
+                    if ticket:
+                        # successful sync
+                        log.debug(f"SYNC complete for ticket #{ticket.id} to {thread.name}")
+                    else:
+                        log.debug(f"no ticket found for {thread.name}")
+                except NetbotException as ex:
+                    # ticket is locked.
+                    # skip gracefully
+                    log.debug(f"Ticket locked, sync in progress: {thread}: {ex}")
+                except Exception:
+                    log.exception(f"Error syncing {thread}")
 
     @scn.command()
     async def sync(self, ctx:discord.ApplicationContext):
