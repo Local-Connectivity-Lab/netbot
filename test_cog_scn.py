@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """testing the SCN cog"""
 
-import asyncio
 import unittest
 import logging
 import discord
@@ -13,8 +12,6 @@ from cog_scn import SCNCog
 
 import test_utils
 
-
-logging.basicConfig(level=logging.FATAL)
 
 log = logging.getLogger(__name__)
 
@@ -120,6 +117,58 @@ class TestSCNCog(test_utils.BotTestCase):
         finally:
             # cleanup
             self.redmine.remove_ticket(ticket.id)
+
+
+    async def test_locked_during_sync_ticket(self):
+        """
+        Unhandled exception in internal background task 'sync_all_threads'.
+        Traceback (most recent call last):
+        File "/usr/local/lib/python3.11/site-packages/discord/ext/tasks/__init__.py", line 169, in _loop
+            await self.coro(*args, **kwargs)
+        File "/cog_scn.py", line 124, in sync_all_threads
+            ticket = await self.sync_thread(thread)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/cog_scn.py", line 106, in sync_thread
+            raise NetbotException(f"Ticket {ticket.id} is locked for syncronization.")
+        netbot.NetbotException: Ticket 195 is locked for syncronization.
+        --
+        This test intends to try to reproduce by locking a ticket before starting the sync.
+        """
+        # create a new ticket, identified by the tag, with a note
+        ticket = self.create_test_ticket()
+        message = f"Message for {self.tag}"
+        self.redmine.append_message(ticket.id, self.user.login, message)
+
+        # create mock message and thread
+        message = unittest.mock.AsyncMock(discord.Message)
+        message.content = f"This is a new note about ticket #{ticket.id} for test {self.tag}"
+        message.author = unittest.mock.AsyncMock(discord.Member)
+        message.author.name = self.discord_user
+
+        thread = unittest.mock.AsyncMock(discord.Thread)
+        thread.name = f"Ticket #{ticket.id}: {ticket.subject}"
+
+        # Lock the ticket...
+        # TODO - this could be encapsulated in Ticket or Netbot
+        log.debug("locking ticket")
+        async with self.bot.lock:
+            if ticket.id in self.bot.ticket_locks:
+                self.fail(f"New ticket {ticket.id} is already locked?")
+            else:
+                # create lock flag
+                self.bot.ticket_locks[ticket.id] = True
+
+        try:
+            # synchronize thread
+            await self.cog.sync_thread(thread)
+            self.fail("No exception when one was expected")
+        except Exception as ex:
+            self.assertIn(f"Ticket {ticket.id}", str(ex))
+            # pass: exception contains "Ticket id"
+
+        # clean up
+        del self.bot.ticket_locks[ticket.id]
+        self.redmine.remove_ticket(ticket.id)
 
 
 if __name__ == '__main__':
