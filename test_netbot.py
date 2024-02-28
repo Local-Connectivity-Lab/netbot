@@ -3,8 +3,8 @@
 
 import unittest
 import logging
-import discord
 
+import discord
 from dotenv import load_dotenv
 
 import netbot
@@ -70,6 +70,34 @@ class TestNetbot(test_utils.BotTestCase):
         self.redmine.remove_ticket(ticket.id)
 
 
+    async def test_sync_ticket_long_message(self):
+        # create a new ticket, identified by the tag, with a note
+        ticket = self.create_test_ticket()
+
+        long_message = test_utils.randstr(3000) # random string 3000 chars long
+        self.redmine.append_message(ticket.id, self.user.login, long_message)
+
+        # create mock message and thread
+        message = unittest.mock.AsyncMock(discord.Message)
+        message.content = f"This is a new note about ticket #{ticket.id} for test {self.tag}"
+        message.author = unittest.mock.AsyncMock(discord.Member)
+        message.author.name = self.discord_user
+
+        thread = unittest.mock.AsyncMock(discord.Thread)
+        thread.name = f"Ticket #{ticket.id}"
+
+        # synchronize!
+        await self.bot.synchronize_ticket(ticket, thread)
+
+        # assert method send called on mock thread, with the correct values
+        log.debug(f"### call args: {thread.send.call_args}")
+        self.assertIn(self.tag, thread.send.call_args.args[0])
+        self.assertLessEqual(len(thread.send.call_args.args[0]), netbot.MAX_MESSAGE_LEN, "Message sent to Discord is too long")
+
+        # clean up
+        self.redmine.remove_ticket(ticket.id)
+
+
     async def test_on_application_command_error(self):
         ctx = self.build_context()
         error = discord.DiscordException("this is exception " + self.tag)
@@ -79,4 +107,9 @@ class TestNetbot(test_utils.BotTestCase):
 
 
 if __name__ == '__main__':
+    # when running this main, turn on DEBUG
+    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+    logging.getLogger("asyncio").setLevel(logging.ERROR)
+
     unittest.main()

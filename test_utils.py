@@ -2,6 +2,8 @@
 """Utilities to help testing"""
 
 import time
+import string
+import random
 import logging
 import unittest
 from unittest import mock
@@ -36,6 +38,11 @@ def dumps(num:int)-> str:
 def tagstr() -> str:
     """convert the current timestamp in seconds to a base36 str"""
     return dumps(int(time.time()))
+
+
+def randstr(length:int=12) -> str:
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+
 
 def create_test_user(redmine:Client, tag:str):
     # create new test user name: test-12345@example.com, login test-12345

@@ -15,6 +15,9 @@ import redmine
 
 log = logging.getLogger(__name__)
 
+
+MAX_MESSAGE_LEN = 2000
+
 class NetbotException(Exception):
     """netbot exception"""
 
@@ -89,8 +92,8 @@ class NetBot(commands.Bot):
     def format_discord_note(self, note):
         """Format a note for Discord"""
         age = synctime.age_str(synctime.parse_str(note.created_on))
-        return f"> **{note.user.name}** *{age} ago*\n> {note.notes}\n\n"
-        #TODO Move format table
+        message = f"> **{note.user.name}** *{age} ago*\n> {note.notes}"[:MAX_MESSAGE_LEN]
+        return message
 
 
     def gather_redmine_notes(self, ticket, sync_rec:synctime.SyncRecord):
