@@ -875,6 +875,7 @@ class Client(): ## redmine.Client()
                 discord_id = self.get_discord_id(user)
                 if discord_id:
                     self.discord_users[discord_id] = user.id
+                log.debug(f"### indexed {user.login} - discord={discord_id}")
             log.debug(f"indexed {len(self.users)} users")
             log.debug(f"discord users: {self.discord_users}")
         else:
