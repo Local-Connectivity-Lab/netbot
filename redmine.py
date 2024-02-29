@@ -865,7 +865,7 @@ class Client(): ## redmine.Client()
         self.discord_users.clear()
 
         # rebuild the indicies
-        response = self.query("/users.json?limit=1000") ## fixme max limit? paging?
+        response = self.query("/users.json") ## fixme max limit? paging?
         if response.users:
             for user in response.users:
                 self.users[user.login] = user.id
