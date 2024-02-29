@@ -125,8 +125,8 @@ class SCNCog(commands.Cog):
                     if ticket:
                         # successful sync
                         log.debug(f"SYNC complete for ticket #{ticket.id} to {thread.name}")
-                    else:
-                        log.debug(f"no ticket found for {thread.name}")
+                    #else:
+                        #log.debug(f"no ticket found for {thread.name}")
                 except NetbotException as ex:
                     # ticket is locked.
                     # skip gracefully

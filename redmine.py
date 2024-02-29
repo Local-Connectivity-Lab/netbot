@@ -350,7 +350,7 @@ class Client(): ## redmine.Client()
     def get_ticket(self, ticket_id:int, include_journals:bool = False):
         """get a ticket by ID"""
         if ticket_id is None or ticket_id == 0:
-            log.debug(f"Invalid ticket number: {ticket_id}")
+            #log.debug(f"Invalid ticket number: {ticket_id}")
             return None
 
         query = f"/issues/{ticket_id}.json"
@@ -874,6 +874,7 @@ class Client(): ## redmine.Client()
                 if discord_id:
                     self.discord_users[discord_id] = user.id
             log.debug(f"indexed {len(self.users)} users")
+            log.debug(f"discord users: {self.discord_users}")
         else:
             log.error(f"No users: {response}")
 
