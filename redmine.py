@@ -843,7 +843,7 @@ class Client(): ## redmine.Client()
     def get_discord_id(self, user):
         if user:
             for field in user.custom_fields:
-                if field.name == DISCORD_ID_FIELD:
+                if field.name == DISCORD_ID_FIELD and field.value and len(field.value) > 0:
                     log.debug(f"redmine:{user.login} <==> discord:{field.value}")
                     return field.value
         return None
