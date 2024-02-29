@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
 TIMEOUT = 2 # seconds
 SYNC_FIELD_NAME = "syncdata"
+DISCORD_ID_FIELD = "Discord ID"
 BLOCKED_TEAM_NAME = "blocked"
 SCN_PROJECT_ID = 1  # could lookup scn in projects
 STATUS_REJECT = 5 # could to status lookup, based on "reject"
@@ -842,7 +843,8 @@ class Client(): ## redmine.Client()
     def get_discord_id(self, user):
         if user:
             for field in user.custom_fields:
-                if field.name == "Discord ID":
+                if field.name == DISCORD_ID_FIELD:
+                    log.debug(f"redmine:{user.login} <==> discord:{field.value}")
                     return field.value
         return None
 
