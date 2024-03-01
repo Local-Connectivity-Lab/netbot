@@ -90,7 +90,7 @@ class Client(): ## imap.Client()
         self.host = os.getenv('IMAP_HOST')
         self.user = os.getenv('IMAP_USER')
         self.passwd = os.getenv('IMAP_PASSWORD')
-        self.redmine = redmine.Client()
+        self.redmine = redmine.Client.fromenv()
 
     # note: not happy with this method of dealing with complex email address
     # but I don't see a better way. open to suggestions

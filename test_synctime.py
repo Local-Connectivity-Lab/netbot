@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 class TestTime(unittest.TestCase):
     """testing"""
     def setUp(self):
-        self.redmine = redmine.Client()
+        self.redmine = redmine.Client.fromenv()
 
     def test_redmine_times(self):
         #start = synctime.now()

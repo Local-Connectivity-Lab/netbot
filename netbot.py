@@ -201,7 +201,7 @@ def main():
     log.info(f"loading .env for {__name__}")
     load_dotenv()
 
-    client = redmine.Client()
+    client = redmine.Client.fromenv()
     bot = NetBot(client)
 
     # register cogs

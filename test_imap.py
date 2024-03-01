@@ -21,7 +21,7 @@ class TestMessages(unittest.TestCase):
     """Test suite for IMAP functions"""
 
     def setUp(self):
-        self.redmine = redmine.Client()
+        self.redmine = redmine.Client.fromenv()
         self.imap = imap.Client()
 
     def test_messages_stripping(self):

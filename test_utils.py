@@ -72,7 +72,7 @@ class BotTestCase(unittest.IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls):
         log.info("Setting up test fixtures")
-        cls.redmine = Client()
+        cls.redmine = Client.fromenv()
         cls.usertag = tagstr()
         cls.user = create_test_user(cls.redmine, cls.usertag)
         log.info(f"Created test user: {cls.user}")
@@ -104,7 +104,7 @@ class BotTestCase(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(self.user)
 
         self.full_name = self.user.firstname + " " +  self.user.lastname
-        self.discord_user = self.redmine.get_discord_id(self.user)
+        self.discord_user = self.user.discord_id
 
         self.assertIsNotNone(self.redmine.find_user(self.user.login))
         self.assertIsNotNone(self.redmine.find_user(self.discord_user))

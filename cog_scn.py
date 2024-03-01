@@ -95,8 +95,8 @@ class SCNCog(commands.Cog):
     async def sync_thread(self, thread:discord.Thread):
         """syncronize an existing ticket thread with redmine"""
         # get the ticket id from the thread name
-        # FIXME: notice the series of calls to "self.bot": could be better encapsulated
         ticket_id = self.bot.parse_thread_title(thread.name)
+
         ticket = self.redmine.get_ticket(ticket_id, include_journals=True)
         if ticket:
             completed = await self.bot.synchronize_ticket(ticket, thread)
@@ -104,6 +104,8 @@ class SCNCog(commands.Cog):
                 return ticket
             else:
                 raise NetbotException(f"Ticket {ticket.id} is locked for syncronization.")
+        else:
+            log.debug(f"no ticket found for {thread.name}")
 
         return None
 

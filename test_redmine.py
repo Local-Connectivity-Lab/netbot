@@ -18,7 +18,7 @@ class TestRedmine(unittest.TestCase):
     """Test suite for Redmine client"""
 
     def setUp(self):
-        self.redmine = redmine.Client()
+        self.redmine = redmine.Client.fromenv()
 
 
     def test_blocked_user(self):
@@ -55,6 +55,15 @@ class TestRedmine(unittest.TestCase):
         finally:
             # remove the test user
             self.redmine.remove_user(user.id)
+
+
+    def test_client_timeout(self):
+        # construct an invalid client to try to get a timeout
+        try:
+            client = redmine.Client("http://192.168.1.42/", "bad-token")
+            log.info(client)
+        except TimeoutError:
+            self.fail("Got unexpected timeout")
 
 
 if __name__ == '__main__':

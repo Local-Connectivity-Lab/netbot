@@ -12,12 +12,13 @@ import requests
 from dotenv import load_dotenv
 
 import synctime
+from users import UserResult, User
 
 log = logging.getLogger(__name__)
 
 
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
-TIMEOUT = 2 # seconds
+TIMEOUT = 10 # seconds
 SYNC_FIELD_NAME = "syncdata"
 DISCORD_ID_FIELD = "Discord ID"
 BLOCKED_TEAM_NAME = "blocked"
@@ -32,14 +33,14 @@ class RedmineException(Exception):
         self.request_id = request_id
 
 
-class Client(): ## redmine.Client()
+class Client(): ## redmine.Client.fromenv()
     """redmine client"""
-    def __init__(self):
-        self.url = os.getenv('REDMINE_URL')
+    def __init__(self, url: str, token: str):
+        self.url = url
         if self.url is None:
             raise RedmineException("Unable to load REDMINE_URL", "[n/a]")
 
-        self.token = os.getenv('REDMINE_TOKEN')
+        self.token = token
         if self.url is None:
             raise RedmineException("Unable to load REDMINE_TOKEN", "__init__")
 
@@ -49,6 +50,19 @@ class Client(): ## redmine.Client()
         self.discord_users = {}
         self.groups = {}
         self.reindex()
+
+
+    @classmethod
+    def fromenv(cls):
+        url = os.getenv('REDMINE_URL')
+        if url is None:
+            raise RedmineException("Unable to load REDMINE_URL", "[n/a]")
+
+        token = os.getenv('REDMINE_TOKEN')
+        if token is None:
+            raise RedmineException("Unable to load REDMINE_TOKEN", "__init__")
+
+        return cls(url, token)
 
 
     def create_ticket(self, user, subject, body, attachments=None):
@@ -394,6 +408,7 @@ class Client(): ## redmine.Client()
 
     def create_user(self, email:str, first:str, last:str):
         """create a new redmine user"""
+        # TODO: Generate JSON from User object
         data = {
             'user': {
                 'login': email,
@@ -411,20 +426,14 @@ class Client(): ## redmine.Client()
             headers=self.get_headers())
 
         # check status
-        if r.status_code == 201:
-            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-            user = root.user
+        if r.ok:
+            user = User(**r.json()['user'])
 
             log.info(f"created user: {user.id} {user.login} {user.mail}")
-            self.reindex_users() # new user!
+            self.reindex_users() # new user! FIXME reindix or just add?
 
-            # add user to User group and SCN project
-
-            #self.join_project(user.login, "scn") ### scn project key
-            #log.info("joined scn project")
-
+            # add user to User group
             self.join_team(user.login, "users") ### FIXME move default team name to defaults somewhere
-            log.info("joined users group")
 
             return user
         elif r.status_code == 403:
@@ -680,14 +689,25 @@ class Client(): ## redmine.Client()
 
         headers = self.get_headers(user)
 
-        r = requests.get(f"{self.url}{query_str}", headers=headers, timeout=TIMEOUT)
+        # TODO Detect and handle paged results
 
-        # check 200 status code
-        if r.status_code == 200:
-            return json.loads(r.text, object_hook=lambda x: SimpleNamespace(**x))
-        else:
-            log.warning(f"{r.status_code}: {r.request.url}")
-            return None
+        try:
+            r = requests.get(f"{self.url}{query_str}", headers=headers, timeout=TIMEOUT)
+
+            # check 200 status code
+            if r.ok:
+                # return the parsed the JSON text
+                return json.loads(r.text, object_hook=lambda x: SimpleNamespace(**x))
+            else:
+                log.error(f"Status code {r.status_code} for {r.request.url}, reqid={r.headers['X-Request-Id']}: {r}")
+        except TimeoutError as toe:
+            # ticket-509: Handle timeout gracefully
+            log.warning(f"Timeout during {query_str}: {toe}")
+        except Exception as ex:
+            log.warning(f"Excetion during {query_str}: {ex}")
+
+        return None
+
 
 
     def assign_ticket(self, ticket_id, target, user_id=None):
@@ -844,7 +864,7 @@ class Client(): ## redmine.Client()
         if user:
             for field in user.custom_fields:
                 if field.name == DISCORD_ID_FIELD and field.value and len(field.value) > 0:
-                    log.debug(f"redmine:{user.login} <==> discord:{field.value}")
+                    #log.debug(f"redmine:{user.login} <==> discord:{field.value}")
                     return field.value
         return None
 
@@ -856,45 +876,82 @@ class Client(): ## redmine.Client()
         else:
             return False
 
+
+    def get_all_users(self):
+        try:
+            headers = self.get_headers()
+            response = requests.get(f"{self.url}/users.json", headers=headers, timeout=10) ## TODO
+            if response.ok:
+                #resp_json = response.json()
+                user_result = UserResult(**response.json())
+
+                users = user_result.users
+
+                if user_result.total_count > user_result.limit:
+                    offset = user_result.limit
+                    while offset < user_result.total_count:
+                        next_req = f"{self.url}/users.json?offset={offset}&limit={user_result.limit}"
+                        log.debug(f"next request: {next_req}")
+                        next_resp = requests.get(next_req, headers=headers, timeout=10)
+                        next_result = UserResult(**next_resp.json())
+                        users.extend(next_result.users)
+                        offset += next_result.limit
+
+                return users
+            else:
+                log.error(f"Status code {response.status_code} for {response.request.url}, reqid={response.headers['X-Request-Id']}: {response}")
+        except TimeoutError as toe:
+            # ticket-509: Handle timeout gracefully
+            log.warning(f"Timeout during get_all_users: {toe}")
+        except Exception as ex:
+            log.exception(f"Exception during get_all_users: {ex}")
+
+        return None
+
     # python method sync?
     def reindex_users(self):
-        # reset the indices
-        self.users.clear()
-        self.user_ids.clear()
-        self.user_emails.clear()
-        self.discord_users.clear()
-
         # rebuild the indicies
-        response = self.query("/users.json?offset=0&limit=250") ## fixme max limit? paging?
-        if response.users:
-            for user in response.users:
+        # looking over issues in redmine and specifically https://www.redmine.org/issues/16069
+        # it seems that redmine has a HARD CODED limit of 100 responses per request.
+        users = self.get_all_users()
+        if users:
+            # reset the indices
+            self.users.clear()
+            self.user_ids.clear()
+            self.user_emails.clear()
+            self.discord_users.clear()
+
+            for user in users:
                 self.users[user.login] = user.id
                 self.user_ids[user.id] = user
                 self.user_emails[user.mail] = user.id
 
-                discord_id = self.get_discord_id(user)
-                if discord_id:
-                    self.discord_users[discord_id] = user.id
-                log.debug(f"### indexed {user.login} - discord={discord_id}")
+                #discord_id = user.get_discord_id(user)
+                if user.discord_id:
+                    self.discord_users[user.discord_id] = user.id
             log.debug(f"indexed {len(self.users)} users")
             log.debug(f"discord users: {self.discord_users}")
         else:
-            log.error(f"No users: {response}")
+            log.error("No users to index")
 
 
     def get_teams(self):
         return self.groups.keys()
 
+
     def reindex_groups(self):
-        # reset the indices
-        self.groups.clear()
+        # rebuild the group index
+        response = self.query("/groups.json")
+        if response and response.groups:
+            # reset the indices
+            self.groups.clear()
 
-        # rebuild the indicies
-        response = self.query("/groups.json?limit=1000") ## FIXME max limit? paging?
-        for group in response.groups:
-            self.groups[group.name] = group
+            for group in response.groups:
+                self.groups[group.name] = group
 
-        log.debug(f"indexed {len(self.groups)} groups")
+            log.debug(f"indexed {len(self.groups)} groups")
+        else:
+            log.error(f"No groups to index: {response}")
 
 
     def is_user_in_team(self, username:str, teamname:str) -> bool:
@@ -926,6 +983,6 @@ if __name__ == '__main__':
     load_dotenv()
 
     # construct the client and run the email check
-    client = Client()
+    client = Client.fromenv()
     tickets = client.find_tickets()
     client.format_report(tickets)
