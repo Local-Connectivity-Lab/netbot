@@ -48,7 +48,7 @@ class Client(): ## redmine.Client.fromenv()
         self.user_ids = {}
         self.user_emails = {}
         self.discord_users = {}
-        self.groups = {}
+        self.teams = {}
         self.reindex()
 
 
@@ -247,13 +247,14 @@ class Client(): ## redmine.Client.fromenv()
 
 
     def find_team(self, name):
-        """find a team by name"""
-        response = self.query("/groups.json")
-        for group in response.groups:
-            if group.name == name:
-                return group
-        # not found
-        return None
+        return self.teams[name]
+        #"""find a team by name"""
+        #response = self.query("/groups.json")
+        #for group in response.groups:
+        #    if group.name == name:
+        #        return group
+        ## not found
+        #return None
 
 
     def create_team(self, teamname:str):
@@ -314,8 +315,8 @@ class Client(): ## redmine.Client.fromenv()
             return self.get_user(self.users[name])
         elif name in self.discord_users:
             return self.get_user(self.discord_users[name])
-        elif name in self.groups:
-            return self.groups[name] #ugly. put groups in user collection?
+        elif name in self.teams:
+            return self.teams[name] #ugly. put groups in user collection?
         else:
             return None
 
@@ -871,7 +872,7 @@ class Client(): ## redmine.Client.fromenv()
     def is_user_or_group(self, user:str) -> bool:
         if user in self.users:
             return True
-        elif user in self.groups:
+        elif user in self.teams:
             return True
         else:
             return False
@@ -880,13 +881,10 @@ class Client(): ## redmine.Client.fromenv()
     def get_all_users(self):
         try:
             headers = self.get_headers()
-            response = requests.get(f"{self.url}/users.json", headers=headers, timeout=10) ## TODO
+            response = requests.get(f"{self.url}/users.json?limit=100", headers=headers, timeout=TIMEOUT)
             if response.ok:
-                #resp_json = response.json()
                 user_result = UserResult(**response.json())
-
                 users = user_result.users
-
                 if user_result.total_count > user_result.limit:
                     offset = user_result.limit
                     while offset < user_result.total_count:
@@ -907,6 +905,7 @@ class Client(): ## redmine.Client.fromenv()
             log.exception(f"Exception during get_all_users: {ex}")
 
         return None
+
 
     # python method sync?
     def reindex_users(self):
@@ -936,22 +935,23 @@ class Client(): ## redmine.Client.fromenv()
 
 
     def get_teams(self):
-        return self.groups.keys()
+        return self.teams.keys()
 
 
-    def reindex_groups(self):
+    # TODO: Add a dataclass for Team, and page-unrolling for "all teams"
+    def reindex_teams(self):
         # rebuild the group index
-        response = self.query("/groups.json")
+        response = self.query("/groups.json?limit=100")
         if response and response.groups:
             # reset the indices
-            self.groups.clear()
+            self.teams.clear()
 
-            for group in response.groups:
-                self.groups[group.name] = group
+            for team in response.groups:
+                self.teams[team.name] = team
 
-            log.debug(f"indexed {len(self.groups)} groups")
+            log.debug(f"indexed {len(self.teams)} team")
         else:
-            log.error(f"No groups to index: {response}")
+            log.error(f"No teams to index: {response}")
 
 
     def is_user_in_team(self, username:str, teamname:str) -> bool:
@@ -961,7 +961,7 @@ class Client(): ## redmine.Client.fromenv()
         user = self.find_user(username)
         if user:
             user_id = user.id
-            team = self.get_team(teamname) # requires an API call, could be cashed? only used for testing
+            team = self.get_team(teamname) # requires an API call
 
             if team:
                 for team_user in team.users:
@@ -974,7 +974,7 @@ class Client(): ## redmine.Client.fromenv()
     def reindex(self):
         start = synctime.now()
         self.reindex_users()
-        self.reindex_groups()
+        self.reindex_teams()
         log.debug(f"reindex took {synctime.age(start)}")
 
 
