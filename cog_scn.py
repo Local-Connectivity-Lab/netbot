@@ -75,12 +75,12 @@ class SCNCog(commands.Cog):
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
             discord_name = member.name
 
-        user = self.redmine.find_discord_user(discord_name)
+        user = self.redmine.user_cache.find_user(discord_name)
 
         if user:
             await ctx.respond(f"Discord user: {discord_name} is already configured as redmine user: {user.login}")
         else:
-            user = self.redmine.find_user(redmine_login)
+            user = self.redmine.user_cache.find_user(redmine_login)
             if user:
                 self.redmine.create_discord_mapping(redmine_login, discord_name)
                 await ctx.respond(f"Discord user: {discord_name} has been paired with redmine user: {redmine_login}")
@@ -152,7 +152,7 @@ class SCNCog(commands.Cog):
     @scn.command()
     async def reindex(self, ctx:discord.ApplicationContext):
         """reindex the user and team information"""
-        self.redmine.reindex()
+        self.redmine.user_cache.reindex()
         await ctx.respond("Rebuilt redmine indices.")
 
 
@@ -163,10 +163,10 @@ class SCNCog(commands.Cog):
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
             discord_name = member.name
 
-        user = self.redmine.find_discord_user(discord_name)
+        user = self.redmine.user_cache.find_user(discord_name)
         if user is None:
             await ctx.respond(f"Unknown user, no Discord mapping: {discord_name}")
-        elif self.redmine.find_team(teamname) is None:
+        elif self.redmine.user_cache.find_team(teamname) is None:
             await ctx.respond(f"Unknown team name: {teamname}")
         else:
             self.redmine.join_team(user.login, teamname)
@@ -179,7 +179,7 @@ class SCNCog(commands.Cog):
         if member:
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
             discord_name = member.name
-        user = self.redmine.find_discord_user(discord_name)
+        user = self.redmine.user_cache.find_user(discord_name)
 
         if user:
             self.redmine.leave_team(user.login, teamname)
@@ -216,7 +216,7 @@ class SCNCog(commands.Cog):
     async def block(self, ctx:discord.ApplicationContext, username:str):
         log.debug(f"blocking {username}")
         #user = self.redmine.lookup_user(username)
-        user = self.redmine.find_user(username)
+        user = self.redmine.user_cache.find_user(username)
         if user:
             # add the user to the blocked list
             self.redmine.block_user(user)
@@ -232,7 +232,7 @@ class SCNCog(commands.Cog):
     @scn.command(description="unblock specific a email address")
     async def unblock(self, ctx:discord.ApplicationContext, username:str):
         log.debug(f"unblocking {username}")
-        user = self.redmine.find_user(username)
+        user = self.redmine.user_cache.find_user(username)
         if user:
             self.redmine.unblock_user(user)
             await ctx.respond(f"Unblocked user: {user.login}")

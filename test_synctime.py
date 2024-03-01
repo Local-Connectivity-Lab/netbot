@@ -26,7 +26,7 @@ class TestTime(unittest.TestCase):
 
         # create a new ticket with unique subject
         tag = test_utils.tagstr()
-        user = self.redmine.find_user("philion") # FIXME: create a relaible test_user
+        user = self.redmine.user_cache.find_user("philion") # FIXME: create a relaible test_user
         self.assertIsNotNone(user)
         subject = f"TEST ticket {tag}"
         ticket = self.redmine.create_ticket(user, subject, f"This for {self.id}-{tag}")

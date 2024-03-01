@@ -49,8 +49,8 @@ class TestSCNCog(test_utils.BotTestCase):
 
         # 4.5 check reindex result, and lookup based on login and discord id
         ctx.respond.assert_called_with("Rebuilt redmine indices.")
-        self.assertIsNotNone(self.redmine.find_user(self.user.login))
-        self.assertIsNotNone(self.redmine.find_user(self.discord_user))
+        self.assertIsNotNone(self.redmine.user_cache.find_user(self.user.login))
+        self.assertIsNotNone(self.redmine.user_cache.find_user(self.discord_user))
 
         # join team users
         ctx = self.build_context()

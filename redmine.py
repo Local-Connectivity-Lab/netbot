@@ -12,7 +12,8 @@ import requests
 from dotenv import load_dotenv
 
 import synctime
-from users import UserResult, User
+from session import RedmineSession
+from users import UserResult, User, UserManager, UserCache
 
 log = logging.getLogger(__name__)
 
@@ -44,12 +45,9 @@ class Client(): ## redmine.Client.fromenv()
         if self.url is None:
             raise RedmineException("Unable to load REDMINE_TOKEN", "__init__")
 
-        self.users = {}
-        self.user_ids = {}
-        self.user_emails = {}
-        self.discord_users = {}
-        self.teams = {}
-        self.reindex()
+        session = RedmineSession(url, token)
+        self.user_mgr = UserManager(session)
+        self.user_cache = UserCache(self.user_mgr)
 
 
     @classmethod
@@ -246,9 +244,6 @@ class Client(): ## redmine.Client.fromenv()
             a.set_token(token)
 
 
-    def find_team(self, name):
-        return self.teams[name]
-
 
     def create_team(self, teamname:str):
         if teamname is None or len(teamname.strip()) == 0:
@@ -269,16 +264,14 @@ class Client(): ## redmine.Client.fromenv()
 
         # check status
         if response.ok:
-            self.reindex_teams()
+            self.user_cache.reindex_teams()
             log.info(f"OK create_team {teamname}")
         else:
             raise RedmineException(f"create_team {teamname} failed", response.headers['X-Request-Id'])
 
 
     def get_user(self, user_id:int):
-        """get a user by ID"""
-        if user_id:
-            return self.user_ids[user_id]
+        return self.user_cache.get_user(user_id)
 
 
     def lookup_user(self, username:str):
@@ -303,33 +296,6 @@ class Client(): ## redmine.Client.fromenv()
                 return None
 
 
-    def find_user(self, name):
-        """find a user by name"""
-        # check if name is int, raw user id. then look up in userids
-        # check the indicies
-        if name in self.user_emails:
-            return self.get_user(self.user_emails[name])
-        elif name in self.users:
-            return self.get_user(self.users[name])
-        elif name in self.discord_users:
-            return self.get_user(self.discord_users[name])
-        elif name in self.teams:
-            return self.teams[name] #ugly. put groups in user collection?
-        else:
-            return None
-
-    def find_discord_user(self, discord_user_id:str):
-        """find a user by their discord ID"""
-        if discord_user_id is None:
-            return None
-
-        if discord_user_id in self.discord_users:
-            user_id = self.discord_users[discord_user_id]
-            return self.user_ids[user_id]
-        else:
-            return None
-
-
     def is_user_blocked(self, user) -> bool:
         if self.is_user_in_team(user.login, BLOCKED_TEAM_NAME):
             return True
@@ -339,7 +305,7 @@ class Client(): ## redmine.Client.fromenv()
 
     def block_user(self, user) -> None:
         # check if the blocked team exists
-        blocked_team = self.find_team(BLOCKED_TEAM_NAME)
+        blocked_team = self.user_cache.find_team(BLOCKED_TEAM_NAME)
         if blocked_team is None:
             # create blocked team
             self.create_team(BLOCKED_TEAM_NAME)
@@ -429,7 +395,7 @@ class Client(): ## redmine.Client.fromenv()
             user = User(**r.json()['user'])
 
             log.info(f"created user: {user.id} {user.login} {user.mail}")
-            self.reindex_users() # new user! FIXME reindix or just add?
+            self.user_cache.reindex_users() # new user! FIXME reindix or just add?
 
             # add user to User group
             self.join_team(user.login, "users") ### FIXME move default team name to defaults somewhere
@@ -437,7 +403,7 @@ class Client(): ## redmine.Client.fromenv()
             return user
         elif r.status_code == 403:
             # can't create existing user. log err, but return from cache
-            user = self.find_user(email)
+            user = self.user_mgr.search(email)
             log.error(f"Trying to create existing user email: email={email}, user={user}")
             return user
         else:
@@ -479,7 +445,7 @@ class Client(): ## redmine.Client.fromenv()
     def most_recent_ticket_for(self, email):
         """get the most recent ticket for the user with the given email"""
         # get the user record for the email
-        user = self.find_user(email)
+        user = self.user_mgr.search(email)
 
         if user:
             # query open tickets created by user, sorted by most recently updated, limit 1
@@ -532,7 +498,7 @@ class Client(): ## redmine.Client.fromenv()
 
     def tickets_for_team(self, team_str:str):
         # validate team?
-        team = self.find_user(team_str) # find_user is dsigned to be broad
+        team = self.user_mgr.search(team_str) # find_user is dsigned to be broad
 
         query = f"/issues.json?assigned_to_id={team.id}&status_id=open&sort={DEFAULT_SORT}&limit=100"
         response = self.query(query)
@@ -605,7 +571,7 @@ class Client(): ## redmine.Client.fromenv()
 
 
     def create_discord_mapping(self, redmine_login:str, discord_name:str):
-        user = self.find_user(redmine_login)
+        user = self.user_mgr.search(redmine_login)
 
         field_id = 2 ## "Discord ID"search for me in cached custom fields
         fields = {
@@ -619,12 +585,12 @@ class Client(): ## redmine.Client.fromenv()
 
     def join_team(self, username, teamname:str) -> None:
         # look up user ID
-        user = self.find_user(username)
+        user = self.user_mgr.search(username)
         if user is None:
             raise RedmineException(f"Unknown user name: {username}", "[n/a]")
 
         # map teamname to team
-        team = self.find_team(teamname)
+        team = self.user_cache.find_team(teamname)
         if team is None:
             raise RedmineException(f"Unknown team name: {teamname}", "[n/a]")
 
@@ -648,13 +614,13 @@ class Client(): ## redmine.Client.fromenv()
 
     def leave_team(self, username:int, teamname:str):
         # look up user ID
-        user = self.find_user(username)
+        user = self.user_mgr.search(username)
         if user is None:
             log.warning(f"Unknown user name: {username}")
             return None
 
         # map teamname to team
-        team = self.find_team(teamname)
+        team = self.user_cache.find_team(teamname)
         if team is None:
             log.warning(f"Unknown team name: {teamname}")
             return None
@@ -710,7 +676,7 @@ class Client(): ## redmine.Client.fromenv()
 
 
     def assign_ticket(self, ticket_id, target, user_id=None):
-        user = self.find_user(target)
+        user = self.user_mgr.search(target)
         if user:
             fields = {
                 "assigned_to_id": user.id,
@@ -753,7 +719,7 @@ class Client(): ## redmine.Client.fromenv()
 
 
     def get_team(self, teamname:str):
-        team = self.find_team(teamname)
+        team = self.user_cache.find_team(teamname)
         if team is None:
             log.debug(f"Unknown team name: {teamname}")
             return None
@@ -867,96 +833,12 @@ class Client(): ## redmine.Client.fromenv()
                     return field.value
         return None
 
-    def is_user_or_group(self, user:str) -> bool:
-        if user in self.users:
-            return True
-        elif user in self.teams:
-            return True
-        else:
-            return False
-
-
-    def get_all_users(self):
-        try:
-            headers = self.get_headers()
-            response = requests.get(f"{self.url}/users.json?limit=100", headers=headers, timeout=TIMEOUT)
-            if response.ok:
-                user_result = UserResult(**response.json())
-                users = user_result.users
-                if user_result.total_count > user_result.limit:
-                    offset = user_result.limit
-                    while offset < user_result.total_count:
-                        next_req = f"{self.url}/users.json?offset={offset}&limit={user_result.limit}"
-                        log.debug(f"next request: {next_req}")
-                        next_resp = requests.get(next_req, headers=headers, timeout=10)
-                        next_result = UserResult(**next_resp.json())
-                        users.extend(next_result.users)
-                        offset += next_result.limit
-
-                return users
-            else:
-                log.error(f"Status code {response.status_code} for {response.request.url}, reqid={response.headers['X-Request-Id']}: {response}")
-        except TimeoutError as toe:
-            # ticket-509: Handle timeout gracefully
-            log.warning(f"Timeout during get_all_users: {toe}")
-        except Exception as ex:
-            log.exception(f"Exception during get_all_users: {ex}")
-
-        return None
-
-
-    # python method sync?
-    def reindex_users(self):
-        # rebuild the indicies
-        # looking over issues in redmine and specifically https://www.redmine.org/issues/16069
-        # it seems that redmine has a HARD CODED limit of 100 responses per request.
-        users = self.get_all_users()
-        if users:
-            # reset the indices
-            self.users.clear()
-            self.user_ids.clear()
-            self.user_emails.clear()
-            self.discord_users.clear()
-
-            for user in users:
-                self.users[user.login] = user.id
-                self.user_ids[user.id] = user
-                self.user_emails[user.mail] = user.id
-
-                #discord_id = user.get_discord_id(user)
-                if user.discord_id:
-                    self.discord_users[user.discord_id] = user.id
-            log.debug(f"indexed {len(self.users)} users")
-            log.debug(f"discord users: {self.discord_users}")
-        else:
-            log.error("No users to index")
-
-
-    def get_teams(self):
-        return self.teams.keys()
-
-
-    # TODO: Add a dataclass for Team, and page-unrolling for "all teams"
-    def reindex_teams(self):
-        # rebuild the group index
-        response = self.query("/groups.json?limit=100")
-        if response and response.groups:
-            # reset the indices
-            self.teams.clear()
-
-            for team in response.groups:
-                self.teams[team.name] = team
-
-            log.debug(f"indexed {len(self.teams)} team")
-        else:
-            log.error(f"No teams to index: {response}")
-
 
     def is_user_in_team(self, username:str, teamname:str) -> bool:
         if username is None or teamname is None:
             return False
 
-        user = self.find_user(username)
+        user = self.user_mgr.search(username)
         if user:
             user_id = user.id
             team = self.get_team(teamname) # requires an API call
@@ -967,13 +849,6 @@ class Client(): ## redmine.Client.fromenv()
                         return True
 
         return False
-
-
-    def reindex(self):
-        start = synctime.now()
-        self.reindex_users()
-        self.reindex_teams()
-        log.debug(f"reindex took {synctime.age(start)}")
 
 
 if __name__ == '__main__':

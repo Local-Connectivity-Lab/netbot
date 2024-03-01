@@ -232,7 +232,7 @@ class Client(): ## imap.Client()
             ticket = self.redmine.find_ticket_from_str(subject)
 
         # get user id from from_address
-        user = self.redmine.find_user(addr)
+        user = self.redmine.user_cache.find_user(addr)
         if user is None:
             log.debug(f"Unknown email address, no user found: {addr}, {message.from_address}")
             # create new user

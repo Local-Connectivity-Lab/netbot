@@ -62,7 +62,7 @@ class NetBot(commands.Bot):
                 # IS a thread, check the name
                 ticket_id = self.parse_thread_title(message.channel.name)
                 if ticket_id > 0:
-                    user = self.redmine.find_discord_user(message.author.name)
+                    user = self.redmine.user_cache.find_user(message.author.name)
                     if user:
                         log.debug(f"known user commenting on ticket #{ticket_id}: redmine={user.login}, discord={message.author.name}")
                     else:
@@ -112,7 +112,7 @@ class NetBot(commands.Bot):
         # redmine link format: "Link Text":http://whatever
 
         # check user mapping exists
-        user = self.redmine.find_discord_user(message.author.name)
+        user = self.redmine.user_cache.find_user(message.author.name)
         if user:
             # format the note
             formatted = f'"Discord":{message.jump_url}: {message.content}'

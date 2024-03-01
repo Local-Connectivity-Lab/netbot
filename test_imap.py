@@ -130,7 +130,7 @@ class TestMessages(unittest.TestCase):
     def test_subject_search(self):
         # create a new ticket with unique subject
         tag = test_utils.tagstr()
-        user = self.redmine.find_user("philion") # FIXME: create a relaible test_user
+        user = self.redmine.user_cache.find_user("philion") # FIXME: create a relaible test_user
         self.assertIsNotNone(user)
         subject = f"New ticket with unique marker {tag}"
         ticket = self.redmine.create_ticket(user, subject, f"This for {self.id}-{tag}")
@@ -158,7 +158,7 @@ class TestMessages(unittest.TestCase):
 
         # create a ticket with the tag in the body, not the subject
         tag = test_utils.tagstr()
-        user = self.redmine.find_user("admin")
+        user = self.redmine.user_cache.find_user("admin")
         self.assertIsNotNone(user)
         body = f"Body with {self.id} and {tag}"
         ticket = self.redmine.create_ticket(user, "Boring test ticket", body)

@@ -59,8 +59,8 @@ def create_test_user(redmine:Client, tag:str):
     redmine.create_discord_mapping(user.login, discord_user)
 
     # reindex users and lookup based on login
-    redmine.reindex_users()
-    return redmine.find_user(user.login)
+    redmine.user_cache.reindex_users()
+    return redmine.user_cache.find_user(user.login)
 
 
 class BotTestCase(unittest.IsolatedAsyncioTestCase):
@@ -106,7 +106,7 @@ class BotTestCase(unittest.IsolatedAsyncioTestCase):
         self.full_name = self.user.firstname + " " +  self.user.lastname
         self.discord_user = self.user.discord_id
 
-        self.assertIsNotNone(self.redmine.find_user(self.user.login))
-        self.assertIsNotNone(self.redmine.find_user(self.discord_user))
+        self.assertIsNotNone(self.redmine.user_cache.find_user(self.user.login))
+        self.assertIsNotNone(self.redmine.user_cache.find_user(self.discord_user))
 
         log.debug(f"setUp user {self.user.login} {self.discord_user}")
