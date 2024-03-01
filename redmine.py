@@ -248,13 +248,6 @@ class Client(): ## redmine.Client.fromenv()
 
     def find_team(self, name):
         return self.teams[name]
-        #"""find a team by name"""
-        #response = self.query("/groups.json")
-        #for group in response.groups:
-        #    if group.name == name:
-        #        return group
-        ## not found
-        #return None
 
 
     def create_team(self, teamname:str):
@@ -276,6 +269,7 @@ class Client(): ## redmine.Client.fromenv()
 
         # check status
         if response.ok:
+            self.reindex_teams()
             log.info(f"OK create_team {teamname}")
         else:
             raise RedmineException(f"create_team {teamname} failed", response.headers['X-Request-Id'])
@@ -293,16 +287,20 @@ class Client(): ## redmine.Client.fromenv()
             log.debug("Empty user ID")
             return None
 
-        #response = self.query(f"/users/{user_id}.json")
-        response = self.query(f"/users.json?name={username}")
+        response = requests.get(f"{self.url}/users.json?name={username}",
+                                headers=self.get_headers(), timeout=TIMEOUT)
+        if response.ok:
+            user_result = UserResult(**response.json())
+            log.debug(f"lookup_user: {username} -> {user_result.users}")
 
-        log.debug(f"lookup_user: {username} -> {response.users}")
-
-        if len(response.users) > 0:
-            return response.users[0] # fragile
-        else:
-            log.debug(f"Unknown user: {username}")
-            return None
+            if user_result.total_count == 1:
+                return user_result.users[0]
+            elif user_result.total_count > 1:
+                log.warning(f"Too many results for {username}: {user_result.users}")
+                return user_result.users[0]
+            else:
+                log.debug(f"Unknown user: {username}")
+                return None
 
 
     def find_user(self, name):
