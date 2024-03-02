@@ -27,15 +27,15 @@ class TestRedmine(unittest.TestCase):
         user = test_utils.create_test_user(self.redmine, tag)
 
         # block
-        self.redmine.block_user(user)
-        self.assertTrue(self.redmine.is_user_blocked(user))
+        self.redmine.user_mgr.block(user)
+        self.assertTrue(self.redmine.user_mgr.is_blocked(user))
 
         # unblock
-        self.redmine.unblock_user(user)
-        self.assertFalse(self.redmine.is_user_blocked(user))
+        self.redmine.user_mgr.unblock(user)
+        self.assertFalse(self.redmine.user_mgr.is_blocked(user))
 
         # remove the test user
-        self.redmine.remove_user(user.id)
+        self.redmine.user_mgr.remove(user)
 
 
     def test_blocked_create_ticket(self):
@@ -45,8 +45,8 @@ class TestRedmine(unittest.TestCase):
 
         try:
             # block
-            self.redmine.block_user(user)
-            self.assertTrue(self.redmine.is_user_blocked(user))
+            self.redmine.user_mgr.block(user)
+            self.assertTrue(self.redmine.user_mgr.is_blocked(user))
 
             # create ticket for blocked
             ticket = self.redmine.create_ticket(user, "subject", "body")
@@ -54,7 +54,7 @@ class TestRedmine(unittest.TestCase):
 
         finally:
             # remove the test user
-            self.redmine.remove_user(user.id)
+            self.redmine.user_mgr.remove(user)
 
 
     def test_client_timeout(self):

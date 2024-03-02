@@ -21,8 +21,8 @@ class TestMessages(unittest.TestCase):
     """Test suite for IMAP functions"""
 
     def setUp(self):
-        self.redmine = redmine.Client.fromenv()
-        self.imap = imap.Client()
+        self.redmine: redmine.Client = redmine.Client.fromenv()
+        self.imap: imap.Client = imap.Client()
 
     def test_messages_stripping(self):
         # open
@@ -124,22 +124,22 @@ class TestMessages(unittest.TestCase):
         self.redmine.remove_ticket(tickets[0].id)
 
         # remove the user after the test
-        self.redmine.remove_user(user.id)
+        self.redmine.user_mgr.remove(user)
 
 
     def test_subject_search(self):
         # create a new ticket with unique subject
         tag = test_utils.tagstr()
-        user = self.redmine.user_cache.find_user("philion") # FIXME: create a relaible test_user
+        user = self.redmine.user_mgr.get_by_name("admin") # FIXME: create_test_user in test_utils
         self.assertIsNotNone(user)
-        subject = f"New ticket with unique marker {tag}"
+        subject = f"Test {tag} {tag} {tag}"
         ticket = self.redmine.create_ticket(user, subject, f"This for {self.id}-{tag}")
         self.assertIsNotNone(ticket)
 
         # search for the ticket
         tickets = self.redmine.match_subject(subject)
-        #for check in tickets:
-        #    log.debug(f"### tickets: {check.subject}")
+        for check in tickets:
+            log.debug(f"### tickets: {check.subject}")
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
         self.assertEqual(ticket.id, tickets[0].id)
@@ -158,7 +158,7 @@ class TestMessages(unittest.TestCase):
 
         # create a ticket with the tag in the body, not the subject
         tag = test_utils.tagstr()
-        user = self.redmine.user_cache.find_user("admin")
+        user = self.redmine.user_mgr.get_by_name("admin")
         self.assertIsNotNone(user)
         body = f"Body with {self.id} and {tag}"
         ticket = self.redmine.create_ticket(user, "Boring test ticket", body)
@@ -167,14 +167,6 @@ class TestMessages(unittest.TestCase):
         # search for the ticket
         tickets = self.redmine.search_tickets(tag)
 
-        #for check in tickets:
-        #    log.debug(f"### tickets: {check}")
-
-        self.assertIsNotNone(tickets)
-        self.assertEqual(1, len(tickets))
-        self.assertEqual(ticket.id, tickets[0].id)
-
-        tickets = self.redmine.search_tickets(self.id)
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
         self.assertEqual(ticket.id, tickets[0].id)

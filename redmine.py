@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 import synctime
 from session import RedmineSession
-from users import UserResult, User, UserManager, UserCache
+from users import UserResult, UserManager
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class RedmineException(Exception):
         self.request_id = request_id
 
 
-class Client(): ## redmine.Client.fromenv()
+class Client(): ## redmine.Client
     """redmine client"""
     def __init__(self, url: str, token: str):
         self.url = url
@@ -45,21 +45,14 @@ class Client(): ## redmine.Client.fromenv()
         if self.url is None:
             raise RedmineException("Unable to load REDMINE_TOKEN", "__init__")
 
-        session = RedmineSession(url, token)
-        self.user_mgr = UserManager(session)
-        self.user_cache = UserCache(self.user_mgr)
+        session:RedmineSession = RedmineSession(url, token)
+        self.user_mgr:UserManager = UserManager(session)
 
 
     @classmethod
     def fromenv(cls):
         url = os.getenv('REDMINE_URL')
-        if url is None:
-            raise RedmineException("Unable to load REDMINE_URL", "[n/a]")
-
         token = os.getenv('REDMINE_TOKEN')
-        if token is None:
-            raise RedmineException("Unable to load REDMINE_TOKEN", "__init__")
-
         return cls(url, token)
 
 
@@ -99,7 +92,7 @@ class Client(): ## redmine.Client.fromenv()
 
             # ticket 484 - http://10.10.0.218/issues/484
             # if the user is blocked, "reject" the new ticket
-            if self.is_user_blocked(user):
+            if self.user_mgr.is_blocked(user):
                 log.debug(f"Rejecting ticket #{ticket.id} based on blocked user {user.login}")
                 self.reject_ticket(ticket.id)
                 return self.get_ticket(ticket.id) # refresh the ticket?
@@ -108,30 +101,6 @@ class Client(): ## redmine.Client.fromenv()
         else:
             raise RedmineException(
                 f"create_ticket failed, status=[{response.status_code}] {response.reason}",
-                response.headers['X-Request-Id'])
-
-
-    def update_user(self, user, fields:dict):
-        """update a user record in redmine"""
-        # PUT a simple JSON structure
-        data = {}
-        data['user'] = fields
-
-        response = requests.put(
-            url=f"{self.url}/users/{user.id}.json",
-            timeout=TIMEOUT,
-            data=json.dumps(data),
-            headers=self.get_headers()) # removed user.login impersonation header
-
-        log.debug(f"update user: [{response.status_code}] {response.request.url}, fields: {fields}")
-
-        # check status
-        if response.ok:
-            # TODO get and return the updated user?
-            return user
-        else:
-            raise RedmineException(
-                f"update_user failed, status=[{response.status_code}] {response.reason}",
                 response.headers['X-Request-Id'])
 
 
@@ -245,34 +214,6 @@ class Client(): ## redmine.Client.fromenv()
 
 
 
-    def create_team(self, teamname:str):
-        if teamname is None or len(teamname.strip()) == 0:
-            raise RedmineException(f"Invalid team name: '{teamname}'", "n/a")
-
-        # POST to /groups.json
-        data = {
-            "group": {
-                "name": teamname,
-            }
-        }
-
-        response = requests.post(
-            url=f"{self.url}/groups.json",
-            data=json.dumps(data),
-            timeout=TIMEOUT,
-            headers=self.get_headers())
-
-        # check status
-        if response.ok:
-            self.user_cache.reindex_teams()
-            log.info(f"OK create_team {teamname}")
-        else:
-            raise RedmineException(f"create_team {teamname} failed", response.headers['X-Request-Id'])
-
-
-    def get_user(self, user_id:int):
-        return self.user_cache.get_user(user_id)
-
 
     def lookup_user(self, username:str):
         """Get a user based on ID, directly from redmine"""
@@ -294,27 +235,6 @@ class Client(): ## redmine.Client.fromenv()
             else:
                 log.debug(f"Unknown user: {username}")
                 return None
-
-
-    def is_user_blocked(self, user) -> bool:
-        if self.is_user_in_team(user.login, BLOCKED_TEAM_NAME):
-            return True
-        else:
-            return False
-
-
-    def block_user(self, user) -> None:
-        # check if the blocked team exists
-        blocked_team = self.user_cache.find_team(BLOCKED_TEAM_NAME)
-        if blocked_team is None:
-            # create blocked team
-            self.create_team(BLOCKED_TEAM_NAME)
-
-        self.join_team(user.login, BLOCKED_TEAM_NAME)
-
-
-    def unblock_user(self, user) -> None:
-        self.leave_team(user.login, BLOCKED_TEAM_NAME)
 
 
     def get_tickets_by(self, user):
@@ -371,63 +291,6 @@ class Client(): ## redmine.Client.fromenv()
             return []
 
 
-    def create_user(self, email:str, first:str, last:str):
-        """create a new redmine user"""
-        # TODO: Generate JSON from User object
-        data = {
-            'user': {
-                'login': email,
-                'firstname': first,
-                'lastname': last,
-                'mail': email,
-            }
-        }
-        # on create, assign watcher: sender?
-
-        r = requests.post(
-            url=f"{self.url}/users.json",
-            timeout=TIMEOUT,
-            data=json.dumps(data),
-            headers=self.get_headers())
-
-        # check status
-        if r.ok:
-            user = User(**r.json()['user'])
-
-            log.info(f"created user: {user.id} {user.login} {user.mail}")
-            self.user_cache.reindex_users() # new user! FIXME reindix or just add?
-
-            # add user to User group
-            self.join_team(user.login, "users") ### FIXME move default team name to defaults somewhere
-
-            return user
-        elif r.status_code == 403:
-            # can't create existing user. log err, but return from cache
-            user = self.user_mgr.search(email)
-            log.error(f"Trying to create existing user email: email={email}, user={user}")
-            return user
-        else:
-            log.error(f"create_user, status={r.status_code}: {r.reason}, req-id={r.headers['X-Request-Id']}")
-            #TODO throw exception?
-            return None
-
-
-    # used only in testing
-    def remove_user(self, user_id:int):
-        """remove user frmo redmine. used for testing"""
-        # DELETE to /users/{user_id}.json
-        r = requests.delete(
-            url=f"{self.url}/users/{user_id}.json",
-            timeout=TIMEOUT,
-            headers=self.get_headers())
-
-        # check status
-        if r.ok:
-            log.info(f"deleted user {user_id}")
-        else:
-            log.error(f"Error removing user status={r.status_code}, url={r.request.url}, req_id={r.headers['X-Request-Id']}")
-
-
     def remove_ticket(self, ticket_id:int):
         """delete a ticket in redmine. used for testing"""
         # DELETE to /issues/{ticket_id}.json
@@ -445,7 +308,7 @@ class Client(): ## redmine.Client.fromenv()
     def most_recent_ticket_for(self, email):
         """get the most recent ticket for the user with the given email"""
         # get the user record for the email
-        user = self.user_mgr.search(email)
+        user = self.user_mgr.get_by_name(email)
 
         if user:
             # query open tickets created by user, sorted by most recently updated, limit 1
@@ -498,7 +361,7 @@ class Client(): ## redmine.Client.fromenv()
 
     def tickets_for_team(self, team_str:str):
         # validate team?
-        team = self.user_mgr.search(team_str) # find_user is dsigned to be broad
+        team = self.user_mgr.get_by_name(team_str) # find_user is dsigned to be broad
 
         query = f"/issues.json?assigned_to_id={team.id}&status_id=open&sort={DEFAULT_SORT}&limit=100"
         response = self.query(query)
@@ -570,71 +433,26 @@ class Client(): ## redmine.Client.fromenv()
         # todo: better error reporting back to discord
 
 
-    def create_discord_mapping(self, redmine_login:str, discord_name:str):
-        user = self.user_mgr.search(redmine_login)
-
-        field_id = 2 ## "Discord ID"search for me in cached custom fields
-        fields = {
-            "custom_fields": [
-                { "id": field_id, "value": discord_name } # cf_4, custom field syncdata
-            ]
-        }
-        self.update_user(user, fields)
-        # TODO rebuild user index automatically?
-
-
     def join_team(self, username, teamname:str) -> None:
+        user = self.user_mgr.get_by_name(username)
+        self.user_mgr.join_team(user, teamname)
+
+
+    def leave_team(self, username:int, teamname:str) -> None:
         # look up user ID
-        user = self.user_mgr.search(username)
-        if user is None:
-            raise RedmineException(f"Unknown user name: {username}", "[n/a]")
-
-        # map teamname to team
-        team = self.user_cache.find_team(teamname)
-        if team is None:
-            raise RedmineException(f"Unknown team name: {teamname}", "[n/a]")
-
-        # POST to /group/ID/users.json
-        data = {
-            "user_id": user.id
-        }
-
-        response = requests.post(
-            url=f"{self.url}/groups/{team.id}/users.json",
-            data=json.dumps(data),
-            timeout=TIMEOUT,
-            headers=self.get_headers())
-
-        # check status
-        if response.ok:
-            log.info(f"OK join_team {username}, {teamname}")
-        else:
-            raise RedmineException(f"join_team failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
-
-
-    def leave_team(self, username:int, teamname:str):
-        # look up user ID
-        user = self.user_mgr.search(username)
+        user = self.user_mgr.get_by_name(username)
         if user is None:
             log.warning(f"Unknown user name: {username}")
             return None
 
         # map teamname to team
-        team = self.user_cache.find_team(teamname)
-        if team is None:
-            log.warning(f"Unknown team name: {teamname}")
-            return None
+        #team = self.user_mgr.get_team_by_name(teamname)
+        #if team is None:
+        #    log.warning(f"Unknown team name: {teamname}")
+        #    return None
 
-        # DELETE to /groups/{team-id}/users/{user_id}.json
-        r = requests.delete(
-            url=f"{self.url}/groups/{team.id}/users/{user.id}.json",
-            timeout=TIMEOUT,
-            headers=self.get_headers())
+        self.user_mgr.leave_team(user, teamname)
 
-        # check status
-        if r.status_code != 204:
-            log.error(f"Error removing user from group status={r.status_code}, url={r.request.url}")
-            return None
 
     def get_headers(self, impersonate_id:str=None):
         headers = {
@@ -674,9 +492,8 @@ class Client(): ## redmine.Client.fromenv()
         return None
 
 
-
     def assign_ticket(self, ticket_id, target, user_id=None):
-        user = self.user_mgr.search(target)
+        user = self.user_mgr.get_by_name(target)
         if user:
             fields = {
                 "assigned_to_id": user.id,
@@ -719,19 +536,7 @@ class Client(): ## redmine.Client.fromenv()
 
 
     def get_team(self, teamname:str):
-        team = self.user_cache.find_team(teamname)
-        if team is None:
-            log.debug(f"Unknown team name: {teamname}")
-            return None
-
-        # as per https://www.redmine.org/projects/redmine/wiki/Rest_Groups#GET-2
-        # GET /groups/20.json?include=users
-        response = self.query(f"/groups/{team.id}.json?include=users")
-        if response:
-            return response.group
-        else:
-            #TODO exception?
-            return None
+        return self.user_mgr.get_team_by_name(teamname) # FIXME consistent naming
 
 
     def get_sync_record(self, ticket, expected_channel: int) -> synctime.SyncRecord:
@@ -825,30 +630,7 @@ class Client(): ## redmine.Client.fromenv()
         except AttributeError:
             return "" # or None?
 
-    def get_discord_id(self, user):
-        if user:
-            for field in user.custom_fields:
-                if field.name == DISCORD_ID_FIELD and field.value and len(field.value) > 0:
-                    #log.debug(f"redmine:{user.login} <==> discord:{field.value}")
-                    return field.value
-        return None
 
-
-    def is_user_in_team(self, username:str, teamname:str) -> bool:
-        if username is None or teamname is None:
-            return False
-
-        user = self.user_mgr.search(username)
-        if user:
-            user_id = user.id
-            team = self.get_team(teamname) # requires an API call
-
-            if team:
-                for team_user in team.users:
-                    if team_user.id == user_id:
-                        return True
-
-        return False
 
 
 if __name__ == '__main__':

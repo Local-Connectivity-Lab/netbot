@@ -54,7 +54,7 @@ class TicketsCog(commands.Cog):
             return [ticket]
         except ValueError:
             # not a numeric id, check team
-            if self.redmine.user_cache.is_user_or_group(term):
+            if self.redmine.user_mgr.is_user_or_group(term):
                 return self.redmine.tickets_for_team(term)
             else:
                 # assume a search term
@@ -70,7 +70,7 @@ class TicketsCog(commands.Cog):
         # lookup the user
         log.debug(f"looking for user mapping for {ctx}")
 
-        user = self.redmine.user_cache.find_user(ctx.user.name)
+        user = self.redmine.user_mgr.find(ctx.user.name)
         log.debug(f"found user mapping for {ctx.user.name}: {user}")
 
         args = params.split()
@@ -88,7 +88,7 @@ class TicketsCog(commands.Cog):
         """Update status on a ticket, using: unassign, resolve, progress"""
         try:
             # lookup the user
-            user = self.redmine.user_cache.find_user(ctx.user.name)
+            user = self.redmine.user_mgr.find(ctx.user.name)
             log.debug(f"found user mapping for {ctx.user.name}: {user}")
 
             match action:
@@ -131,7 +131,7 @@ class TicketsCog(commands.Cog):
     @option("title", description="Title of the new SCN ticket")
     @option("add_thread", description="Create a Discord thread for the new ticket", default=False)
     async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str):
-        user = self.redmine.user_cache.find_user(ctx.user.name)
+        user = self.redmine.user_mgr.find(ctx.user.name)
         if user is None:
             await ctx.respond(f"Unknown user: {ctx.user.name}")
             return
@@ -166,7 +166,7 @@ class TicketsCog(commands.Cog):
             # update the discord flag on tickets, add a note with url of thread; thread.jump_url
             # TODO message templates
             note = f"Created Discord thread: {thread.name}: {thread.jump_url}"
-            user = self.redmine.user_cache.find_discord_user(ctx.user.name)
+            user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
             self.redmine.enable_discord_sync(ticket.id, user, note)
 
             await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting

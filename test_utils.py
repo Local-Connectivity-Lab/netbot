@@ -8,9 +8,12 @@ import logging
 import unittest
 from unittest import mock
 
+from dotenv import load_dotenv
+
 import discord
 from discord import ApplicationContext
 from redmine import Client
+from users import User
 
 
 log = logging.getLogger(__name__)
@@ -52,36 +55,45 @@ def create_test_user(redmine:Client, tag:str):
     email = first + "@example.com"
 
     # create new redmine user, using redmine api
-    user = redmine.create_user(email, first, last)
+    user = redmine.user_mgr.create(email, first, last)
 
     # create temp discord mapping with redmine api, assert
+    # create_discord_mapping will cache the new user
     discord_user = "discord-" + tag ### <--
-    redmine.create_discord_mapping(user.login, discord_user)
+    redmine.user_mgr.create_discord_mapping(user, discord_user)
 
-    # reindex users and lookup based on login
-    redmine.user_cache.reindex_users()
-    return redmine.user_cache.find_user(user.login)
+    # lookup based on login
+    return redmine.user_mgr.get_by_name(user.login)
+
+
+def remove_test_users(redmine:Client):
+    for user in redmine.user_mgr.get_all():
+        if user.login.startswith("test-") or user.login == "philion@acmerocket.com":
+            log.info(f"Removing test user: {user.login}")
+            redmine.user_mgr.remove(user)
+
+# TODO delete test tickets and "Search for subject match in email threading" ticket. TAG with test too?
 
 
 class BotTestCase(unittest.IsolatedAsyncioTestCase):
     """Abstract base class for testing Bot features"""
-    redmine = None
-    usertag = None
-    user = None
+    redmine: Client = None
+    usertag: str = None
+    user: User = None
 
     @classmethod
     def setUpClass(cls):
         log.info("Setting up test fixtures")
-        cls.redmine = Client.fromenv()
-        cls.usertag = tagstr()
-        cls.user = create_test_user(cls.redmine, cls.usertag)
+        cls.redmine:Client = Client.fromenv()
+        cls.usertag:str = tagstr()
+        cls.user:User = create_test_user(cls.redmine, cls.usertag)
         log.info(f"Created test user: {cls.user}")
 
 
     @classmethod
     def tearDownClass(cls):
         log.info(f"Tearing down test fixtures: {cls.user}")
-        cls.redmine.remove_user(cls.user.id)
+        cls.redmine.user_mgr.remove(cls.user)
 
 
     def build_context(self) -> ApplicationContext:
@@ -106,7 +118,20 @@ class BotTestCase(unittest.IsolatedAsyncioTestCase):
         self.full_name = self.user.firstname + " " +  self.user.lastname
         self.discord_user = self.user.discord_id
 
-        self.assertIsNotNone(self.redmine.user_cache.find_user(self.user.login))
-        self.assertIsNotNone(self.redmine.user_cache.find_user(self.discord_user))
+        self.assertIsNotNone(self.redmine.user_mgr.find(self.user.login))
+        self.assertIsNotNone(self.redmine.user_mgr.find(self.discord_user))
 
         log.debug(f"setUp user {self.user.login} {self.discord_user}")
+
+
+if __name__ == '__main__':
+    # when running this main, turn on DEBUG
+    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+
+    # load credentials
+    load_dotenv()
+
+    # construct the client and run the email check
+    client = Client.fromenv()
+    remove_test_users(client)

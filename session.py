@@ -72,22 +72,23 @@ class RedmineSession():
             if r.ok:
                 return r.json()
             else:
-                log.error(f"Status code {r.status_code} for {r.request.url}, reqid={r.headers['X-Request-Id']}: {r}")
+                log.error(f"GET {r.status_code} for {r.request.url}, reqid={r.headers['X-Request-Id']}: {r}")
         except TimeoutError as toe:
             # ticket-509: Handle timeout gracefully
             log.warning(f"Timeout during {query_str}: {toe}")
         except Exception as ex:
-            log.warning(f"Excetion during {query_str}: {ex}")
+            log.exception(f"Exception during {query_str}: {ex}")
 
         return None
 
 
     # data=json.dumps(data),
-    def put(self, resource: str, data, user_login: str = None):
+    def put(self, resource: str, data, user_login: str = None) -> bool:
         r = self.session.put(f"{self.url}{resource}", data=data, timeout=TIMEOUT,
                          headers=self.get_headers(user_login))
         if r.ok:
-            return r.json()
+            log.debug(f"PUT {resource}: {data} - {r}")
+            return True
         else:
             raise RedmineException(f"POST failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
 
@@ -95,8 +96,11 @@ class RedmineSession():
     def post(self, resource: str, data, user_login: str = None):
         r = self.session.post(f"{self.url}{resource}", data=data, timeout=TIMEOUT,
                           headers=self.get_headers(user_login))
-        if r.ok:
+        if r.status_code == 201:
+            #log.debug(f"POST {resource}: {data} - {vars(r)}")
             return r.json()
+        elif r.status_code == 204:
+            return None
         else:
             raise RedmineException(f"POST failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
 

@@ -139,9 +139,9 @@ def hash_color(value):
     # consistently-hash the value into a color
     # hash_val = hash(value) <-- this does it inconsistantly (for security reasons)
     hash_val = int(hashlib.md5(value.encode('utf-8')).hexdigest(), 16)
-    r = (hash_val & 0xFF0000) >> 16;
-    g = (hash_val & 0x00FF00) >> 8;
-    b = hash_val & 0x0000FF;
+    r = (hash_val & 0xFF0000) >> 16
+    g = (hash_val & 0x00FF00) >> 8
+    b = hash_val & 0x0000FF
     return f"rgb({r},{g},{b})"
 
 def get_formatted_field(ticket, field):
