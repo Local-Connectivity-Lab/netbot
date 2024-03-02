@@ -192,9 +192,6 @@ class UserCache():
         return False
 
 
-
-
-
 class UserManager():
     """manage redmine users"""
     session: RedmineSession
@@ -241,9 +238,7 @@ class UserManager():
             log.debug(f"updated id={user.id}: user: {user}")
             return user
         else:
-            raise RedmineException(
-                f"update failed, status=[{response.status_code}] {response.reason}",
-                response.headers['X-Request-Id'])
+            return None
 
 
     def get_by_name(self, username:str) -> User:
@@ -332,9 +327,6 @@ class UserManager():
         # check status
         if r:
             log.info(f"deleted user {user.id}")
-        else:
-            log.error(f"Error removing user status={r.status_code}, url={r.request.url}, req_id={r.headers['X-Request-Id']}")
-            # exception?
 
 
     def create_discord_mapping(self, user:User, discord_name:str) -> User:

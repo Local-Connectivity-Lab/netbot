@@ -83,17 +83,16 @@ class RedmineSession():
 
 
     # data=json.dumps(data),
-    def put(self, resource: str, data, user_login: str = None) -> bool:
+    def put(self, resource: str, data:dict, user_login: str = None) -> None:
         r = self.session.put(f"{self.url}{resource}", data=data, timeout=TIMEOUT,
                          headers=self.get_headers(user_login))
         if r.ok:
             log.debug(f"PUT {resource}: {data} - {r}")
-            return True
         else:
-            raise RedmineException(f"POST failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
+            raise RedmineException(f"POST {resource} by {user_login} failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
 
 
-    def post(self, resource: str, data, user_login: str = None):
+    def post(self, resource: str, data:dict, user_login: str = None) -> dict:
         r = self.session.post(f"{self.url}{resource}", data=data, timeout=TIMEOUT,
                           headers=self.get_headers(user_login))
         if r.status_code == 201:
@@ -105,15 +104,13 @@ class RedmineSession():
             raise RedmineException(f"POST failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
 
 
-    def delete(self, resource: str) -> bool:
+    def delete(self, resource: str) -> None:
         r = self.session.delete(
             url=f"{self.url}{resource}",
             timeout=TIMEOUT,
             headers=self.get_headers())
 
-        if r.ok:
-            return True
-        else:
+        if not r.ok:
             raise RedmineException(f"DELETE failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
 
 

@@ -254,6 +254,14 @@ class Client(): ## imap.Client()
             self.redmine.create_ticket(user, subject, message.note, message.attachments)
             log.info(f"Created new ticket for: {user.login}, {subject}, with {len(message.attachments)} attachments")
 
+            """
+            # check status
+            if self.user_mgr.is_blocked(user):
+                log.debug(f"Rejecting ticket #{ticket.id} based on blocked user {user.login}")
+                self.reject_ticket(ticket.id)
+                refresh.
+            """
+
 
     def synchronize(self):
         try:
