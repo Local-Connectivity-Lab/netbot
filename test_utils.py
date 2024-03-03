@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 import discord
 from discord import ApplicationContext
 from redmine import Client
-from users import User
+from users import User, UserManager
 
 
 log = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ def randstr(length:int=12) -> str:
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
 
-def create_test_user(redmine:Client, tag:str):
+def create_test_user(user_mgr:UserManager, tag:str):
     # create new test user name: test-12345@example.com, login test-12345
     first = "test-" + tag
     last = "Testy"
@@ -55,22 +55,22 @@ def create_test_user(redmine:Client, tag:str):
     email = first + "@example.com"
 
     # create new redmine user, using redmine api
-    user = redmine.user_mgr.create(email, first, last)
+    user = user_mgr.create(email, first, last)
 
     # create temp discord mapping with redmine api, assert
     # create_discord_mapping will cache the new user
     discord_user = "discord-" + tag ### <--
-    redmine.user_mgr.create_discord_mapping(user, discord_user)
+    user_mgr.create_discord_mapping(user, discord_user)
 
     # lookup based on login
-    return redmine.user_mgr.get_by_name(user.login)
+    return user_mgr.get_by_name(user.login)
 
 
-def remove_test_users(redmine:Client):
-    for user in redmine.user_mgr.get_all():
+def remove_test_users(user_mgr:UserManager):
+    for user in user_mgr.get_all():
         if user.login.startswith("test-") or user.login == "philion@acmerocket.com":
             log.info(f"Removing test user: {user.login}")
-            redmine.user_mgr.remove(user)
+            user_mgr.remove(user)
 
 # TODO delete test tickets and "Search for subject match in email threading" ticket. TAG with test too?
 

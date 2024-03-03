@@ -4,11 +4,12 @@
 import datetime as dt
 import logging
 import re
+import json
 
 from dataclasses import dataclass
 
 from session import RedmineSession, RedmineException
-from users import CustomField, User, Team
+from users import CustomField, User, Team, NamedId
 import synctime
 
 
@@ -23,27 +24,65 @@ SYNC_FIELD_NAME = "syncdata"
 
 
 @dataclass
+class TicketStatus():
+    """status of a ticket"""
+    id: int
+    name: str
+    id_closed: bool
+
+
+@dataclass
+class PropertyChange(): # https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
+    """a documented change in a single property"""
+    property: str
+    name: str
+    old_value: str
+    new_value: str
+
+
+@dataclass
+class TicketNote(): # https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
+    """a message sent to a ticket"""
+    user: NamedId
+    notes: str
+    created_on: dt.datetime
+    details: list[PropertyChange]
+
+    def __post_init__(self):
+        if self.details:
+            self.details = [PropertyChange(**change) for change in self.details]
+
+
+@dataclass
 class Ticket():
     """Encapsulates a redmine ticket"""
     id: int
-    login: str
-    mail: str
-    custom_fields: dict
-    admin: bool
-    firstname: str
-    lastname: str
-    mail: str
+    project: NamedId
+    tracker: NamedId
+    status: TicketStatus
+    priority: NamedId
+    author: NamedId
+    assigned_to: NamedId
+    subject: str
+    description: str
+    done_ratio: float
+    is_private: bool
+    estimated_hours: float
+    total_estimated_hours: float
+    start_date: dt.date
+    due_date: dt.date
     created_on: dt.datetime
     updated_on: dt.datetime
-    last_login_on: dt.datetime
-    passwd_changed_on: dt.datetime
-    twofa_scheme: str
-    api_key: str = ""
-    status: int = ""
-    custom_fields: list[CustomField]
+    closed_on: dt.datetime
+    spent_hours: float = 0.0
+    total_spent_hours: float = 0.0
+    custom_fields: list[CustomField] = None
+    journals: list[PropertyChange] = None
+
 
     def __post_init__(self):
-        self.custom_fields = [CustomField(**field) for field in self.custom_fields]
+        if self.custom_fields:
+            self.custom_fields = [CustomField(**field) for field in self.custom_fields]
 
 
     def get_custom_field(self, name: str) -> str:
@@ -60,10 +99,12 @@ class TicketsResult:
     total_count: int
     limit: int
     offset: int
-    tickets: list[Ticket]
+    issues: list[Ticket]
+
 
     def __post_init__(self):
-        self.tickets = [Ticket(**ticket) for ticket in self.tickets]
+        if self.issues:
+            self.issues = [Ticket(**ticket) for ticket in self.issues]
 
 
 class TicketManager():
@@ -95,11 +136,16 @@ class TicketManager():
                     "content_type": a.content_type,
                 })
 
-        response = self.session.post(ISSUES_RESOURCE, data, user.login)
+        ## NEW response = self.session.post(ISSUES_RESOURCE, data, user.login)
+        response = self.session.session.post(
+            url=f"{self.session.url}/issues.json",
+            data=json.dumps(data),
+            headers=self.session.get_headers(user.login),
+            timeout=5)
 
         # check status
         if response:
-            return Ticket(**response['issue'])
+            return Ticket(**response.json()['issue'])
         else:
             raise RedmineException(
                 f"create_ticket failed, status=[{response.status_code}] {response.reason}",
@@ -191,7 +237,7 @@ class TicketManager():
             return None
 
 
-    def get(self, ticket_id:int, include_journals:bool = False):
+    def get(self, ticket_id:int, include_journals:bool = False) -> Ticket:
         """get a ticket by ID"""
         if ticket_id is None or ticket_id == 0:
             #log.debug(f"Invalid ticket number: {ticket_id}")
@@ -203,23 +249,28 @@ class TicketManager():
 
         response = self.session.get(query)
         if response:
-            return response['issue']
+            return Ticket(**response['issue'])
         else:
             log.debug(f"Unknown ticket number: {ticket_id}")
             return None
 
 
     #GET /issues.json?issue_id=1,2
-    def get_tickets(self, ticket_ids: list[int]):
+    def get_tickets(self, ticket_ids: list[int]) -> list[Ticket]:
         """get several tickets based on a list of IDs"""
         if ticket_ids is None or len(ticket_ids) == 0:
             log.debug("No ticket numbers supplied to get_tickets.")
             return []
 
-        response = self.session.get(f"/issues.json?issue_id={','.join(ticket_ids)}&status_id=*") # &sort={DEFAULT_SORT} needed?
+        response = self.session.get(f"/issues.json?issue_id={','.join(map(str, ticket_ids))}&status_id=*&sort={DEFAULT_SORT}")
         log.debug(f"query response: {response}")
-        if response is not None and response.total_count > 0:
-            return response['issues']
+        if response:
+            result = TicketsResult(**response)
+            if result.total_count > 0:
+                return result.issues
+            else:
+                return []
+
         else:
             log.info(f"Unknown ticket numbers: {ticket_ids}")
             return []
@@ -236,7 +287,7 @@ class TicketManager():
             return []
 
 
-    def remove_ticket(self, ticket_id:int) -> None:
+    def remove(self, ticket_id:int) -> None:
         """delete a ticket in redmine. used for testing"""
         # DELETE to /issues/{ticket_id}.json
         self.session.delete(f"/issues/{ticket_id}.json")
@@ -281,7 +332,7 @@ class TicketManager():
         tracker=4
         query = f"/issues.json?project_id={project}&tracker_id={tracker}&status_id=*&sort={DEFAULT_SORT}&limit=100"
         response = self.session.get(query)
-        return TicketsResult(**response).tickets
+        return TicketsResult(**response).issues
 
 
     def my_tickets(self, user=None) -> list[Ticket]:
@@ -293,7 +344,7 @@ class TicketManager():
 
         response = TicketsResult(**jresp)
         if response.total_count > 0:
-            return response.tickets
+            return response.issues
         else:
             log.info("No open ticket for me.")
             return None
@@ -309,7 +360,7 @@ class TicketManager():
 
         result = TicketsResult(**response)
         if result.total_count > 0:
-            return result.tickets
+            return result.issues
         else:
             log.info("No open ticket for me.")
             return None
@@ -326,7 +377,8 @@ class TicketManager():
             return None
 
         # the response has only IDs....
-        ids = [result.id for result in response.results]
+        log.debug(f"SEARCH {response}")
+        ids = [result['id'] for result in response['results']]
         # but there's a call to get several tickets
         return self.get_tickets(ids)
 
