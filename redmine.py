@@ -254,6 +254,9 @@ class Client(): ## redmine.Client
 
 
     def get_ticket(self, ticket_id:int, include_journals:bool = False):
+        return self.ticket_mgr.get(ticket_id, include_journals)
+
+    def DELETE_get_ticket(self, ticket_id:int, include_journals:bool = False):
         """get a ticket by ID"""
         if ticket_id is None or ticket_id == 0:
             #log.debug(f"Invalid ticket number: {ticket_id}")
@@ -409,8 +412,11 @@ class Client(): ## redmine.Client
             log.debug(f"subject matched nothing: {subject}")
             return []
 
-    # get the
+
     def get_notes_since(self, ticket_id, timestamp=None):
+        return self.ticket_mgr.get_notes_since(ticket_id, timestamp)
+
+    def DELETE_get_notes_since(self, ticket_id, timestamp=None):
         notes = []
 
         ticket = self.get_ticket(ticket_id, include_journals=True)
@@ -591,9 +597,6 @@ class Client(): ## redmine.Client
             ]
         }
         self.update_ticket(record.ticket_id, fields)
-
-    def get_updated_field(self, ticket) -> dt.datetime:
-        return synctime.parse_str(ticket.updated_on)
 
 
     # NOTE: This implies that ticket should be a full object with methods.

@@ -30,7 +30,6 @@ class TestTime(unittest.TestCase):
         self.assertIsNotNone(user)
         subject = f"TEST ticket {tag}"
         ticket = self.redmine.create_ticket(user, subject, f"This for {self.id}-{tag}")
-        updated = self.redmine.get_updated_field(ticket)
 
         test_channel = 4321
         sync_rec = self.redmine.get_sync_record(ticket, expected_channel=test_channel)
@@ -44,7 +43,7 @@ class TestTime(unittest.TestCase):
         # refetch ticket
         ticket2 = self.redmine.get_ticket(ticket.id)
         sync_rec2 = self.redmine.get_sync_record(ticket2, expected_channel=1111) # NOT the test_channel
-        log.info(f"ticket updated={updated}, {synctime.age(updated)} ago, sync: {sync_rec}")
+        log.info(f"ticket updated={ticket.updated_on}, {synctime.age(ticket.updated_on)} ago, sync: {sync_rec}")
 
         self.assertIsNone(sync_rec2)
 

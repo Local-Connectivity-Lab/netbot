@@ -68,7 +68,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         response_str = ctx.respond.call_args.args[0]
         self.assertIn(ticket_id, response_str)
         self.assertIn(url, response_str)
-        self.assertIn(self.full_name, response_str)
+        self.assertIn(test_title, response_str)
 
         # "progress" the ticket, setting it in-progress and assigning it to "me"
         ctx = self.build_context()
@@ -76,7 +76,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         response_str = ctx.respond.call_args.args[0]
         self.assertIn(ticket_id, response_str)
         self.assertIn(url, response_str)
-        self.assertIn(self.full_name, response_str)
+        self.assertIn(test_title, response_str)
 
         # resolve the ticket
         ctx = self.build_context()
@@ -84,7 +84,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         response_str = ctx.respond.call_args.args[0]
         self.assertIn(ticket_id, response_str)
         self.assertIn(url, response_str)
-        self.assertIn(self.full_name, response_str)
+        self.assertIn(test_title, response_str)
 
         # delete ticket with redmine api, assert
         self.redmine.remove_ticket(int(ticket_id))

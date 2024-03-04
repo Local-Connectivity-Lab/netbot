@@ -28,7 +28,7 @@ class TicketStatus():
     """status of a ticket"""
     id: int
     name: str
-    id_closed: bool
+    is_closed: bool
 
 
 @dataclass
@@ -43,12 +43,16 @@ class PropertyChange(): # https://www.redmine.org/projects/redmine/wiki/Rest_Iss
 @dataclass
 class TicketNote(): # https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
     """a message sent to a ticket"""
+    id: int
     user: NamedId
     notes: str
     created_on: dt.datetime
+    private_notes: bool
     details: list[PropertyChange]
 
     def __post_init__(self):
+        self.user = NamedId(**self.user)
+        self.created_on = synctime.parse_str(self.created_on)
         if self.details:
             self.details = [PropertyChange(**change) for change in self.details]
 
@@ -62,7 +66,6 @@ class Ticket():
     status: TicketStatus
     priority: NamedId
     author: NamedId
-    assigned_to: NamedId
     subject: str
     description: str
     done_ratio: float
@@ -76,21 +79,74 @@ class Ticket():
     closed_on: dt.datetime
     spent_hours: float = 0.0
     total_spent_hours: float = 0.0
+    assigned_to: NamedId = None
     custom_fields: list[CustomField] = None
-    journals: list[PropertyChange] = None
+    journals: list[TicketNote] = None
 
 
     def __post_init__(self):
+        self.status = TicketStatus(**self.status)
+        if self.created_on:
+            self.created_on = synctime.parse_str(self.created_on)
+        if self.updated_on:
+            self.updated_on = synctime.parse_str(self.updated_on)
+        if self.closed_on:
+            self.closed_on = synctime.parse_str(self.closed_on)
+        if self.start_date:
+            self.start_date = synctime.parse_str(self.start_date)
+        if self.due_date:
+            self.due_date = synctime.parse_str(self.due_date)
         if self.custom_fields:
             self.custom_fields = [CustomField(**field) for field in self.custom_fields]
-
+        if self.journals:
+            self.journals = [TicketNote(**note) for note in self.journals]
 
     def get_custom_field(self, name: str) -> str:
-        for field in self.custom_fields:
-            if field.name == name:
-                return field.value
-
+        if self.custom_fields:
+            for field in self.custom_fields:
+                if field.name == name:
+                    return field.value
         return None
+
+
+    def get_sync_record(self, expected_channel: int) -> synctime.SyncRecord:
+        # Parse custom_field into datetime
+        # lookup field by name
+        token = self.get_custom_field(SYNC_FIELD_NAME)
+        if token:
+            record = synctime.SyncRecord.from_token(self.id, token)
+            log.debug(f"created sync_rec from token: {record}")
+            if record:
+                # check channel
+                if record.channel_id == 0:
+                    # no valid channel set in sync data, assume lagacy
+                    record.channel_id = expected_channel
+                    # update the record in redmine after adding the channel info
+                    # self.update_sync_record(record) REALLY needed? should be handled when token created
+                    return record
+                elif record.channel_id != expected_channel:
+                    log.debug(f"channel mismatch: rec={record.channel_id} =/= {expected_channel}, token={token}")
+                    return None
+                else:
+                    return record
+        else:
+            # no token implies not-yet-initialized
+            record = synctime.SyncRecord(self.id, expected_channel, synctime.epoch_datetime())
+            # apply the new sync record back to redmine
+            # self.update_sync_record(record) same REALLY as above ^^^^
+            return record
+
+
+    def get_notes(self, since:dt.datetime=None) -> list[TicketNote]:
+        notes = []
+
+        for note in self.journals:
+            # note.notes is a text field with notes, or empty. if there are no notes, ignore the journal
+            if note.notes:
+                if not since or since < note.created_on:
+                    notes.append(note)
+
+        return notes
 
 
 @dataclass
@@ -393,22 +449,11 @@ class TicketManager():
         return self.get_tickets(ids)
 
 
-    def get_notes_since(self, ticket_id:int, timestamp:dt.datetime=None) -> list[str]:
-        notes = []
-
+    def get_notes_since(self, ticket_id:int, timestamp:dt.datetime=None) -> list[TicketNote]:
+        # get the ticket, with journals
         ticket = self.get(ticket_id, include_journals=True)
         log.debug(f"got ticket {ticket_id} with {len(ticket.journals)} notes")
-
-        for note in ticket.journals:
-            # note.notes is a text field with notes, or empty. if there are no notes, ignore the journal
-            if note.notes and timestamp:
-                created = synctime.parse_str(note.created_on)
-                if created > timestamp:
-                    notes.append(note)
-            elif note.notes:
-                notes.append(note) # append all notes when there's no timestamp
-
-        return notes
+        return ticket.get_notes(since=timestamp)
 
 
     def enable_discord_sync(self, ticket_id, user, note):

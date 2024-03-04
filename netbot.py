@@ -9,6 +9,7 @@ import discord
 from dotenv import load_dotenv
 from discord.ext import commands
 
+from tickets import TicketNote
 import synctime
 import redmine
 
@@ -91,12 +92,13 @@ class NetBot(commands.Bot):
 
     def format_discord_note(self, note):
         """Format a note for Discord"""
-        age = synctime.age_str(synctime.parse_str(note.created_on))
-        message = f"> **{note.user.name}** *{age} ago*\n> {note.notes}"[:MAX_MESSAGE_LEN]
+        age = synctime.age_str(note.created_on)
+        log.info(f"### {note} {age} {note.user}")
+        message = f"> **{note.user}** *{age} ago*\n> {note.notes}"[:MAX_MESSAGE_LEN]
         return message
 
 
-    def gather_redmine_notes(self, ticket, sync_rec:synctime.SyncRecord):
+    def gather_redmine_notes(self, ticket, sync_rec:synctime.SyncRecord) -> list[TicketNote]:
         notes = []
         # get the new notes from the redmine ticket
         redmine_notes = self.redmine.get_notes_since(ticket.id, sync_rec.last_sync)
@@ -149,7 +151,9 @@ class NetBot(commands.Bot):
 
         # start of the process, will become "last update"
         sync_start = synctime.now()
-        sync_rec = self.redmine.get_sync_record(ticket, expected_channel=thread.id)
+        #sync_rec = self.redmine.get_sync_record(ticket, expected_channel=thread.id)
+        sync_rec = ticket.get_sync_record(expected_channel=thread.id)
+
         if sync_rec:
             log.debug(f"sync record: {sync_rec}")
 

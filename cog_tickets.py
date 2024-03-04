@@ -219,5 +219,5 @@ class TicketsCog(commands.Cog):
             fields = ["link","priority","updated","assigned","subject"]
 
         for field in fields:
-            section += self.redmine.get_field(ticket, field) + " " # spacer, one space
+            section += str(self.redmine.get_field(ticket, field)) + " " # spacer, one space
         return section.strip() # remove trailing whitespace
