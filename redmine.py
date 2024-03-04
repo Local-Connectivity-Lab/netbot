@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 import synctime
 from session import RedmineSession
 from users import UserResult, UserManager
+from tickets import TicketManager
+
 
 log = logging.getLogger(__name__)
 
@@ -47,6 +49,7 @@ class Client(): ## redmine.Client
 
         session:RedmineSession = RedmineSession(url, token)
         self.user_mgr:UserManager = UserManager(session)
+        self.ticket_mgr:TicketManager = TicketManager(session)
 
 
     @classmethod
@@ -57,6 +60,9 @@ class Client(): ## redmine.Client
 
 
     def create_ticket(self, user, subject, body, attachments=None):
+        return self.ticket_mgr.create(user, subject, body, attachments)
+
+    def DELETE_create_ticket(self, user, subject, body, attachments=None):
         """create a redmine ticket"""
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
         # would need full param handling to pass that thru discord to get to this invocation
