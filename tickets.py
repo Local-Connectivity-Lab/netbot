@@ -86,6 +86,7 @@ class Ticket():
 
     def __post_init__(self):
         self.status = TicketStatus(**self.status)
+        self.author = NamedId(**self.author)
         if self.created_on:
             self.created_on = synctime.parse_str(self.created_on)
         if self.updated_on:
@@ -251,15 +252,16 @@ class TicketManager():
         # uploads all the attachments,
         # sets the upload token for each
         for a in attachments:
-            token = self.upload_file(user.login, a.payload, a.name, a.content_type)
+            token = self.upload_file(user, a.payload, a.name, a.content_type)
             a.set_token(token)
 
 
-    def get_tickets_by(self, user):
+    def get_tickets_by(self, user) -> list[Ticket]:
         # GET /issues.json?author_id=6
         response = self.session.get(f"/issues.json?author_id={user.id}")
         if response:
-            return response['issues']
+            result = TicketsResult(**response)
+            return result.issues
         else:
             log.debug(f"Unknown user: {user}")
             return None
@@ -321,7 +323,7 @@ class TicketManager():
         self.session.delete(f"/issues/{ticket_id}.json")
 
 
-    def most_recent_ticket_for(self, user:User):
+    def most_recent_ticket_for(self, user:User) -> Ticket:
         """get the most recent ticket for the user with the given email"""
         # get the user record for the email
         if not user:
@@ -329,9 +331,8 @@ class TicketManager():
 
         # query open tickets created by user, sorted by most recently updated, limit 1
         response = self.session.get(f"/issues.json?author_id={user.id}&status_id=open&sort=updated_on:desc&limit=1")
-
-        if response.total_count > 0:
-            return response.issues[0]
+        if response:
+            return TicketsResult(**response)
         else:
             log.info(f"No recent open ticket found for: {user}")
             return None

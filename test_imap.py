@@ -74,7 +74,8 @@ class TestMessages(unittest.TestCase):
 
 
     def test_more_recent_ticket(self):
-        ticket = self.redmine.most_recent_ticket_for("philion")
+        user = self.redmine.user_mgr.get_by_name('admin')
+        ticket = self.redmine.most_recent_ticket_for(user)
         self.assertIsNotNone(ticket)
 
 

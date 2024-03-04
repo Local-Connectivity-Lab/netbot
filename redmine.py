@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 import synctime
 from session import RedmineSession
 from users import User, UserResult, UserManager
-from tickets import TicketManager
+from tickets import Ticket, TicketManager
 
 
 log = logging.getLogger(__name__)
@@ -74,48 +74,12 @@ class Client(): ## redmine.Client
     def upload_file(self, user:User, data, filename, content_type) -> str:
         return self.ticket_mgr.upload_file(user, data, filename, content_type)
 
-    def XXXupload_file(self, user_id, data, filename, content_type):
-        """Upload a file to redmine"""
-        # POST /uploads.json?filename=image.png
-        # Content-Type: application/octet-stream
-        # (request body is the file content)
-
-        headers = {
-            'User-Agent': 'netbot/0.0.1', # TODO update to project version, and add version management
-            'Content-Type': 'application/octet-stream', # <-- VERY IMPORTANT
-            'X-Redmine-API-Key': self.token,
-            'X-Redmine-Switch-User': user_id, # Make sure the comment is noted by the correct user
-        }
-
-        r = requests.post(
-            url=f"{self.url}/uploads.json?filename={filename}",
-            timeout=TIMEOUT,
-            files={ 'upload_file': (filename, data, content_type) },
-            headers=headers)
-
-        # 201 response: {"upload":{"token":"7167.ed1ccdb093229ca1bd0b043618d88743"}}
-        if r.status_code == 201:
-            # all good, get token
-            root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-            token = root.upload.token
-            log.info(f"Uploaded {filename} {content_type}, got token={token}")
-            return token
-        else:
-            #print(vars(r))
-            log.error(f"upload_file, file={filename} {content_type}, status={r.status_code}: {r.reason}, req-id={r.headers['X-Request-Id']}")
-            # todo throw exception
-            #TODO throw exception to show upload failed, and why
-
 
     def upload_attachments(self, user:User, attachments):
-        """Upload a list of attachments"""
-        # uploads all the attachments,
-        # sets the upload token for each
-        for a in attachments:
-            token = self.upload_file(user, a.payload, a.name, a.content_type)
-            a.set_token(token)
+        self.ticket_mgr.upload_attachments(user, attachments)
 
 
+    ## FIXME user logic
     def lookup_user(self, username:str):
         """Get a user based on ID, directly from redmine"""
         if username is None or len(username) == 0:
@@ -138,36 +102,20 @@ class Client(): ## redmine.Client
                 return None
 
 
-    def get_tickets_by(self, user):
-        # GET /issues.json?author_id=6
-        response = self.query(f"/issues.json?author_id={user.id}")
-        if response:
-            return response.issues
-        else:
-            log.debug(f"Unknown user: {user}")
-            return None
+    def get_tickets_by(self, user) -> list[Ticket]:
+        return self.ticket_mgr.get_tickets_by(user)
 
 
-    def get_ticket(self, ticket_id:int, include_journals:bool = False):
+    def get_ticket(self, ticket_id:int, include_journals:bool = False) -> Ticket:
         return self.ticket_mgr.get(ticket_id, include_journals)
 
 
     #GET /issues.xml?issue_id=1,2
-    def get_tickets(self, ticket_ids):
-        """get several tickets based on a list of IDs"""
-        if ticket_ids is None or len(ticket_ids) == 0:
-            log.debug("No ticket numbers supplied to get_tickets.")
-            return []
+    def get_tickets(self, ticket_ids) -> list[Ticket]:
+        return self.ticket_mgr.get_tickets(ticket_ids)
 
-        response = self.query(f"/issues.json?issue_id={','.join(ticket_ids)}&status_id=*&sort={DEFAULT_SORT}")
-        log.debug(f"query response: {response}")
-        if response is not None and response.total_count > 0:
-            return response.issues
-        else:
-            log.info(f"Unknown ticket numbers: {ticket_ids}")
-            return []
 
-    def find_ticket_from_str(self, string:str):
+    def find_ticket_from_str(self, string:str) -> Ticket:
         """parse a ticket number from a string and get the associated ticket"""
         # for now, this is a trivial REGEX to match '#nnn' in a string, and return ticket #nnn
         match = re.search(r'#(\d+)', string)
@@ -180,99 +128,25 @@ class Client(): ## redmine.Client
 
 
     def remove_ticket(self, ticket_id:int):
-        """delete a ticket in redmine. used for testing"""
-        # DELETE to /issues/{ticket_id}.json
-        response = requests.delete(
-            url=f"{self.url}/issues/{ticket_id}.json",
-            timeout=TIMEOUT,
-            headers=self.get_headers())
+        self.ticket_mgr.remove(ticket_id)
 
-        if response.ok:
-            log.info(f"remove_ticket {ticket_id}")
-        else:
-            raise RedmineException(f"remove_ticket failed, status=[{response.status_code}] {response.reason}", response.headers['X-Request-Id'])
+    def most_recent_ticket_for(self, email: str) -> Ticket:
+        return self.ticket_mgr.most_recent_ticket_for(email)
 
+    def new_tickets_since(self, timestamp:dt.datetime) -> list[Ticket]:
+        return self.ticket_mgr.new_tickets_since(timestamp)
 
-    def most_recent_ticket_for(self, email):
-        """get the most recent ticket for the user with the given email"""
-        # get the user record for the email
-        user = self.user_mgr.get_by_name(email)
+    def find_tickets(self) -> list[Ticket]:
+        return self.ticket_mgr.find_tickets()
 
-        if user:
-            # query open tickets created by user, sorted by most recently updated, limit 1
-            response = self.query(f"/issues.json?author_id={user.id}&status_id=open&sort=updated_on:desc&limit=1")
+    def my_tickets(self, user=None) -> list[Ticket]:
+        return self.ticket_mgr.my_tickets(user)
 
-            if response.total_count > 0:
-                return response.issues[0]
-            else:
-                log.info(f"No recent open ticket found for: {user}")
-                return None
-        else:
-            log.warning(f"Unknown email: {email}")
-            return None
+    def tickets_for_team(self, team_str:str) -> list[Ticket]:
+        return self.ticket_mgr.tickets_for_team(team_str)
 
-    def new_tickets_since(self, timestamp:dt.datetime):
-        """get new tickets since provided timestamp"""
-        # query for new tickets since date
-        # To fetch issues created after a certain timestamp (uncrypted filter is ">=2014-01-02T08:12:32Z") :
-        # GET /issues.xml?created_on=%3E%3D2014-01-02T08:12:32Z
-        timestr = dt.datetime.isoformat(timestamp) # time-format.
-        query = f"/issues.json?created_on=%3E%3D{timestr}&sort={DEFAULT_SORT}&limit=100"
-        response = self.query(query)
-
-        if response.total_count > 0:
-            return response.issues
-        else:
-            log.debug(f"No tickets created since {timestamp}")
-            return None
-
-
-    def find_tickets(self):
-        """default ticket query"""
-        # "kanban" query: all ticket open or closed recently
-        project=1
-        tracker=4
-        query = f"/issues.json?project_id={project}&tracker_id={tracker}&status_id=*&sort={DEFAULT_SORT}&limit=100"
-        response = self.query(query)
-
-        return response.issues
-
-    def my_tickets(self, user=None):
-        """get my tickets"""
-        response = self.query(f"/issues.json?assigned_to_id=me&status_id=open&sort={DEFAULT_SORT}&limit=100", user)
-
-        if response.total_count > 0:
-            return response.issues
-        else:
-            log.info("No open ticket for me.")
-            return None
-
-    def tickets_for_team(self, team_str:str):
-        # validate team?
-        team = self.user_mgr.get_by_name(team_str) # find_user is dsigned to be broad
-
-        query = f"/issues.json?assigned_to_id={team.id}&status_id=open&sort={DEFAULT_SORT}&limit=100"
-        response = self.query(query)
-
-        if response.total_count > 0:
-            return response.issues
-        else:
-            log.info(f"No open ticket found for: {team}")
-            return None
-
-    def search_tickets(self, term):
-        """search all text of all tickets (not just open) for the supplied terms"""
-        # todo url-encode term?
-        # note: sort doesn't seem to be working for search
-        query = f"/search.json?q={term}&issues=1&limit=100&sort={DEFAULT_SORT}"
-
-        response = self.query(query)
-
-        ids = []
-        for result in response.results:
-            ids.append(str(result.id))
-
-        return self.get_tickets(ids)
+    def search_tickets(self, term) -> list[Ticket]:
+        return self.ticket_mgr.search(term)
 
     def match_subject(self, subject):
         # todo url-encode term?
@@ -294,23 +168,6 @@ class Client(): ## redmine.Client
 
     def get_notes_since(self, ticket_id, timestamp=None):
         return self.ticket_mgr.get_notes_since(ticket_id, timestamp)
-
-    def DELETE_get_notes_since(self, ticket_id, timestamp=None):
-        notes = []
-
-        ticket = self.get_ticket(ticket_id, include_journals=True)
-        log.debug(f"got ticket {ticket_id} with {len(ticket.journals)} notes")
-
-        for note in ticket.journals:
-            # note.notes is a text field with notes, or empty. if there are no notes, ignore the journal
-            if note.notes and timestamp:
-                created = synctime.parse_str(note.created_on)
-                if created > timestamp:
-                    notes.append(note)
-            elif note.notes:
-                notes.append(note) # append all notes when there's no timestamp
-
-        return notes
 
 
     def enable_discord_sync(self, ticket_id, user, note):
