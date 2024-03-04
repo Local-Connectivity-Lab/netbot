@@ -30,6 +30,9 @@ class TicketStatus():
     name: str
     is_closed: bool
 
+    def __str__(self):
+        return self.name
+
 
 @dataclass
 class PropertyChange(): # https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
@@ -39,16 +42,19 @@ class PropertyChange(): # https://www.redmine.org/projects/redmine/wiki/Rest_Iss
     old_value: str
     new_value: str
 
+    def __str__(self):
+        return f"{self.name}/{self.property} {self.old_value} -> {self.new_value}"
+
 
 @dataclass
 class TicketNote(): # https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
     """a message sent to a ticket"""
     id: int
-    user: NamedId
     notes: str
     created_on: dt.datetime
     private_notes: bool
     details: list[PropertyChange]
+    user: NamedId = None
 
     def __post_init__(self):
         self.user = NamedId(**self.user)
@@ -56,16 +62,13 @@ class TicketNote(): # https://www.redmine.org/projects/redmine/wiki/Rest_IssueJo
         if self.details:
             self.details = [PropertyChange(**change) for change in self.details]
 
+    def __str__(self):
+        return f"#{self.id} - {self.user}: {self.notes}"
 
 @dataclass
 class Ticket():
     """Encapsulates a redmine ticket"""
     id: int
-    project: NamedId
-    tracker: NamedId
-    status: TicketStatus
-    priority: NamedId
-    author: NamedId
     subject: str
     description: str
     done_ratio: float
@@ -77,8 +80,15 @@ class Ticket():
     created_on: dt.datetime
     updated_on: dt.datetime
     closed_on: dt.datetime
+    project: NamedId = None
+    tracker: NamedId = None
+    priority: NamedId = None
+    author: NamedId = None
+    status: TicketStatus = None
+    parent: NamedId = None
     spent_hours: float = 0.0
     total_spent_hours: float = 0.0
+    category: str = None
     assigned_to: NamedId = None
     custom_fields: list[CustomField] = None
     journals: list[TicketNote] = None
@@ -86,6 +96,12 @@ class Ticket():
     def __post_init__(self):
         self.status = TicketStatus(**self.status)
         self.author = NamedId(**self.author)
+        self.priority = NamedId(**self.priority)
+        self.project =  NamedId(**self.project)
+        self.tracker = NamedId(**self.tracker)
+
+        if self.assigned_to:
+            self.assigned_to = NamedId(**self.assigned_to)
         if self.created_on:
             self.created_on = synctime.parse_str(self.created_on)
         if self.updated_on:
@@ -107,6 +123,9 @@ class Ticket():
                 if field.name == name:
                     return field.value
         return None
+
+    def __str__(self):
+        return f"#{self.id} {self.project} {self.status} {self.priority} {self.assigned_to}: {self.subject}"
 
     def get_sync_record(self, expected_channel: int) -> synctime.SyncRecord:
         # Parse custom_field into datetime
@@ -151,7 +170,9 @@ class Ticket():
         return notes
 
     def get_field(self, fieldname):
-        return getattr(self, fieldname)
+        val = getattr(self, fieldname)
+        #log.debug(f">>> {fieldname} = {val}, type={type(val)}")
+        return val
 
 
 
@@ -376,6 +397,7 @@ class TicketManager():
         if not jresp:
             return None
 
+        #log.debug(f"### json: {jresp}")
         response = TicketsResult(**jresp)
         if response.total_count > 0:
             return response.issues

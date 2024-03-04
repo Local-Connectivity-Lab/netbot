@@ -4,14 +4,15 @@
 
 import os
 import logging
-
+from urllib3.exceptions import ConnectTimeoutError
 import requests
+from requests.exceptions import ConnectTimeout, ConnectionError
 
 
 log = logging.getLogger(__name__)
 
 
-TIMEOUT = 10 # seconds
+TIMEOUT = 5 # seconds
 
 
 class RedmineException(Exception):
@@ -73,11 +74,11 @@ class RedmineSession():
                 return r.json()
             else:
                 log.info(f"GET {r.reason}/{r.status_code} url={r.request.url}, reqid={r.headers['X-Request-Id']}")
-        except TimeoutError as toe:
+        except (TimeoutError, ConnectTimeoutError, ConnectTimeout, ConnectionError):
             # ticket-509: Handle timeout gracefully
-            log.warning(f"Timeout during {query_str}: {toe}")
+            log.warning(f"TIMEOUT ({TIMEOUT}s) during {query_str}")
         except Exception as ex:
-            log.exception(f"Exception during {query_str}: {ex}")
+            log.exception(f"{type(ex)} during {query_str}: {ex}")
 
         return None
 

@@ -24,15 +24,20 @@ class CustomField():
     name: str
     value: str
 
+    def __str__(self) -> str:
+        return f"field-{self.id}:{self.name}={self.value}"
 
 @dataclass
 class NamedId:
     '''named ID in redmine'''
     id: int
-    name: str
+    name: str = None
 
     def __str__(self) -> str:
-        return self.name
+        if self.name:
+            return self.name
+        else:
+            return str(self.id)
 
 
 @dataclass
@@ -45,6 +50,9 @@ class Team:
     def __post_init__(self):
         if self.users:
             self.users = [NamedId(**name) for name in self.users]
+
+    def __str__(self) -> str:
+        return self.name
 
 
 @dataclass
@@ -71,13 +79,22 @@ class User():
         self.custom_fields = [CustomField(**field) for field in self.custom_fields]
         self.discord_id = self.get_custom_field(DISCORD_ID_FIELD)
 
-
     def get_custom_field(self, name: str) -> str:
         for field in self.custom_fields:
             if field.name == name:
                 return field.value
 
         return None
+
+    def full_name(self) -> str:
+        if self.firstname is None or len(self.firstname) < 2:
+            return self.lastname
+        if self.lastname is None or len(self.lastname) < 2:
+            return self.firstname
+        return self.firstname + " " + self.lastname
+
+    def __str__(self):
+        return f"#{self.id} {self.full_name()} login={self.login} discord={self.discord_id}"
 
 
 @dataclass
@@ -90,6 +107,9 @@ class UserResult:
 
     def __post_init__(self):
         self.users = [User(**user) for user in self.users]
+
+    def __str__(self):
+        return f"users:({[u.login + ',' for u in self.users]}), total={self.total_count}, {self.limit}/{self.offset}"
 
 
 class UserCache():
@@ -486,7 +506,7 @@ class UserManager():
             log.debug(f"indexed {len(all_users)} users")
             log.debug(f"discord users: {self.cache.discord_users}")
         else:
-            log.error("No users to index")
+            log.warning("No users to index")
 
 
     def reindex_teams(self):
@@ -495,7 +515,7 @@ class UserManager():
             self.cache.teams = all_teams # replace all the cached teams
             log.debug(f"indexed {len(all_teams)} teams")
         else:
-            log.error("No teams to index")
+            log.warning("No teams to index")
 
 
     def reindex(self):

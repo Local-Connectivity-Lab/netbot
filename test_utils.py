@@ -15,7 +15,7 @@ from discord import ApplicationContext
 from users import User, UserManager
 import session
 import tickets
-import redmine
+from redmine import Client
 
 log = logging.getLogger(__name__)
 
@@ -102,14 +102,14 @@ class RedmineTestCase(unittest.TestCase):
 
 class BotTestCase(unittest.IsolatedAsyncioTestCase):
     """Abstract base class for testing Bot features"""
-    redmine: session.RedmineSession = None
+    redmine: Client = None
     usertag: str = None
     user: User = None
 
     @classmethod
     def setUpClass(cls):
         log.info("Setting up test fixtures")
-        cls.redmine:redmine.Client = redmine.Client.fromenv()
+        cls.redmine:Client = Client.fromenv()
         cls.usertag:str = tagstr()
         cls.user:User = create_test_user(cls.redmine.user_mgr, cls.usertag)
         log.info(f"Created test user: {cls.user}")
@@ -125,6 +125,8 @@ class BotTestCase(unittest.IsolatedAsyncioTestCase):
         ctx = mock.AsyncMock(ApplicationContext)
         ctx.user = mock.AsyncMock(discord.Member)
         ctx.user.name = self.discord_user
+        ctx.command = mock.AsyncMock(discord.ApplicationCommand)
+        ctx.command.name = unittest.TestCase.id(self)
         log.debug(f"created ctx with {self.discord_user}: {ctx}")
         return ctx
 

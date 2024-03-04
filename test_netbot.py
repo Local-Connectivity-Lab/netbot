@@ -2,6 +2,7 @@
 """NetBot Test Suite"""
 
 import unittest
+from unittest import mock
 import logging
 
 import discord
@@ -103,9 +104,12 @@ class TestNetbot(test_utils.BotTestCase):
 
     async def test_on_application_command_error(self):
         ctx = self.build_context()
-        error = discord.DiscordException("this is exception " + self.tag)
-        await self.bot.on_application_command_error(ctx, error)
+        error = netbot.NetbotException("this is exception " + self.tag)
+        wrapper = discord.DiscordException("Discord Ex Wrapper")
+        wrapper.__cause__ = error
+        await self.bot.on_application_command_error(ctx, wrapper)
         self.assertIn(self.tag, ctx.respond.call_args.args[0])
+
 
 
 

@@ -68,8 +68,6 @@ class TicketsCog(commands.Cog):
         # add groups to users.
 
         # lookup the user
-        log.debug(f"looking for user mapping for {ctx}")
-
         user = self.redmine.user_mgr.find(ctx.user.name)
         log.debug(f"found user mapping for {ctx.user.name}: {user}")
 

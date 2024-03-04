@@ -10,6 +10,9 @@ import redmine
 import test_utils
 
 
+logging.getLogger().setLevel(logging.ERROR)
+
+
 log = logging.getLogger(__name__)
 
 
@@ -17,7 +20,7 @@ log = logging.getLogger(__name__)
 class TestRedmine(test_utils.RedmineTestCase):
     """Test suite for Redmine client"""
 
-    def test_blocked_user(self):
+    def test_block_user(self):
         # block
         self.user_mgr.block(self.user)
         self.assertTrue(self.user_mgr.is_blocked(self.user))
@@ -47,8 +50,9 @@ class TestRedmine(test_utils.RedmineTestCase):
         # construct an invalid client to try to get a timeout
         try:
             client = redmine.Client("http://192.168.1.42/", "bad-token")
-            log.info(client)
-        except TimeoutError:
+            self.assertIsNotNone(client)
+            #log.info(client)
+        except Exception:
             self.fail("Got unexpected timeout")
 
 

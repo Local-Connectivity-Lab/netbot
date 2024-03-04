@@ -48,6 +48,8 @@ class Client(): ## redmine.Client
         self.user_mgr:UserManager = UserManager(session)
         self.ticket_mgr:TicketManager = TicketManager(session)
 
+        self.user_mgr.reindex() # build the cache when starting
+
 
     @classmethod
     def fromenv(cls):
@@ -161,7 +163,8 @@ class Client(): ## redmine.Client
     def update_sync_record(self, record:synctime.SyncRecord):
         self.ticket_mgr.update_sync_record(record)
 
-    def get_field(self, ticket:Ticket, fieldname:str):
+    # mostly for formatting
+    def get_field(self, ticket:Ticket, fieldname:str) -> str:
         match fieldname:
             case "url":
                 return f"{self.url}/issues/{ticket.id}"
