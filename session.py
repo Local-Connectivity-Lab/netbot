@@ -72,7 +72,7 @@ class RedmineSession():
             if r.ok:
                 return r.json()
             else:
-                log.error(f"GET {r.status_code} for {r.request.url}, reqid={r.headers['X-Request-Id']}: {r}")
+                log.info(f"GET {r.reason}/{r.status_code} url={r.request.url}, reqid={r.headers['X-Request-Id']}")
         except TimeoutError as toe:
             # ticket-509: Handle timeout gracefully
             log.warning(f"Timeout during {query_str}: {toe}")
@@ -93,8 +93,10 @@ class RedmineSession():
 
 
     def post(self, resource: str, data:dict, user_login: str = None) -> dict:
-        r = self.session.post(f"{self.url}{resource}", data=data, timeout=TIMEOUT,
-                          headers=self.get_headers(user_login))
+        r = self.session.post(f"{self.url}{resource}",
+                              data=data,
+                              timeout=TIMEOUT,
+                              headers=self.get_headers(user_login))
         if r.status_code == 201:
             #log.debug(f"POST {resource}: {data} - {vars(r)}")
             return r.json()

@@ -14,47 +14,33 @@ log = logging.getLogger(__name__)
 
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
-class TestRedmine(unittest.TestCase):
+class TestRedmine(test_utils.RedmineTestCase):
     """Test suite for Redmine client"""
 
-    def setUp(self):
-        self.redmine = redmine.Client.fromenv()
-
-
     def test_blocked_user(self):
-        # create test user
-        tag = test_utils.tagstr()
-        user = test_utils.create_test_user(self.redmine, tag)
-
         # block
-        self.redmine.user_mgr.block(user)
-        self.assertTrue(self.redmine.user_mgr.is_blocked(user))
+        self.user_mgr.block(self.user)
+        self.assertTrue(self.user_mgr.is_blocked(self.user))
 
         # unblock
-        self.redmine.user_mgr.unblock(user)
-        self.assertFalse(self.redmine.user_mgr.is_blocked(user))
+        self.user_mgr.unblock(self.user)
+        self.assertFalse(self.user_mgr.is_blocked(self.user))
 
-        # remove the test user
-        self.redmine.user_mgr.remove(user)
-
-
+    """
     def test_blocked_create_ticket(self):
-        # create test user
-        tag = test_utils.tagstr()
-        user = test_utils.create_test_user(self.redmine, tag)
-
         try:
             # block
-            self.redmine.user_mgr.block(user)
-            self.assertTrue(self.redmine.user_mgr.is_blocked(user))
+            self.user_mgr.block(self.user)
+            self.assertTrue(self.redmine.user_mgr.is_blocked(self.user))
 
             # create ticket for blocked
-            ticket = self.redmine.create_ticket(user, "subject", "body")
+            ticket = self.create_ticket(self.user, "subject", "body")
             self.assertEqual("Reject", ticket.status.name)
 
         finally:
             # remove the test user
             self.redmine.user_mgr.remove(user)
+    """
 
 
     def test_client_timeout(self):

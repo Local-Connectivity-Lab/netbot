@@ -136,16 +136,11 @@ class TicketManager():
                     "content_type": a.content_type,
                 })
 
-        ## NEW response = self.session.post(ISSUES_RESOURCE, data, user.login)
-        response = self.session.session.post(
-            url=f"{self.session.url}/issues.json",
-            data=json.dumps(data),
-            headers=self.session.get_headers(user.login),
-            timeout=5)
+        response = self.session.post(ISSUES_RESOURCE, json.dumps(data), user.login)
 
         # check status
         if response:
-            return Ticket(**response.json()['issue'])
+            return Ticket(**response['issue'])
         else:
             raise RedmineException(
                 f"create_ticket failed, status=[{response.status_code}] {response.reason}",

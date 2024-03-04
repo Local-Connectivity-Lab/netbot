@@ -6,9 +6,7 @@ import logging
 
 from dotenv import load_dotenv
 
-import session
-import tickets
-import users
+
 import test_utils
 
 
@@ -16,27 +14,18 @@ log = logging.getLogger(__name__)
 
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
-class TestTicketManager(unittest.TestCase):
+class TestTicketManager(test_utils.RedmineTestCase):
     """Test suite for Redmine ticket manager"""
-
-    def setUp(self):
-        redmine_seesion = session.RedmineSession.fromenv()
-        self.tickets_mgr = tickets.TicketManager(redmine_seesion)
-        self.user_mgr = users.UserManager(redmine_seesion)
-
 
     def test_create_ticket(self):
         # create test user
-        tag = test_utils.tagstr()
-        subject = f"Test {tag} subject"
-        body = f"Test {tag} body"
-
-        user = test_utils.create_test_user(self.user_mgr, tag)
+        subject = f"Test {self.tag} subject"
+        body = f"Test {self.tag} body"
 
         ticket = None
         try:
             # create ticket
-            ticket = self.tickets_mgr.create(user, subject, body)
+            ticket = self.tickets_mgr.create(self.user, subject, body)
             self.assertIsNotNone(ticket)
             self.assertEqual(subject, ticket.subject)
             self.assertEqual(body, ticket.description)
@@ -57,12 +46,12 @@ class TestTicketManager(unittest.TestCase):
                 check3 = self.tickets_mgr.get(ticket.id)
                 self.assertIsNone(check3)
 
-            # remove the test user
-            self.user_mgr.remove(user)
-
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+    logging.basicConfig(level=logging.DEBUG,
+                        format="{asctime} {levelname:<8s} {name:<16} {message}",
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        style='{')
     logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 
     unittest.main()

@@ -12,9 +12,10 @@ from dotenv import load_dotenv
 
 import discord
 from discord import ApplicationContext
-from redmine import Client
 from users import User, UserManager
-
+import session
+import tickets
+import redmine
 
 log = logging.getLogger(__name__)
 
@@ -75,18 +76,42 @@ def remove_test_users(user_mgr:UserManager):
 # TODO delete test tickets and "Search for subject match in email threading" ticket. TAG with test too?
 
 
+class RedmineTestCase(unittest.TestCase):
+    """Abstract base class for testing redmine features"""
+    user_mgr: UserManager
+    tickets_mgr: tickets.TicketManager
+    tag: str
+    user: User
+
+
+    @classmethod
+    def setUpClass(cls):
+        sess = session.RedmineSession.fromenv()
+        cls.user_mgr = UserManager(sess)
+        cls.tickets_mgr = tickets.TicketManager(sess)
+        cls.tag:str = tagstr()
+        cls.user:User = create_test_user(cls.user_mgr, cls.tag)
+        log.info(f"SETUP created test user: {cls.user}")
+
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.user_mgr.remove(cls.user)
+        log.info(f"TEARDOWN removed test user: {cls.user}")
+
+
 class BotTestCase(unittest.IsolatedAsyncioTestCase):
     """Abstract base class for testing Bot features"""
-    redmine: Client = None
+    redmine: session.RedmineSession = None
     usertag: str = None
     user: User = None
 
     @classmethod
     def setUpClass(cls):
         log.info("Setting up test fixtures")
-        cls.redmine:Client = Client.fromenv()
+        cls.redmine:redmine.Client = redmine.Client.fromenv()
         cls.usertag:str = tagstr()
-        cls.user:User = create_test_user(cls.redmine, cls.usertag)
+        cls.user:User = create_test_user(cls.redmine.user_mgr, cls.usertag)
         log.info(f"Created test user: {cls.user}")
 
 
@@ -133,5 +158,6 @@ if __name__ == '__main__':
     load_dotenv()
 
     # construct the client and run the email check
-    client = Client.fromenv()
-    remove_test_users(client)
+    client = session.RedmineSession.fromenv()
+    users = UserManager(client)
+    remove_test_users(users)
