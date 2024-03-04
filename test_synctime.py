@@ -29,21 +29,22 @@ class TestTime(unittest.TestCase):
         user = self.redmine.user_mgr.find("admin") # FIXME: create a relaible test_user
         self.assertIsNotNone(user)
         subject = f"TEST ticket {tag}"
-        ticket = self.redmine.create_ticket(user, subject, f"This for {self.id}-{tag}")
+        ticket = self.redmine.create_ticket(user, subject, f"This for {self.id}-{tag}") # FIXME standard way to create test ticket!
 
         test_channel = 4321
-        sync_rec = self.redmine.get_sync_record(ticket, expected_channel=test_channel)
+        sync_rec = ticket.get_sync_record(expected_channel=test_channel)
         self.assertIsNotNone(sync_rec)
         self.assertEqual(sync_rec.ticket_id, ticket.id)
         self.assertEqual(sync_rec.channel_id, test_channel)
 
-        #### NOTE to morning self: catch 42 with get_sync_record returning None or a valid new erc with the wrong channel.
-        #### FIX IN MORNING.
+        # apply the new sync back to the ticket in test context!
+        # happens aytomatically in sync context
+        self.redmine.ticket_mgr.update_sync_record(sync_rec)
 
         # refetch ticket
         ticket2 = self.redmine.get_ticket(ticket.id)
-        sync_rec2 = self.redmine.get_sync_record(ticket2, expected_channel=1111) # NOT the test_channel
-        log.info(f"ticket updated={ticket.updated_on}, {synctime.age(ticket.updated_on)} ago, sync: {sync_rec}")
+        sync_rec2 = ticket2.get_sync_record(expected_channel=1111) # NOT the test_channel
+        log.info(f"ticket2 updated={ticket2.updated_on}, {synctime.age_str(ticket2.updated_on)} ago, channel: {sync_rec.channel_id}")
 
         self.assertIsNone(sync_rec2)
 

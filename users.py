@@ -466,7 +466,7 @@ class UserManager():
 
         # check status
         if not r:
-            log.error(f"Error removing {user.login} from {teamname}")
+            log.warning(f"Error removing {user.login} from {teamname}")
 
 
 #### ---- indexing stuff

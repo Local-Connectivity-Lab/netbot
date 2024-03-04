@@ -95,28 +95,28 @@ class TestMessages(unittest.TestCase):
         self.assertEqual("philion@acmerocket.com", email)
 
 
+    # FIXME This is very fragile
     def test_new_account_from_email(self):
         # make sure neither the email or subject exist
         # note: these are designed to fail-fast, because trying to manage the user and subject as part of the test failed.
         test_email = "philion@acmerocket.com"
-        user = self.redmine.lookup_user(test_email)
-        self.assertIsNone(user, "Found existing user: {test_email}")
+        user = self.redmine.user_mgr.get_by_name(test_email)
+        self.assertIsNone(user, f"Found existing user: {test_email}")
 
         subject = "Search for subject match in email threading"
         tickets = self.redmine.match_subject(subject)
-        self.assertEqual(0, len(tickets), "Found ticket matching: '{subject}' - {tickets[0].id}, please delete.")
+        self.assertEqual(0, len(tickets), f"Found ticket matching: '{subject}' - {tickets}, please delete.")
 
         with open("test/message-190.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
             log.debug(f"loaded message: {message}")
             self.imap.handle_message("test", message)
 
-        user = self.redmine.lookup_user(test_email)
+        user = self.redmine.user_mgr.find(test_email)
         self.assertIsNotNone(user, f"Couldn't find user for {test_email}")
         self.assertEqual(test_email, user.mail)
 
         # validate the ticket created by message-190
-        #subject = "Search for subject match in email threading"
         tickets = self.redmine.match_subject(subject)
         self.assertEqual(1, len(tickets))
         self.assertEqual(subject, tickets[0].subject)

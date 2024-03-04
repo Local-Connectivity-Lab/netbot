@@ -199,7 +199,7 @@ class TicketsCog(commands.Cog):
             return "No tickets found."
 
         if fields is None:
-            fields = ["link","priority","updated","assigned","subject"]
+            fields = ["link","priority","updated_on","assigned_to","subject"]
 
         section = "**" + title + "**\n"
         for ticket in tickets:
@@ -216,7 +216,7 @@ class TicketsCog(commands.Cog):
     def format_ticket(self, ticket, fields=None):
         section = ""
         if fields is None:
-            fields = ["link","priority","updated","assigned","subject"]
+            fields = ["link","priority","updated_on","assigned_to","subject"]
 
         for field in fields:
             section += str(self.redmine.get_field(ticket, field)) + " " # spacer, one space

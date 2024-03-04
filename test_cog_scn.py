@@ -12,6 +12,8 @@ from cog_scn import SCNCog
 
 import test_utils
 
+logging.getLogger().setLevel(logging.ERROR)
+
 
 log = logging.getLogger(__name__)
 

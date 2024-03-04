@@ -195,7 +195,7 @@ class NetBot(commands.Bot):
         if isinstance(exception, commands.CommandOnCooldown):
             await context.respond("This command is currently on cooldown!")
         else:
-            log.error(f"{context} - {exception}", exc_info=True)
+            log.warning(f"{context} - {exception}", exc_info=True)
             #raise error  # Here we raise other errors to ensure they aren't ignored
             await context.respond(f"Error processing your request: {exception}")
 

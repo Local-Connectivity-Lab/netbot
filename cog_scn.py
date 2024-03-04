@@ -169,7 +169,7 @@ class SCNCog(commands.Cog):
         elif self.redmine.user_mgr.get_team_by_name(teamname) is None:
             await ctx.respond(f"Unknown team name: {teamname}")
         else:
-            self.redmine.join_team(user.login, teamname)
+            self.redmine.user_mgr.join_team(user, teamname)
             await ctx.respond(f"**{discord_name}** has joined *{teamname}*")
 
 
@@ -182,7 +182,7 @@ class SCNCog(commands.Cog):
         user = self.redmine.user_mgr.find(discord_name)
 
         if user:
-            self.redmine.leave_team(user.login, teamname)
+            self.redmine.user_mgr.leave_team(user, teamname)
             await ctx.respond(f"**{discord_name}** has left *{teamname}*")
         else:
             await ctx.respond(f"Unknown Discord user: {discord_name}.")

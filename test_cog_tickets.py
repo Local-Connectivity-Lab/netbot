@@ -12,7 +12,8 @@ from netbot import NetBot
 import test_utils
 
 
-logging.basicConfig(level=logging.FATAL)
+logging.getLogger().setLevel(logging.ERROR)
+
 
 log = logging.getLogger(__name__)
 

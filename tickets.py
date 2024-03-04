@@ -83,7 +83,6 @@ class Ticket():
     custom_fields: list[CustomField] = None
     journals: list[TicketNote] = None
 
-
     def __post_init__(self):
         self.status = TicketStatus(**self.status)
         self.author = NamedId(**self.author)
@@ -109,11 +108,12 @@ class Ticket():
                     return field.value
         return None
 
-
     def get_sync_record(self, expected_channel: int) -> synctime.SyncRecord:
         # Parse custom_field into datetime
         # lookup field by name
         token = self.get_custom_field(SYNC_FIELD_NAME)
+        #log.info(f"### found '{token}' for #{self.id}:{SYNC_FIELD_NAME}")
+        #log.info(f"### custom field: {self.custom_fields}")
         if token:
             record = synctime.SyncRecord.from_token(self.id, token)
             log.debug(f"created sync_rec from token: {record}")
@@ -135,6 +135,7 @@ class Ticket():
             record = synctime.SyncRecord(self.id, expected_channel, synctime.epoch_datetime())
             # apply the new sync record back to redmine
             # self.update_sync_record(record) same REALLY as above ^^^^
+            log.debug(f"created new sync record, none found: {record}")
             return record
 
 
@@ -148,6 +149,10 @@ class Ticket():
                     notes.append(note)
 
         return notes
+
+    def get_field(self, fieldname):
+        return getattr(self, fieldname)
+
 
 
 @dataclass
@@ -422,7 +427,7 @@ class TicketManager():
             return None
 
         # the response has only IDs....
-        ids = [result.id for result in response.results]
+        ids = [result['id'] for result in response['results']]
         # but there's a call to get several tickets
         return self.get_tickets(ids)
 
@@ -446,7 +451,6 @@ class TicketManager():
 
 
     def assign_ticket(self, ticket_id, user:User, user_id=None):
-
         fields = {
             "assigned_to_id": user.id,
             #"status_id": "1", # New

@@ -1,4 +1,4 @@
-#test utils
+#!/usr/bin/env python3
 """Utilities to help testing"""
 
 import time
