@@ -212,18 +212,10 @@ class TicketManager():
 
         data['issue'] = fields
 
-        response = self.session.put(f"{ISSUE_RESOURCE}{ticket_id}.json", data, user_login)
-
-        log.debug(f"update: [{response.status_code}] {response.request.url}, fields: {fields}")
-
-        # check status
-        if response.ok:
+        response = self.session.put(f"{ISSUE_RESOURCE}{ticket_id}.json", json.dumps(data), user_login)
+        if response:
             # no body, so re-get the updated tickets?
             return self.get(ticket_id)
-        else:
-            raise RedmineException(
-                f"update_ticket failed, status=[{response.status_code}] {response.reason}",
-                response.headers['X-Request-Id'])
 
 
     def append_message(self, ticket_id:int, user_login:str, note:str, attachments=None):
@@ -245,36 +237,21 @@ class TicketManager():
                     "content_type": a.content_type,
                 })
 
-        self.session.put(f"{ISSUE_RESOURCE}{ticket_id}.json", data, user_login)
+        self.session.put(f"{ISSUE_RESOURCE}{ticket_id}.json", json.dumps(data), user_login)
         # no return, excepion thrown in case of failure
 
 
-    def upload_file(self, user:User, data:dict, filename:str, content_type) -> str:
+    def upload_file(self, user:User, data, filename:str, content_type) -> str:
         """Upload a file to redmine"""
-        # POST /uploads.json?filename=image.png
-        # Content-Type: application/octet-stream
-        # (request body is the file content)
-
-        r = self.session.post(f"/uploads.json?filename={filename}",
-                              files={'upload_file': (filename, data, content_type)},
-                              user_login=user.login)
-
-        # valid response: {"upload":{"token":"7167.ed1ccdb093229ca1bd0b043618d88743"}}
-        if r:
-            # all good, get token
-            token = r['upload']['token']
-            log.info(f"Uploaded {filename}/{content_type}, got token={token}")
-            return token
-        else:
-            raise RedmineException(f"upload failed {filename}: {r.reason}/{r.status_code}", r.headers['X-Request-Id'])
+        return self.session.upload_file(user.login, data, filename, content_type)
 
 
-    def upload_attachments(self, user_id, attachments):
+    def upload_attachments(self, user:User, attachments):
         """Upload a list of attachments"""
         # uploads all the attachments,
         # sets the upload token for each
         for a in attachments:
-            token = self.upload_file(user_id, a.payload, a.name, a.content_type)
+            token = self.upload_file(user.login, a.payload, a.name, a.content_type)
             a.set_token(token)
 
 

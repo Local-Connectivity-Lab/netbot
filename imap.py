@@ -36,8 +36,8 @@ class Attachment():
         self.payload = payload
         self.token = None
 
-    def upload(self, client, user_id):
-        self.token = client.upload_file(user_id, self.payload, self.name, self.content_type)
+    def upload(self, client, user):
+        self.token = client.upload_file(user, self.payload, self.name, self.content_type)
 
     def set_token(self, token):
         self.token = token

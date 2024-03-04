@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 import synctime
 from session import RedmineSession
-from users import UserResult, UserManager
+from users import User, UserResult, UserManager
 from tickets import TicketManager
 
 
@@ -62,123 +62,19 @@ class Client(): ## redmine.Client
     def create_ticket(self, user, subject, body, attachments=None):
         return self.ticket_mgr.create(user, subject, body, attachments)
 
-    def DELETE_create_ticket(self, user, subject, body, attachments=None):
-        """create a redmine ticket"""
-        # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
-        # would need full param handling to pass that thru discord to get to this invocation
-        # this would be resolved by a Ticket class to emcapsulate.
 
-        data = {
-            'issue': {
-                'project_id': SCN_PROJECT_ID, #FIXME hard-coded project ID
-                'subject': subject,
-                'description': body,
-            }
-        }
-
-        if attachments and len(attachments) > 0:
-            data['issue']['uploads'] = []
-            for a in attachments:
-                data['issue']['uploads'].append({
-                    "token": a.token,
-                    "filename": a.name,
-                    "content_type": a.content_type,
-                })
-
-        response = requests.post(
-            url=f"{self.url}/issues.json",
-            data=json.dumps(data),
-            headers=self.get_headers(user.login),
-            timeout=TIMEOUT)
-
-        # check status
-        if response.ok:
-            root = json.loads(response.text, object_hook= lambda x: SimpleNamespace(**x))
-            ticket = root.issue
-
-            # ticket 484 - http://10.10.0.218/issues/484
-            # if the user is blocked, "reject" the new ticket
-            if self.user_mgr.is_blocked(user):
-                log.debug(f"Rejecting ticket #{ticket.id} based on blocked user {user.login}")
-                self.reject_ticket(ticket.id)
-                return self.get_ticket(ticket.id) # refresh the ticket?
-            else:
-                return ticket
-        else:
-            raise RedmineException(
-                f"create_ticket failed, status=[{response.status_code}] {response.reason}",
-                response.headers['X-Request-Id'])
+    def update_ticket(self, ticket_id:int, fields:dict, user_login:str=None):
+        return self.ticket_mgr.update(ticket_id, fields, user_login)
 
 
-    def update_ticket(self, ticket_id:str, fields:dict, user_login:str=None):
-        """update a redmine ticket"""
-        # PUT a simple JSON structure
-        data = {
-            'issue': {}
-        }
-
-        data['issue'] = fields
-
-        response = requests.put(
-            url=f"{self.url}/issues/{ticket_id}.json",
-            timeout=TIMEOUT,
-            data=json.dumps(data),
-            headers=self.get_headers(user_login))
-
-        # ASIDE: this is a great example of lint standards that just make the code more difficult
-        # to read. There are no good answers for string-too-long.
-        log.debug(
-            f"update ticket: [{response.status_code}] {response.request.url}, fields: {fields}")
-
-        # check status
-        if response.ok:
-            # no body, so re-get the updated tickets?
-            return self.get_ticket(ticket_id)
-        else:
-            raise RedmineException(
-                f"update_ticket failed, status=[{response.status_code}] {response.reason}",
-                response.headers['X-Request-Id'])
+    def append_message(self, ticket_id:int, user_login:str, note:str, attachments=None): # Could be TicketNote
+        return self.ticket_mgr.append_message(ticket_id, user_login, note, attachments)
 
 
-    def append_message(self, ticket_id:int, user_login:str, note:str, attachments=None):
-        """append a note to a ticket"""
-        # PUT a simple JSON structure
-        data = {
-            'issue': {
-                'notes': note,
-            }
-        }
+    def upload_file(self, user:User, data, filename, content_type) -> str:
+        return self.ticket_mgr.upload_file(user, data, filename, content_type)
 
-        # add the attachments
-        if attachments and len(attachments) > 0:
-            data['issue']['uploads'] = []
-            for a in attachments:
-                data['issue']['uploads'].append({
-                    "token": a.token,
-                    "filename": a.name,
-                    "content_type": a.content_type,
-                })
-
-        r = requests.put(
-            url=f"{self.url}/issues/{ticket_id}.json",
-            timeout=TIMEOUT,
-            data=json.dumps(data),
-            headers=self.get_headers(user_login))
-
-        # check status
-        if r.status_code == 204:
-            # all good
-            pass
-        elif r.status_code == 403:
-            # no access
-            #print(f"#### {vars(r)}")
-            log.error(f"{user_login} has no access to add note to ticket #{ticket_id}, req-id={r.headers['X-Request-Id']}")
-        else:
-            log.error(f"append_message, status={r.status_code}: {r.reason}, req-id={r.headers['X-Request-Id']}")
-            #TODO throw exception to show update failed, and why
-
-
-    def upload_file(self, user_id, data, filename, content_type):
+    def XXXupload_file(self, user_id, data, filename, content_type):
         """Upload a file to redmine"""
         # POST /uploads.json?filename=image.png
         # Content-Type: application/octet-stream
@@ -210,15 +106,14 @@ class Client(): ## redmine.Client
             # todo throw exception
             #TODO throw exception to show upload failed, and why
 
-    def upload_attachments(self, user_id, attachments):
+
+    def upload_attachments(self, user:User, attachments):
         """Upload a list of attachments"""
         # uploads all the attachments,
         # sets the upload token for each
         for a in attachments:
-            token = self.upload_file(user_id, a.payload, a.name, a.content_type)
+            token = self.upload_file(user, a.payload, a.name, a.content_type)
             a.set_token(token)
-
-
 
 
     def lookup_user(self, username:str):
@@ -256,22 +151,6 @@ class Client(): ## redmine.Client
     def get_ticket(self, ticket_id:int, include_journals:bool = False):
         return self.ticket_mgr.get(ticket_id, include_journals)
 
-    def DELETE_get_ticket(self, ticket_id:int, include_journals:bool = False):
-        """get a ticket by ID"""
-        if ticket_id is None or ticket_id == 0:
-            #log.debug(f"Invalid ticket number: {ticket_id}")
-            return None
-
-        query = f"/issues/{ticket_id}.json"
-        if include_journals:
-            query += "?include=journals" # as per https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
-
-        response = self.query(query)
-        if response:
-            return response.issue
-        else:
-            log.debug(f"Unknown ticket number: {ticket_id}")
-            return None
 
     #GET /issues.xml?issue_id=1,2
     def get_tickets(self, ticket_ids):

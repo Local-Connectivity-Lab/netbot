@@ -60,7 +60,8 @@ class TestMessages(unittest.TestCase):
     def test_upload(self):
         with open("test/message-161.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
-            self.redmine.upload_attachments("philion", message.attachments)
+            user = self.redmine.user_mgr.get_by_name('admin')
+            self.redmine.upload_attachments(user, message.attachments)
 
 
     def test_doctype_head(self):
