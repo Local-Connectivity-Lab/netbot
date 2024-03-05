@@ -165,6 +165,7 @@ class TicketsCog(commands.Cog):
             # TODO message templates
             note = f"Created Discord thread: {thread.name}: {thread.jump_url}"
             user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
+            log.debug(f">>> found {user} for {ctx.user.name}")
             self.redmine.enable_discord_sync(ticket.id, user, note)
 
             await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting

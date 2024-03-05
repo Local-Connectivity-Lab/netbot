@@ -42,7 +42,7 @@ class TestSCNCog(test_utils.BotTestCase):
 
         # check add result
         #ctx.respond.assert_called_with(
-        #    f"Discord user: {self.discord_user} has been paired with redmine user: {self.user.login}")
+        #    f"Discord user: {self.user.discord_id} has been paired with redmine user: {self.user.login}")
 
         # reindex using cog
         ctx = self.build_context()
@@ -52,7 +52,7 @@ class TestSCNCog(test_utils.BotTestCase):
         # 4.5 check reindex result, and lookup based on login and discord id
         ctx.respond.assert_called_with("Rebuilt redmine indices.")
         self.assertIsNotNone(self.redmine.user_mgr.find(self.user.login))
-        self.assertIsNotNone(self.redmine.user_mgr.find(self.discord_user))
+        self.assertIsNotNone(self.redmine.user_mgr.find(self.user.discord_id))
 
         # join team users
         ctx = self.build_context()
@@ -63,13 +63,13 @@ class TestSCNCog(test_utils.BotTestCase):
 
         # confirm via mock callback and API
         #ctx.respond.assert_called_with(f"Unknown team name: {test_team_name}") # unknown team response!
-        ctx.respond.assert_called_with(f"**{self.discord_user}** has joined *{test_team_name}*")
+        ctx.respond.assert_called_with(f"**{self.user.discord_id}** has joined *{test_team_name}*")
         self.assertTrue(self.redmine.user_mgr.is_user_in_team(self.user, test_team_name), f"{self.user.login} not in team {test_team_name}")
 
         # confirm in team via cog teams response
         ctx = self.build_context()
         await self.cog.teams(ctx, test_team_name)
-        self.assertIn(self.full_name, str(ctx.respond.call_args))
+        self.assertIn(self.user.full_name(), str(ctx.respond.call_args))
 
         # leave team users
         ctx = self.build_context()
@@ -78,12 +78,12 @@ class TestSCNCog(test_utils.BotTestCase):
 
         # confirm via API and callback
         self.assertFalse(self.redmine.user_mgr.is_user_in_team(self.user, test_team_name), f"{self.user.login} *in* team {test_team_name}")
-        ctx.respond.assert_called_with(f"**{self.discord_user}** has left *{test_team_name}*")
+        ctx.respond.assert_called_with(f"**{self.user.discord_id}** has left *{test_team_name}*")
 
         # confirm not in team via cog teams response
         ctx = self.build_context()
         await self.cog.teams(ctx, test_team_name)
-        self.assertNotIn(self.full_name, str(ctx.respond.call_args))
+        self.assertNotIn(self.user.full_name(), str(ctx.respond.call_args))
 
 
     async def test_thread_sync(self):
@@ -148,7 +148,7 @@ class TestSCNCog(test_utils.BotTestCase):
         message = unittest.mock.AsyncMock(discord.Message)
         message.content = f"This is a new note about ticket #{ticket.id} for test {self.tag}"
         message.author = unittest.mock.AsyncMock(discord.Member)
-        message.author.name = self.discord_user
+        message.author.name = self.user.discord_id
 
         thread = unittest.mock.AsyncMock(discord.Thread)
         thread.name = f"Ticket #{ticket.id}: {ticket.subject}"

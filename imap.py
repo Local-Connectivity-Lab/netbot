@@ -45,6 +45,11 @@ class Attachment():
 
 class Message():
     """email message"""
+    from_address: str
+    subject:str
+    attachments: list[Attachment]
+    note: str
+
     def __init__(self, from_addr:str, subject:str):
         self.from_address = from_addr
         self.subject = subject
@@ -251,16 +256,8 @@ class Client(): ## imap.Client()
             log.info(f"Updated ticket #{ticket.id} with message from {user.login} and {len(message.attachments)} attachments")
         else:
             # no open tickets, create new ticket for the email message
-            self.redmine.create_ticket(user, subject, message.note, message.attachments)
-            log.info(f"Created new ticket for: {user.login}, {subject}, with {len(message.attachments)} attachments")
-
-            """
-            # check status
-            if self.user_mgr.is_blocked(user):
-                log.debug(f"Rejecting ticket #{ticket.id} based on blocked user {user.login}")
-                self.reject_ticket(ticket.id)
-                refresh.
-            """
+            ticket = self.redmine.create_ticket(user, subject, message.note, message.attachments)
+            log.info(f"Created new ticket for: {ticket}, with {len(message.attachments)} attachments")
 
 
     def synchronize(self):

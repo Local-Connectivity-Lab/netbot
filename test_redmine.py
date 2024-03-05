@@ -7,6 +7,7 @@ import logging
 from dotenv import load_dotenv
 
 import redmine
+import session
 import test_utils
 
 
@@ -29,27 +30,28 @@ class TestRedmine(test_utils.RedmineTestCase):
         self.user_mgr.unblock(self.user)
         self.assertFalse(self.user_mgr.is_blocked(self.user))
 
-    """
+
     def test_blocked_create_ticket(self):
-        try:
-            # block
-            self.user_mgr.block(self.user)
-            self.assertTrue(self.redmine.user_mgr.is_blocked(self.user))
+        # block
+        self.user_mgr.block(self.user)
+        self.assertTrue(self.user_mgr.is_blocked(self.user))
 
-            # create ticket for blocked
-            ticket = self.create_ticket(self.user, "subject", "body")
-            self.assertEqual("Reject", ticket.status.name)
+        # create ticket for blocked
+        ticket = self.create_test_ticket()
+        self.assertIsNotNone(ticket)
+        self.assertEqual("Reject", ticket.status.name)
 
-        finally:
-            # remove the test user
-            self.redmine.user_mgr.remove(user)
-    """
+        # remove the ticket and unbluck the user
+        self.tickets_mgr.remove(ticket.id)
+        self.user_mgr.unblock(self.user)
+        self.assertFalse(self.user_mgr.is_blocked(self.user))
 
 
     def test_client_timeout(self):
         # construct an invalid client to try to get a timeout
         try:
-            client = redmine.Client("http://192.168.1.42/", "bad-token")
+            bad_session = session.RedmineSession("http://192.168.1.42/", "bad-token")
+            client = redmine.Client(bad_session)
             self.assertIsNotNone(client)
             #log.info(client)
         except Exception:

@@ -54,7 +54,7 @@ class TicketNote(): # https://www.redmine.org/projects/redmine/wiki/Rest_IssueJo
     created_on: dt.datetime
     private_notes: bool
     details: list[PropertyChange]
-    user: NamedId = None
+    user: NamedId | None = None
 
     def __post_init__(self):
         self.user = NamedId(**self.user)
@@ -80,18 +80,18 @@ class Ticket():
     created_on: dt.datetime
     updated_on: dt.datetime
     closed_on: dt.datetime
-    project: NamedId = None
-    tracker: NamedId = None
-    priority: NamedId = None
-    author: NamedId = None
-    status: TicketStatus = None
-    parent: NamedId = None
+    project: NamedId|None = None
+    tracker: NamedId|None = None
+    priority: NamedId|None = None
+    author: NamedId|None = None
+    status: TicketStatus|None = None
+    parent: NamedId|None = None
     spent_hours: float = 0.0
     total_spent_hours: float = 0.0
-    category: str = None
-    assigned_to: NamedId = None
-    custom_fields: list[CustomField] = None
-    journals: list[TicketNote] = None
+    category: str|None = None
+    assigned_to: NamedId|None = None
+    custom_fields: list[CustomField]|None = None
+    journals: list[TicketNote]|None = None
 
     def __post_init__(self):
         self.status = TicketStatus(**self.status)
@@ -117,7 +117,7 @@ class Ticket():
         if self.journals:
             self.journals = [TicketNote(**note) for note in self.journals]
 
-    def get_custom_field(self, name: str) -> str:
+    def get_custom_field(self, name: str) -> str | None:
         if self.custom_fields:
             for field in self.custom_fields:
                 if field.name == name:
@@ -127,7 +127,7 @@ class Ticket():
     def __str__(self):
         return f"#{self.id} {self.project} {self.status} {self.priority} {self.assigned_to}: {self.subject}"
 
-    def get_sync_record(self, expected_channel: int) -> synctime.SyncRecord:
+    def get_sync_record(self, expected_channel: int) -> synctime.SyncRecord | None:
         # Parse custom_field into datetime
         # lookup field by name
         token = self.get_custom_field(SYNC_FIELD_NAME)
@@ -156,9 +156,10 @@ class Ticket():
             # self.update_sync_record(record) same REALLY as above ^^^^
             log.debug(f"created new sync record, none found: {record}")
             return record
+        return None
 
 
-    def get_notes(self, since:dt.datetime=None) -> list[TicketNote]:
+    def get_notes(self, since:dt.datetime|None=None) -> list[TicketNote]:
         notes = []
 
         for note in self.journals:
@@ -230,25 +231,21 @@ class TicketManager():
                 response.headers['X-Request-Id'])
 
 
-    def update(self, ticket_id:str, fields:dict, user_login:str=None) -> Ticket:
+    def update(self, ticket_id:int, fields:dict[str,str], user_login:str|None=None) -> Ticket|None:
         """update a redmine ticket"""
         # PUT a simple JSON structure
         data = {
-            'issue': {}
+            'issue': fields
         }
 
-        data['issue'] = fields
-
-        response = self.session.put(f"{ISSUE_RESOURCE}{ticket_id}.json", json.dumps(data), user_login)
-        if response:
-            # no body, so re-get the updated tickets?
-            return self.get(ticket_id)
+        self.session.put(f"{ISSUE_RESOURCE}{ticket_id}.json", json.dumps(data), user_login)
+        return self.get(ticket_id)
 
 
     def append_message(self, ticket_id:int, user_login:str, note:str, attachments=None):
         """append a note to a ticket"""
         # PUT a simple JSON structure
-        data = {
+        data:dict = {
             'issue': {
                 'notes': note,
             }
@@ -293,7 +290,7 @@ class TicketManager():
             return None
 
 
-    def get(self, ticket_id:int, include_journals:bool = False) -> Ticket:
+    def get(self, ticket_id:int, include_journals:bool = False) -> Ticket|None:
         """get a ticket by ID"""
         if ticket_id is None or ticket_id == 0:
             #log.debug(f"Invalid ticket number: {ticket_id}")
@@ -483,7 +480,7 @@ class TicketManager():
         self.update(ticket_id, fields, user_id)
 
 
-    def progress_ticket(self, ticket_id, user_id=None): # TODO notes
+    def progress_ticket(self, ticket_id, user_id=None):
         fields = {
             "assigned_to_id": "me",
             "status_id": "2", # "In Progress"
@@ -491,12 +488,12 @@ class TicketManager():
         self.update(ticket_id, fields, user_id)
 
 
-    def reject_ticket(self, ticket_id, user_id=None): # TODO notes
+    def reject_ticket(self, ticket_id, user_id=None) -> Ticket:
         fields = {
             "assigned_to_id": "",
             "status_id": "5", # "Reject"
         }
-        self.update(ticket_id, fields, user_id)
+        return self.update(ticket_id, fields, user_id)
 
 
     def unassign_ticket(self, ticket_id, user_id=None):

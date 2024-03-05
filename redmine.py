@@ -28,23 +28,15 @@ STATUS_REJECT = 5 # could to status lookup, based on "reject"
 
 class RedmineException(Exception):
     """redmine exception"""
-    def __init__(self, message: str, request_id: str) -> None:
+    def __init__(self, message: str, request_id: str = "-") -> None:
         super().__init__(message + ", req_id=" + request_id)
         self.request_id = request_id
 
 
-class Client(): ## redmine.Client
+class Client():
     """redmine client"""
-    def __init__(self, url: str, token: str):
-        self.url = url
-        if self.url is None:
-            raise RedmineException("Unable to load REDMINE_URL", "[n/a]")
-
-        self.token = token
-        if self.url is None:
-            raise RedmineException("Unable to load REDMINE_TOKEN", "__init__")
-
-        session:RedmineSession = RedmineSession(url, token)
+    def __init__(self, session:RedmineSession):
+        self.url = session.url
         self.user_mgr:UserManager = UserManager(session)
         self.ticket_mgr:TicketManager = TicketManager(session)
 
@@ -54,15 +46,26 @@ class Client(): ## redmine.Client
     @classmethod
     def fromenv(cls):
         url = os.getenv('REDMINE_URL')
+        if url is None:
+            raise RedmineException("Unable to load REDMINE_URL")
+
         token = os.getenv('REDMINE_TOKEN')
-        return cls(url, token)
+        if token is None:
+            raise RedmineException("Unable to load REDMINE_TOKEN")
+
+        return cls(RedmineSession(url, token))
 
 
-    def create_ticket(self, user, subject, body, attachments=None):
-        return self.ticket_mgr.create(user, subject, body, attachments)
+    def create_ticket(self, user, subject, body, attachments=None) -> Ticket:
+        ticket = self.ticket_mgr.create(user, subject, body, attachments)
+        # check user status, reject the ticket if blocked
+        if self.user_mgr.is_blocked(user):
+            log.debug(f"Rejecting ticket #{ticket.id} based on blocked user {user.login}")
+            ticket = self.ticket_mgr.reject_ticket(ticket.id)
+        return ticket
 
 
-    def update_ticket(self, ticket_id:int, fields:dict, user_login:str=None):
+    def update_ticket(self, ticket_id:int, fields:dict, user_login:str|None=None):
         return self.ticket_mgr.update(ticket_id, fields, user_login)
 
 

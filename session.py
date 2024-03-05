@@ -6,8 +6,9 @@ import os
 import logging
 from urllib3.exceptions import ConnectTimeoutError
 import requests
-from requests.exceptions import ConnectTimeout, ConnectionError
+from requests.exceptions import ConnectTimeout
 
+import dotenv
 
 log = logging.getLogger(__name__)
 
@@ -47,8 +48,12 @@ class RedmineSession():
 
         return cls(url, token)
 
+    @classmethod
+    def fromenvfile(cls):
+        dotenv.load_dotenv()
+        return cls.fromenv()
 
-    def get_headers(self, impersonate_id:str=None):
+    def get_headers(self, impersonate_id:str|None=None):
         headers = {
             'User-Agent': 'netbot/0.0.1', # TODO update to project version, and add version management
             'Content-Type': 'application/json',
@@ -62,11 +67,9 @@ class RedmineSession():
         return headers
 
 
-    def get(self, query_str:str, user:str=None):
+    def get(self, query_str:str, impersonate_id:str|None=None):
         """run a query against a redmine instance"""
-
-        headers = self.get_headers(user)
-
+        headers = self.get_headers(impersonate_id)
         try:
             r = self.session.get(f"{self.url}{query_str}", headers=headers, timeout=TIMEOUT)
 
@@ -83,19 +86,18 @@ class RedmineSession():
         return None
 
 
-    # data=json.dumps(data),
-    def put(self, resource: str, data:dict, user_login: str = None) -> None:
+    def put(self, resource: str, data:str, impersonate_id:str|None=None) -> None:
         r = self.session.put(f"{self.url}{resource}",
                              data=data,
                              timeout=TIMEOUT,
-                             headers=self.get_headers(user_login))
+                             headers=self.get_headers(impersonate_id))
         if r.ok:
-            log.debug(f"PUT {resource}: {data} - {r}")
+            log.debug(f"PUT {resource}: {data}")
         else:
-            raise RedmineException(f"POST {resource} by {user_login} failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
+            raise RedmineException(f"POST {resource} by {impersonate_id} failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
 
 
-    def post(self, resource: str, data:dict = None, user_login: str = None, files = None) -> dict:
+    def post(self, resource: str, data:str, user_login: str|None = None, files: list|None = None) -> dict|None:
         r = self.session.post(f"{self.url}{resource}",
                               data=data,
                               files=files,

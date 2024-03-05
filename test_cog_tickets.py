@@ -115,7 +115,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         thread.name = f"Ticket #{ticket.id}: {subject}"
 
         member = unittest.mock.AsyncMock(discord.Member)
-        member.name=self.discord_user
+        member.name=self.user.discord_id
 
         message = unittest.mock.AsyncMock(discord.Message)
         message.channel = ctx.channel

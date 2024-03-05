@@ -78,77 +78,42 @@ def remove_test_users(user_mgr:UserManager):
 
 class RedmineTestCase(unittest.TestCase):
     """Abstract base class for testing redmine features"""
-    user_mgr: UserManager
-    tickets_mgr: tickets.TicketManager
-    tag: str
-    user: User
-
 
     @classmethod
     def setUpClass(cls):
         sess = session.RedmineSession.fromenv()
-        cls.user_mgr = UserManager(sess)
-        cls.tickets_mgr = tickets.TicketManager(sess)
+        cls.redmine = Client(sess)
+        cls.user_mgr = cls.redmine.user_mgr
+        cls.tickets_mgr = cls.redmine.ticket_mgr
         cls.tag:str = tagstr()
         cls.user:User = create_test_user(cls.user_mgr, cls.tag)
+        cls.user_mgr.cache.cache_user(cls.user)
         log.info(f"SETUP created test user: {cls.user}")
 
-
     @classmethod
     def tearDownClass(cls):
-        cls.user_mgr.remove(cls.user)
-        log.info(f"TEARDOWN removed test user: {cls.user}")
+        if cls.user:
+            cls.user_mgr.remove(cls.user)
+            log.info(f"TEARDOWN removed test user: {cls.user}")
+
+    def create_test_ticket(self) -> tickets.Ticket:
+        subject = f"TEST {self.tag} {unittest.TestCase.id(self)}"
+        text = f"This is a ticket for {unittest.TestCase.id(self)} with {self.tag}."
+        ticket = self.redmine.create_ticket(self.user, subject, text)
+        return ticket
 
 
-class BotTestCase(unittest.IsolatedAsyncioTestCase):
+class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
     """Abstract base class for testing Bot features"""
-    redmine: Client = None
-    usertag: str = None
-    user: User = None
-
-    @classmethod
-    def setUpClass(cls):
-        log.info("Setting up test fixtures")
-        cls.redmine:Client = Client.fromenv()
-        cls.usertag:str = tagstr()
-        cls.user:User = create_test_user(cls.redmine.user_mgr, cls.usertag)
-        log.info(f"Created test user: {cls.user}")
-
-
-    @classmethod
-    def tearDownClass(cls):
-        log.info(f"Tearing down test fixtures: {cls.user}")
-        cls.redmine.user_mgr.remove(cls.user)
-
 
     def build_context(self) -> ApplicationContext:
         ctx = mock.AsyncMock(ApplicationContext)
         ctx.user = mock.AsyncMock(discord.Member)
-        ctx.user.name = self.discord_user
+        ctx.user.name = self.user.discord_id
         ctx.command = mock.AsyncMock(discord.ApplicationCommand)
         ctx.command.name = unittest.TestCase.id(self)
-        log.debug(f"created ctx with {self.discord_user}: {ctx}")
+        log.debug(f"created ctx with {self.user.discord_id}: {ctx}")
         return ctx
-
-
-    def create_test_ticket(self):
-        subject = f"{unittest.TestCase.id(self)} {self.tag}"
-        text = f"This is a ticket for {unittest.TestCase.id(self)} with {self.tag}."
-        return self.redmine.create_ticket(self.user, subject, text)
-
-
-    def setUp(self):
-        self.tag = self.__class__.usertag # TODO just rename usertag to tag - represents the suite run
-        self.assertIsNotNone(self.tag)
-        self.assertIsNotNone(self.user)
-
-        self.full_name = self.user.firstname + " " +  self.user.lastname
-        self.discord_user = self.user.discord_id
-
-        self.assertIsNotNone(self.redmine.user_mgr.find(self.user.login))
-        self.assertIsNotNone(self.redmine.user_mgr.find(self.discord_user))
-
-        log.debug(f"setUp user {self.user.login} {self.discord_user}")
 
 
 if __name__ == '__main__':

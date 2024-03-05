@@ -2,7 +2,6 @@
 """NetBot Test Suite"""
 
 import unittest
-from unittest import mock
 import logging
 
 import discord
@@ -48,7 +47,7 @@ class TestNetbot(test_utils.BotTestCase):
         message = unittest.mock.AsyncMock(discord.Message)
         message.content = f"This is a new note about ticket #{ticket.id} for test {self.tag}"
         message.author = unittest.mock.AsyncMock(discord.Member)
-        message.author.name = self.discord_user
+        message.author.name = self.user.discord_id
 
         thread = unittest.mock.AsyncMock(discord.Thread)
         thread.name = f"Ticket #{ticket.id}"
@@ -62,7 +61,7 @@ class TestNetbot(test_utils.BotTestCase):
 
         # assert method send called on mock thread, with the correct values
         self.assertIn(self.tag, thread.send.call_args.args[0])
-        self.assertIn(self.full_name, thread.send.call_args.args[0])
+        self.assertIn(self.user.full_name(), thread.send.call_args.args[0])
         self.assertIn(body, thread.send.call_args.args[0])
 
         # get notes from redmine, assert tags in most recent
@@ -85,7 +84,7 @@ class TestNetbot(test_utils.BotTestCase):
         message = unittest.mock.AsyncMock(discord.Message)
         message.content = f"This is a new note about ticket #{ticket.id} for test {self.tag}"
         message.author = unittest.mock.AsyncMock(discord.Member)
-        message.author.name = self.discord_user
+        message.author.name = self.user.discord_id
 
         thread = unittest.mock.AsyncMock(discord.Thread)
         thread.name = f"Ticket #{ticket.id}"

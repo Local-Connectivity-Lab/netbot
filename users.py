@@ -118,7 +118,7 @@ class UserCache():
         self.users: dict[str, int] = {}
         self.user_ids: dict[int, User] = {}
         self.user_emails: dict[str, int]  = {}
-        self.discord_users: dict[str, int]  = {}
+        self.discord_ids: dict[str, int]  = {}
         self.teams: dict[str, Team] = {}
 
 
@@ -127,7 +127,7 @@ class UserCache():
         self.users.clear()
         self.user_ids.clear()
         self.user_emails.clear()
-        self.discord_users.clear()
+        self.discord_ids.clear()
 
 
     def cache_user(self, user: User) -> None:
@@ -138,7 +138,7 @@ class UserCache():
         self.users[user.login] = user.id
         self.user_emails[user.mail] = user.id
         if user.discord_id:
-            self.discord_users[user.discord_id] = user.id
+            self.discord_ids[user.discord_id] = user.id
 
 
     def cache_team(self, team: Team) -> None:
@@ -163,8 +163,8 @@ class UserCache():
             return self.get(self.user_emails[name])
         elif name in self.users:
             return self.get(self.users[name])
-        elif name in self.discord_users:
-            return self.get(self.discord_users[name])
+        elif name in self.discord_ids:
+            return self.get(self.discord_ids[name])
         elif name in self.teams:
             return self.teams[name] #ugly. put groups in user collection?
         else:
@@ -181,8 +181,8 @@ class UserCache():
         if discord_user_id is None:
             return None
 
-        if discord_user_id in self.discord_users:
-            user_id = self.discord_users[discord_user_id]
+        if discord_user_id in self.discord_ids:
+            user_id = self.discord_ids[discord_user_id]
             return self.user_ids[user_id]
         else:
             return None
@@ -504,7 +504,7 @@ class UserManager():
                 self.cache.cache_user(user) # several internal indicies
 
             log.debug(f"indexed {len(all_users)} users")
-            log.debug(f"discord users: {self.cache.discord_users}")
+            log.debug(f"discord users: {self.cache.discord_ids}")
         else:
             log.warning("No users to index")
 
@@ -533,7 +533,6 @@ if __name__ == '__main__':
     # load credentials
     from dotenv import load_dotenv
     load_dotenv()
-
     users = UserManager(RedmineSession.fromenv())
     for teamname in users.get_all_teams():
         team = users.get_team_by_name(teamname)
