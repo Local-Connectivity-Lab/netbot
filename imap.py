@@ -36,8 +36,8 @@ class Attachment():
         self.payload = payload
         self.token = None
 
-    def upload(self, client, user_id):
-        self.token = client.upload_file(user_id, self.payload, self.name, self.content_type)
+    def upload(self, client, user):
+        self.token = client.upload_file(user, self.payload, self.name, self.content_type)
 
     def set_token(self, token):
         self.token = token
@@ -45,6 +45,11 @@ class Attachment():
 
 class Message():
     """email message"""
+    from_address: str
+    subject:str
+    attachments: list[Attachment]
+    note: str
+
     def __init__(self, from_addr:str, subject:str):
         self.from_address = from_addr
         self.subject = subject
@@ -90,7 +95,7 @@ class Client(): ## imap.Client()
         self.host = os.getenv('IMAP_HOST')
         self.user = os.getenv('IMAP_USER')
         self.passwd = os.getenv('IMAP_PASSWORD')
-        self.redmine = redmine.Client()
+        self.redmine:redmine.Client = redmine.Client.fromenv()
 
     # note: not happy with this method of dealing with complex email address
     # but I don't see a better way. open to suggestions
@@ -232,11 +237,11 @@ class Client(): ## imap.Client()
             ticket = self.redmine.find_ticket_from_str(subject)
 
         # get user id from from_address
-        user = self.redmine.find_user(addr)
+        user = self.redmine.user_mgr.get_by_name(addr)
         if user is None:
             log.debug(f"Unknown email address, no user found: {addr}, {message.from_address}")
             # create new user
-            user = self.redmine.create_user(addr, first, last)
+            user = self.redmine.user_mgr.create(addr, first, last)
             log.info(f"Unknow user: {addr}, created new account.")
 
         #  upload any attachments
@@ -251,8 +256,8 @@ class Client(): ## imap.Client()
             log.info(f"Updated ticket #{ticket.id} with message from {user.login} and {len(message.attachments)} attachments")
         else:
             # no open tickets, create new ticket for the email message
-            self.redmine.create_ticket(user, subject, message.note, message.attachments)
-            log.info(f"Created new ticket for: {user.login}, {subject}, with {len(message.attachments)} attachments")
+            ticket = self.redmine.create_ticket(user, subject, message.note, message.attachments)
+            log.info(f"Created new ticket for: {ticket}, with {len(message.attachments)} attachments")
 
 
     def synchronize(self):

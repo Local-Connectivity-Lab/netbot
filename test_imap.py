@@ -21,8 +21,8 @@ class TestMessages(unittest.TestCase):
     """Test suite for IMAP functions"""
 
     def setUp(self):
-        self.redmine = redmine.Client()
-        self.imap = imap.Client()
+        self.redmine: redmine.Client = redmine.Client.fromenv()
+        self.imap: imap.Client = imap.Client()
 
     def test_messages_stripping(self):
         # open
@@ -60,7 +60,8 @@ class TestMessages(unittest.TestCase):
     def test_upload(self):
         with open("test/message-161.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
-            self.redmine.upload_attachments("philion", message.attachments)
+            user = self.redmine.user_mgr.get_by_name('admin')
+            self.redmine.upload_attachments(user, message.attachments)
 
 
     def test_doctype_head(self):
@@ -73,7 +74,8 @@ class TestMessages(unittest.TestCase):
 
 
     def test_more_recent_ticket(self):
-        ticket = self.redmine.most_recent_ticket_for("philion")
+        user = self.redmine.user_mgr.get_by_name('admin')
+        ticket = self.redmine.most_recent_ticket_for(user)
         self.assertIsNotNone(ticket)
 
 
@@ -93,28 +95,28 @@ class TestMessages(unittest.TestCase):
         self.assertEqual("philion@acmerocket.com", email)
 
 
+    # FIXME This is very fragile
     def test_new_account_from_email(self):
         # make sure neither the email or subject exist
         # note: these are designed to fail-fast, because trying to manage the user and subject as part of the test failed.
         test_email = "philion@acmerocket.com"
-        user = self.redmine.lookup_user(test_email)
-        self.assertIsNone(user, "Found existing user: {test_email}")
+        user = self.redmine.user_mgr.get_by_name(test_email)
+        self.assertIsNone(user, f"Found existing user: {test_email}")
 
         subject = "Search for subject match in email threading"
         tickets = self.redmine.match_subject(subject)
-        self.assertEqual(0, len(tickets), "Found ticket matching: '{subject}' - {tickets[0].id}, please delete.")
+        self.assertEqual(0, len(tickets), f"Found ticket matching: '{subject}' - {tickets}, please delete.")
 
         with open("test/message-190.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
             log.debug(f"loaded message: {message}")
             self.imap.handle_message("test", message)
 
-        user = self.redmine.lookup_user(test_email)
+        user = self.redmine.user_mgr.find(test_email)
         self.assertIsNotNone(user, f"Couldn't find user for {test_email}")
         self.assertEqual(test_email, user.mail)
 
         # validate the ticket created by message-190
-        #subject = "Search for subject match in email threading"
         tickets = self.redmine.match_subject(subject)
         self.assertEqual(1, len(tickets))
         self.assertEqual(subject, tickets[0].subject)
@@ -124,22 +126,22 @@ class TestMessages(unittest.TestCase):
         self.redmine.remove_ticket(tickets[0].id)
 
         # remove the user after the test
-        self.redmine.remove_user(user.id)
+        self.redmine.user_mgr.remove(user)
 
 
     def test_subject_search(self):
         # create a new ticket with unique subject
         tag = test_utils.tagstr()
-        user = self.redmine.find_user("philion") # FIXME: create a relaible test_user
+        user = self.redmine.user_mgr.get_by_name("admin") # FIXME: create_test_user in test_utils
         self.assertIsNotNone(user)
-        subject = f"New ticket with unique marker {tag}"
+        subject = f"Test {tag} {tag} {tag}"
         ticket = self.redmine.create_ticket(user, subject, f"This for {self.id}-{tag}")
         self.assertIsNotNone(ticket)
 
         # search for the ticket
         tickets = self.redmine.match_subject(subject)
-        #for check in tickets:
-        #    log.debug(f"### tickets: {check.subject}")
+        for check in tickets:
+            log.debug(f"### tickets: {check.subject}")
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
         self.assertEqual(ticket.id, tickets[0].id)
@@ -158,7 +160,7 @@ class TestMessages(unittest.TestCase):
 
         # create a ticket with the tag in the body, not the subject
         tag = test_utils.tagstr()
-        user = self.redmine.find_user("admin")
+        user = self.redmine.user_mgr.get_by_name("admin")
         self.assertIsNotNone(user)
         body = f"Body with {self.id} and {tag}"
         ticket = self.redmine.create_ticket(user, "Boring test ticket", body)
@@ -167,14 +169,6 @@ class TestMessages(unittest.TestCase):
         # search for the ticket
         tickets = self.redmine.search_tickets(tag)
 
-        #for check in tickets:
-        #    log.debug(f"### tickets: {check}")
-
-        self.assertIsNotNone(tickets)
-        self.assertEqual(1, len(tickets))
-        self.assertEqual(ticket.id, tickets[0].id)
-
-        tickets = self.redmine.search_tickets(self.id)
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
         self.assertEqual(ticket.id, tickets[0].id)

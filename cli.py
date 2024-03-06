@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 
 import io
-import sys
 import logging
 import datetime as dt
-import math
-import random
-import time
+
 
 import hashlib
 import click
@@ -28,7 +25,7 @@ log = logging.getLogger(__name__)
 # redmine client
 # load creds into env, and init the redmine client
 load_dotenv()
-redmine_client = redmine.Client()
+redmine_client = redmine.Client.fromenv()
 
 # figure out what the term refers to
 # better way?
@@ -94,13 +91,13 @@ def print_tickets_md(tickets, fields=["link","status","priority","age","assigned
         table.add_row(*row)
 
     console.print(table)
-    
+
     buffer = io.StringIO(console.file.getvalue())
-    
+
     for line in buffer:
         print(f"{line.strip()}")
-        
-        
+
+
 def print_team(team):
     console = Console()
     table = Table(show_header=True, box=box.SIMPLE_HEAD, collapse_padding=True, header_style="bold magenta")
@@ -142,9 +139,9 @@ def hash_color(value):
     # consistently-hash the value into a color
     # hash_val = hash(value) <-- this does it inconsistantly (for security reasons)
     hash_val = int(hashlib.md5(value.encode('utf-8')).hexdigest(), 16)
-    r = (hash_val & 0xFF0000) >> 16;
-    g = (hash_val & 0x00FF00) >> 8;
-    b = hash_val & 0x0000FF;
+    r = (hash_val & 0xFF0000) >> 16
+    g = (hash_val & 0x00FF00) >> 8
+    b = hash_val & 0x0000FF
     return f"rgb({r},{g},{b})"
 
 def get_formatted_field(ticket, field):
@@ -280,8 +277,8 @@ def format_ticket(ticket, fields=["link","priority","updated","assigned", "subje
 
 def format_ticket_details(ticket):
     print(ticket)
-    
-    
+
+
 @click.group()
 def cli():
     """This script showcases different terminal UI helpers in Click."""
@@ -296,38 +293,38 @@ def tickets(query):
         print_tickets(resolve_query_term(query))
     else:
         print_tickets(redmine_client.my_tickets())
-        
-               
+
+
 @cli.command()
-@click.argument("id", type=int) 
-def resolve(id:int):   
-    """Reslove ticket""" 
+@click.argument("id", type=int)
+def resolve(id:int):
+    """Reslove ticket"""
     # case "resolve":
     redmine_client.resolve_ticket(id)
     print_ticket(redmine_client.get_ticket(id))
-   
-                
+
+
 @cli.command()
-@click.argument("id", type=int)      
-def progress(id:int):  
-    """Mark ticket in-progress"""     
+@click.argument("id", type=int)
+def progress(id:int):
+    """Mark ticket in-progress"""
     #case "progress":
     redmine_client.progress_ticket(id)
     print_ticket(redmine_client.get_ticket(id))
-      
-        
+
+
 @cli.command()
-@click.argument("id", type=int)    
-@click.argument("asignee", type=str)    
+@click.argument("id", type=int)
+@click.argument("asignee", type=str)
 def assign(id:int, asignee:str):
     """Assign ticket to user"""
     # case assign
     redmine_client.assign_ticket(id, asignee)
     print_ticket(redmine_client.get_ticket(id))
-    
+
 
 @cli.command()
-@click.argument("id", type=int) 
+@click.argument("id", type=int)
 def unassign(id:int):
     """Unassign ticket"""
     # case "unassign":
@@ -342,15 +339,15 @@ def teams():
 
 
 @cli.command()
-@click.argument("team", type=str) 
+@click.argument("team", type=str)
 def team(team:str):
     """List team members"""
     print_team(redmine_client.get_team(team))
 
 
 @cli.command()
-@click.argument("user", type=str) 
-@click.argument("team", type=str) 
+@click.argument("user", type=str)
+@click.argument("team", type=str)
 def join(user:str, team:str):
     """Join a team"""
     redmine_client.join_team(user, team)
@@ -358,8 +355,8 @@ def join(user:str, team:str):
 
 
 @cli.command()
-@click.argument("user", type=str) 
-@click.argument("team", type=str) 
+@click.argument("user", type=str)
+@click.argument("team", type=str)
 def leave(user:str, team:str):
     """Leave a team"""
     redmine_client.leave_team(user, team)
@@ -368,4 +365,3 @@ def leave(user:str, team:str):
 
 if __name__ == '__main__':
     cli()
-

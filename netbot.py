@@ -9,6 +9,7 @@ import discord
 from dotenv import load_dotenv
 from discord.ext import commands
 
+from tickets import TicketNote
 import synctime
 import redmine
 
@@ -62,7 +63,7 @@ class NetBot(commands.Bot):
                 # IS a thread, check the name
                 ticket_id = self.parse_thread_title(message.channel.name)
                 if ticket_id > 0:
-                    user = self.redmine.find_discord_user(message.author.name)
+                    user = self.redmine.user_mgr.find(message.author.name)
                     if user:
                         log.debug(f"known user commenting on ticket #{ticket_id}: redmine={user.login}, discord={message.author.name}")
                     else:
@@ -91,12 +92,13 @@ class NetBot(commands.Bot):
 
     def format_discord_note(self, note):
         """Format a note for Discord"""
-        age = synctime.age_str(synctime.parse_str(note.created_on))
-        message = f"> **{note.user.name}** *{age} ago*\n> {note.notes}"[:MAX_MESSAGE_LEN]
+        age = synctime.age_str(note.created_on)
+        log.info(f"### {note} {age} {note.user}")
+        message = f"> **{note.user}** *{age} ago*\n> {note.notes}"[:MAX_MESSAGE_LEN]
         return message
 
 
-    def gather_redmine_notes(self, ticket, sync_rec:synctime.SyncRecord):
+    def gather_redmine_notes(self, ticket, sync_rec:synctime.SyncRecord) -> list[TicketNote]:
         notes = []
         # get the new notes from the redmine ticket
         redmine_notes = self.redmine.get_notes_since(ticket.id, sync_rec.last_sync)
@@ -112,7 +114,7 @@ class NetBot(commands.Bot):
         # redmine link format: "Link Text":http://whatever
 
         # check user mapping exists
-        user = self.redmine.find_discord_user(message.author.name)
+        user = self.redmine.user_mgr.find(message.author.name)
         if user:
             # format the note
             formatted = f'"Discord":{message.jump_url}: {message.content}'
@@ -149,7 +151,9 @@ class NetBot(commands.Bot):
 
         # start of the process, will become "last update"
         sync_start = synctime.now()
-        sync_rec = self.redmine.get_sync_record(ticket, expected_channel=thread.id)
+        #sync_rec = self.redmine.get_sync_record(ticket, expected_channel=thread.id)
+        sync_rec = ticket.get_sync_record(expected_channel=thread.id)
+
         if sync_rec:
             log.debug(f"sync record: {sync_rec}")
 
@@ -191,9 +195,9 @@ class NetBot(commands.Bot):
         if isinstance(exception, commands.CommandOnCooldown):
             await context.respond("This command is currently on cooldown!")
         else:
-            log.error(f"{context} - {exception}", exc_info=True)
+            log.warning(f"{context.user}/{context.command} - {exception.__cause__}", exc_info=exception.__cause__)
             #raise error  # Here we raise other errors to ensure they aren't ignored
-            await context.respond(f"Error processing your request: {exception}")
+            await context.respond(f"Error processing due to: {exception.__cause__}")
 
 
 def main():
@@ -201,7 +205,7 @@ def main():
     log.info(f"loading .env for {__name__}")
     load_dotenv()
 
-    client = redmine.Client()
+    client = redmine.Client.fromenv()
     bot = NetBot(client)
 
     # register cogs
