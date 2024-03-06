@@ -75,12 +75,12 @@ class SCNCog(commands.Cog):
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
             discord_name = member.name
 
-        user = self.redmine.find_discord_user(discord_name)
+        user = self.redmine.user_mgr.find(discord_name)
 
         if user:
             await ctx.respond(f"Discord user: {discord_name} is already configured as redmine user: {user.login}")
         else:
-            user = self.redmine.find_user(redmine_login)
+            user = self.redmine.user_mgr.find(redmine_login)
             if user:
                 self.redmine.create_discord_mapping(redmine_login, discord_name)
                 await ctx.respond(f"Discord user: {discord_name} has been paired with redmine user: {redmine_login}")
@@ -95,8 +95,8 @@ class SCNCog(commands.Cog):
     async def sync_thread(self, thread:discord.Thread):
         """syncronize an existing ticket thread with redmine"""
         # get the ticket id from the thread name
-        # FIXME: notice the series of calls to "self.bot": could be better encapsulated
         ticket_id = self.bot.parse_thread_title(thread.name)
+
         ticket = self.redmine.get_ticket(ticket_id, include_journals=True)
         if ticket:
             completed = await self.bot.synchronize_ticket(ticket, thread)
@@ -104,6 +104,8 @@ class SCNCog(commands.Cog):
                 return ticket
             else:
                 raise NetbotException(f"Ticket {ticket.id} is locked for syncronization.")
+        else:
+            log.debug(f"no ticket found for {thread.name}")
 
         return None
 
@@ -119,15 +121,20 @@ class SCNCog(commands.Cog):
         # get all threads
         for guild in self.bot.guilds:
             for thread in guild.threads:
-                #log.debug(f"THREAD: guild:{guild}, thread:{thread}")
-                # sync each thread,
-                ticket = await self.sync_thread(thread)
-                if ticket:
-                    # successful sync
-                    log.debug(f"SYNC complete for ticket #{ticket.id} to {thread.name}")
-                else:
-                    log.debug(f"no ticket found for {thread.name}")
-
+                try:
+                    # try syncing each thread. if there's no ticket found, there's no thread to sync.
+                    ticket = await self.sync_thread(thread)
+                    if ticket:
+                        # successful sync
+                        log.debug(f"SYNC complete for ticket #{ticket.id} to {thread.name}")
+                    #else:
+                        #log.debug(f"no ticket found for {thread.name}")
+                except NetbotException as ex:
+                    # ticket is locked.
+                    # skip gracefully
+                    log.debug(f"Ticket locked, sync in progress: {thread}: {ex}")
+                except Exception:
+                    log.exception(f"Error syncing {thread}")
 
     @scn.command()
     async def sync(self, ctx:discord.ApplicationContext):
@@ -145,7 +152,7 @@ class SCNCog(commands.Cog):
     @scn.command()
     async def reindex(self, ctx:discord.ApplicationContext):
         """reindex the user and team information"""
-        self.redmine.reindex()
+        self.redmine.user_mgr.reindex()
         await ctx.respond("Rebuilt redmine indices.")
 
 
@@ -156,13 +163,13 @@ class SCNCog(commands.Cog):
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
             discord_name = member.name
 
-        user = self.redmine.find_discord_user(discord_name)
+        user = self.redmine.user_mgr.find(discord_name)
         if user is None:
             await ctx.respond(f"Unknown user, no Discord mapping: {discord_name}")
-        elif self.redmine.find_team(teamname) is None:
+        elif self.redmine.user_mgr.get_team_by_name(teamname) is None:
             await ctx.respond(f"Unknown team name: {teamname}")
         else:
-            self.redmine.join_team(user.login, teamname)
+            self.redmine.user_mgr.join_team(user, teamname)
             await ctx.respond(f"**{discord_name}** has joined *{teamname}*")
 
 
@@ -172,10 +179,10 @@ class SCNCog(commands.Cog):
         if member:
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
             discord_name = member.name
-        user = self.redmine.find_discord_user(discord_name)
+        user = self.redmine.user_mgr.find(discord_name)
 
         if user:
-            self.redmine.leave_team(user.login, teamname)
+            self.redmine.user_mgr.leave_team(user, teamname)
             await ctx.respond(f"**{discord_name}** has left *{teamname}*")
         else:
             await ctx.respond(f"Unknown Discord user: {discord_name}.")
@@ -209,10 +216,10 @@ class SCNCog(commands.Cog):
     async def block(self, ctx:discord.ApplicationContext, username:str):
         log.debug(f"blocking {username}")
         #user = self.redmine.lookup_user(username)
-        user = self.redmine.find_user(username)
+        user = self.redmine.user_mgr.find(username)
         if user:
             # add the user to the blocked list
-            self.redmine.block_user(user)
+            self.redmine.user_mgr.block(user)
             # search and reject all tickets from that user
             for ticket in self.redmine.get_tickets_by(user):
                 self.redmine.reject_ticket(ticket.id)
@@ -225,7 +232,7 @@ class SCNCog(commands.Cog):
     @scn.command(description="unblock specific a email address")
     async def unblock(self, ctx:discord.ApplicationContext, username:str):
         log.debug(f"unblocking {username}")
-        user = self.redmine.find_user(username)
+        user = self.redmine.user_mgr.find(username)
         if user:
             self.redmine.unblock_user(user)
             await ctx.respond(f"Unblocked user: {user.login}")
