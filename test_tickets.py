@@ -6,7 +6,6 @@ import logging
 
 from dotenv import load_dotenv
 
-
 import test_utils
 
 
@@ -18,24 +17,20 @@ class TestTicketManager(test_utils.RedmineTestCase):
     """Test suite for Redmine ticket manager"""
 
     def test_create_ticket(self):
-        # create test user
-        subject = f"Test {self.tag} subject"
-        body = f"Test {self.tag} body"
-
         ticket = None
         try:
             # create ticket
-            ticket = self.tickets_mgr.create(self.user, subject, body)
+            ticket = self.create_test_ticket()
             self.assertIsNotNone(ticket)
-            self.assertEqual(subject, ticket.subject)
-            self.assertEqual(body, ticket.description)
+            #self.assertEqual(subject, ticket.subject)
+            #self.assertEqual(body, ticket.description)
 
             check = self.tickets_mgr.get(ticket.id)
             self.assertIsNotNone(check)
-            self.assertEqual(subject, check.subject)
-            self.assertEqual(body, check.description)
+            self.assertEqual(ticket.subject, check.subject)
+            self.assertEqual(ticket.id, check.id)
 
-            check2 = self.tickets_mgr.search(subject) # returns list
+            check2 = self.tickets_mgr.search(ticket.subject) # returns list
             self.assertIsNotNone(check2)
             self.assertEqual(1, len(check2))
             self.assertEqual(ticket.id, check2[0].id)

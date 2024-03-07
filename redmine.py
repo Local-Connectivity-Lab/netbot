@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 import synctime
 from session import RedmineSession
+from model import Message
 from users import User, UserManager
 from tickets import Ticket, TicketManager
 
@@ -56,8 +57,8 @@ class Client():
         return cls(RedmineSession(url, token))
 
 
-    def create_ticket(self, user, subject, body, attachments=None) -> Ticket:
-        ticket = self.ticket_mgr.create(user, subject, body, attachments)
+    def create_ticket(self, user:User, message:Message) -> Ticket:
+        ticket = self.ticket_mgr.create(user, message)
         # check user status, reject the ticket if blocked
         if self.user_mgr.is_blocked(user):
             log.debug(f"Rejecting ticket #{ticket.id} based on blocked user {user.login}")
@@ -224,74 +225,7 @@ class Client():
         return None
 
     def is_user_or_group(self, user:str) -> bool:
-        if user in self.users:
-            return True
-        elif user in self.groups:
-            return True
-        else:
-            return False
-
-    # python method sync?
-    def reindex_users(self):
-        # reset the indices
-        self.users.clear()
-        self.user_ids.clear()
-        self.user_emails.clear()
-        self.discord_users.clear()
-
-        # rebuild the indicies
-        response = self.query("/users.json?limit=1000") ## fixme max limit? paging?
-        if response.users:
-            for user in response.users:
-                self.users[user.login] = user.id
-                self.user_ids[user.id] = user
-                self.user_emails[user.mail] = user.id
-
-                discord_id = self.get_discord_id(user)
-                if discord_id:
-                    self.discord_users[discord_id] = user.id
-            log.debug(f"indexed {len(self.users)} users")
-        else:
-            log.error(f"No users: {response}")
-
-
-    def get_teams(self):
-        return self.groups.keys()
-
-    def reindex_groups(self):
-        # reset the indices
-        self.groups.clear()
-
-        # rebuild the indicies
-        response = self.query("/groups.json?limit=1000") ## FIXME max limit? paging?
-        for group in response.groups:
-            self.groups[group.name] = group
-
-        log.debug(f"indexed {len(self.groups)} groups")
-
-
-    def is_user_in_team(self, username:str, teamname:str) -> bool:
-        if username is None or teamname is None:
-            return False
-
-        user = self.find_user(username)
-        if user:
-            user_id = user.id
-            team = self.get_team(teamname) # requires an API call, could be cashed? only used for testing
-
-            if team:
-                for team_user in team.users:
-                    if team_user.id == user_id:
-                        return True
-
-        return False
-
-
-    def reindex(self):
-        start = synctime.now()
-        self.reindex_users()
-        self.reindex_groups()
-        log.debug(f"reindex took {synctime.age(start)}")
+        return self.user_mgr.is_user_or_group(user)
 
 
 if __name__ == '__main__':

@@ -87,9 +87,7 @@ class TestSCNCog(test_utils.BotTestCase):
 
 
     async def test_thread_sync(self):
-        subject = f"Test Sync Ticket {self.tag}"
-        text = f"This is a test sync ticket tagged with {self.tag}."
-        ticket = self.redmine.create_ticket(self.user, subject, text)
+        ticket = self.create_test_ticket()
 
         ctx = self.build_context()
         ctx.channel = unittest.mock.AsyncMock(discord.Thread)

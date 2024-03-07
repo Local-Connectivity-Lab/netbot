@@ -38,9 +38,8 @@ class TestNetbot(test_utils.BotTestCase):
 
     async def test_synchronize_ticket(self):
         # create a new ticket, identified by the tag, with a note
-        subject = f"Testing {self.tag} {unittest.TestCase.id(self)}"
         body = f"Body for test {self.tag} {unittest.TestCase.id(self)}"
-        ticket = self.redmine.create_ticket(self.user, subject, body)
+        ticket = self.create_test_ticket()
         self.redmine.append_message(ticket.id, self.user.login, body) # re-using tagged str
 
         # create mock message and thread

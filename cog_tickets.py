@@ -9,6 +9,7 @@ import discord
 from discord.commands import option
 from discord.ext import commands
 
+from model import Message
 from redmine import Client
 
 
@@ -136,7 +137,9 @@ class TicketsCog(commands.Cog):
 
         # text templating
         text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
-        ticket = self.redmine.create_ticket(user, title, text)
+        message = Message(from_addr=user.mail, subject=title, to=ctx.channel.name)
+        message.set_note(text)
+        ticket = self.redmine.create_ticket(user, message)
         if ticket:
             await ctx.respond(self.format_ticket(ticket)[:2000]) #trunc
         # error handling? exception?

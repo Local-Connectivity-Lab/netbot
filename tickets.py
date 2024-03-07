@@ -9,6 +9,7 @@ import json
 import dataclasses
 from dataclasses import dataclass
 
+from model import Message
 from session import RedmineSession, RedmineException
 from users import CustomField, User, Team, NamedId
 import synctime
@@ -124,24 +125,28 @@ class Ticket():
             for field in self.custom_fields:
                 if field.name == name:
                     return field.value
+
+        log.debug(f"missing expected custom field: {name}")
         return None
 
-    def set_custom_field(self, name: str, value: str) -> str | None:
+    def set_custom_field(self, field_id: int, name: str, value: str) -> str | None:
         """
         Set the value of a custom field on a ticket. If
         """
         if self.custom_fields:
             for field in self.custom_fields:
-                if field.name == name:
+                if field.id == field_id and field.name == name:
                     old_value = field.value
                     field.value = value
                     return old_value
-            # there is no custom field.
-            # add one
-            cf = CustomField(id=2, name=name, value=value)
-            self.custom_fields.append(cf)
-        ## what if there is no field?
+        else:
+            # adding new value to empty list, initialize
+            self.custom_fields = []
 
+        # there is no matching custom field, add one
+        cf = CustomField(id=id, name=name, value=value)
+        self.custom_fields.append(cf)
+        log.debug(f"added new custom field to ticket #{self.id}: {cf}")
         return None
 
     def json_str(self):
@@ -156,7 +161,7 @@ class Ticket():
             return [to.strip() for to in to_str.split(',')]
 
     @property
-    def cc(self):
+    def cc(self) -> list[str]:
         val = self.get_custom_field(TO_CC_FIELD_NAME)
         if val:
             # string contains to,to//cc,cc
@@ -234,9 +239,26 @@ class TicketManager():
     """manage redmine tickets"""
     def __init__(self, session: RedmineSession):
         self.session: RedmineSession = session
+        self.custom_fields = self.load_custom_fields()
 
 
-    def create(self, user:User, subject, body, attachments=None) -> Ticket:
+    def load_custom_fields(self) -> dict[str,NamedId]:
+        # call redmine to get the ticket custom fields
+        fields_response = self.session.get("/custom_fields.json")
+        if fields_response:
+            fields = {}
+            for field in fields_response['custom_fields']:
+                fields[field['name']] = NamedId(id=field['id'], name=field['name'])
+            return fields
+
+
+    def get_field_id(self, name:str) -> int | None:
+        if name in self.custom_fields:
+            return self.custom_fields[name].id
+        return None
+
+
+    def create(self, user: User, message: Message) -> Ticket:
         """create a redmine ticket"""
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
         # would need full param handling to pass that thru discord to get to this invocation
@@ -245,20 +267,29 @@ class TicketManager():
         data = {
             'issue': {
                 'project_id': SCN_PROJECT_ID, #FIXME hard-coded project ID MOVE project ID to API
-                'subject': subject,
-                'description': body,
+                'subject': message.subject,
+                'description': message.note,
+                # ticket-485: adding custom field for To//Cc headers.
+                # where '//' is the separater.
+                'custom_fields': [
+                    {
+                        'id': self.get_field_id(TO_CC_FIELD_NAME),
+                        'value': message.to_cc_str(),
+                    }
+                ]
             }
         }
 
-        if attachments and len(attachments) > 0:
+        if message.attachments and len(message.attachments) > 0:
             data['issue']['uploads'] = []
-            for a in attachments:
+            for a in message.attachments:
                 data['issue']['uploads'].append({
                     "token": a.token,
                     "filename": a.name,
                     "content_type": a.content_type,
                 })
 
+        log.debug(f"### data: {data}")
         response = self.session.post(ISSUES_RESOURCE, json.dumps(data), user.login)
 
         # check status
@@ -638,3 +669,18 @@ class TicketManager():
                 #        return None
         except AttributeError:
             return "" # or None?
+
+
+def main():
+    ticket_mgr = TicketManager(RedmineSession.fromenv())
+    fields = ticket_mgr.load_custom_fields()
+    print(fields)
+
+
+# for testing the redmine
+if __name__ == '__main__':
+    # load credentials
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    main()
