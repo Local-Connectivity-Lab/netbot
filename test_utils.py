@@ -97,6 +97,7 @@ class RedmineTestCase(unittest.TestCase):
             cls.user_mgr.remove(cls.user)
             log.info(f"TEARDOWN removed test user: {cls.user}")
 
+
     def create_test_ticket(self) -> tickets.Ticket:
         subject = f"TEST {self.tag} {unittest.TestCase.id(self)}"
         text = f"This is a ticket for {unittest.TestCase.id(self)} with {self.tag}."

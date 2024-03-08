@@ -10,7 +10,6 @@ from dotenv import load_dotenv
 
 from model import Message
 import imap
-import redmine
 import test_utils
 
 
@@ -18,11 +17,10 @@ log = logging.getLogger(__name__)
 
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
-class TestMessages(unittest.TestCase):
+class TestMessages(test_utils.RedmineTestCase):
     """Test suite for IMAP functions"""
 
     def setUp(self):
-        self.redmine: redmine.Client = redmine.Client.fromenv()
         self.imap: imap.Client = imap.Client()
 
     def test_messages_stripping(self):
@@ -158,28 +156,48 @@ class TestMessages(unittest.TestCase):
         self.redmine.remove_ticket(ticket.id)
 
 
-    def test_ticket_query(self):
-        # FIXME move to test_redmine.py
+    def test_handle_message(self):
+        subject = f"TEST {self.tag} {unittest.TestCase.id(self)}"
+        message = Message(
+            f"Test {self.tag} <{self.user.mail}>",
+            subject,
+            f"to-{self.tag}@example.com",
+            f"cc-{self.tag}@example.com")
+        self.imap.handle_message(self.tag, message)
 
-        # create a ticket with the tag in the body, not the subject
-        tag = test_utils.tagstr()
-        user = self.redmine.user_mgr.get_by_name("admin")
-        self.assertIsNotNone(user)
-        message = Message(user.mail, "Boring test ticket", f"to-{tag}", f"cc-{tag}") # FIXME clean up ticket info for easy removal
-        message.set_note(f"Body with {self.id} and {tag}")
-
-        ticket = self.redmine.create_ticket(user, message)
-        self.assertIsNotNone(ticket)
-
-        # search for the ticket
-        tickets = self.redmine.search_tickets(tag)
-
+        tickets = self.redmine.ticket_mgr.match_subject(subject)
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
-        self.assertEqual(ticket.id, tickets[0].id)
+        self.assertEqual(subject, tickets[0].subject)
 
         # clean up
-        self.redmine.remove_ticket(ticket.id)
+        self.redmine.remove_ticket(tickets[0].id)
+
+
+    def test_to_cc(self):
+        subject = f"TEST {self.tag} {unittest.TestCase.id(self)}"
+        to_addr = f"to-{self.tag}@example.com"
+        cc_addr = f"cc-{self.tag}@example.com"
+        message = Message(
+            f"Test {self.tag} <{self.user.mail}>",
+            subject,
+            to_addr,
+            cc_addr)
+
+        self.imap.handle_message(self.tag, message)
+
+        tickets = self.redmine.ticket_mgr.match_subject(subject)
+        self.assertIsNotNone(tickets)
+        self.assertEqual(1, len(tickets))
+        ticket = tickets[0]
+
+        self.assertEqual(subject, ticket.subject)
+        self.assertEqual(to_addr, ticket.to[0])
+        self.assertEqual(cc_addr, ticket.cc[0])
+
+        # clean up
+        self.redmine.remove_ticket(tickets[0].id)
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
