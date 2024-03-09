@@ -9,6 +9,7 @@ import discord
 from dotenv import load_dotenv
 from discord.ext import commands
 
+from formatting import DiscordFormatter
 from tickets import TicketNote
 import synctime
 import redmine
@@ -16,8 +17,6 @@ import redmine
 
 log = logging.getLogger(__name__)
 
-
-MAX_MESSAGE_LEN = 2000
 
 class NetbotException(Exception):
     """netbot exception"""
@@ -32,6 +31,8 @@ class NetBot(commands.Bot):
 
         self.lock = asyncio.Lock()
         self.ticket_locks = {}
+
+        self.formatter = DiscordFormatter(client.url)
 
         self.redmine = client
         #guilds = os.getenv('DISCORD_GUILDS').split(', ')
@@ -88,14 +89,6 @@ class NetBot(commands.Bot):
             if message.author.id != self.user.id:
                 notes.append(message)
         return notes
-
-
-    def format_discord_note(self, note):
-        """Format a note for Discord"""
-        age = synctime.age_str(note.created_on)
-        log.info(f"### {note} {age} {note.user}")
-        message = f"> **{note.user}** *{age} ago*\n> {note.notes}"[:MAX_MESSAGE_LEN]
-        return message
 
 
     def gather_redmine_notes(self, ticket, sync_rec:synctime.SyncRecord) -> list[TicketNote]:
