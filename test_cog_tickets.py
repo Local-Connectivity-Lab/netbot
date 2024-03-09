@@ -43,6 +43,10 @@ class TestTicketsCog(test_utils.BotTestCase):
         # create ticket with discord user, assert
         test_title = f"This is a test ticket {self.tag}"
         ctx = self.build_context()
+        ctx.channel = unittest.mock.AsyncMock(discord.TextChannel)
+        ctx.channel.name = f"channel-{self.tag}"
+        ctx.channel.id = 4321
+
         await self.cog.create_new_ticket(ctx, test_title)
         response_str = ctx.respond.call_args.args[0]
 
@@ -94,15 +98,12 @@ class TestTicketsCog(test_utils.BotTestCase):
 
     # create thread/sync
     async def test_thread_sync(self):
-        #timestamp = dt.datetime.now().astimezone(dt.timezone.utc).replace(microsecond=0) # strip microseconds
 
         # create a ticket and add a note
-        subject = f"Test Thread Ticket {self.tag}"
-        text = f"This is a test thread ticket tagged with {self.tag}"
         note = f"This is a test note tagged with {self.tag}"
         old_message = f"This is a sync message with {self.tag}"
 
-        ticket = self.redmine.create_ticket(self.user, subject, text)
+        ticket = self.create_test_ticket()
         self.redmine.append_message(ticket.id, self.user.login, note)
 
         # thread the ticket using
@@ -112,7 +113,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         #ctx.channel.id = self.tag
 
         thread = unittest.mock.AsyncMock(discord.Thread)
-        thread.name = f"Ticket #{ticket.id}: {subject}"
+        thread.name = f"Ticket #{ticket.id}: {ticket.subject}"
 
         member = unittest.mock.AsyncMock(discord.Member)
         member.name=self.user.discord_id
@@ -135,7 +136,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         thread_response = str(message.create_thread.call_args) # FIXME
         self.assertIn(str(ticket.id), response)
         self.assertIn(str(ticket.id), thread_response)
-        self.assertIn(subject, thread_response)
+        self.assertIn(ticket.subject, thread_response)
 
         # delete the ticket
         self.redmine.remove_ticket(ticket.id)

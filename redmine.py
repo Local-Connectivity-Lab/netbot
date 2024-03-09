@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 import synctime
 from session import RedmineSession
+from model import Message
 from users import User, UserManager
 from tickets import Ticket, TicketManager
 
@@ -56,8 +57,8 @@ class Client():
         return cls(RedmineSession(url, token))
 
 
-    def create_ticket(self, user, subject, body, attachments=None) -> Ticket:
-        ticket = self.ticket_mgr.create(user, subject, body, attachments)
+    def create_ticket(self, user:User, message:Message) -> Ticket:
+        ticket = self.ticket_mgr.create(user, message)
         # check user status, reject the ticket if blocked
         if self.user_mgr.is_blocked(user):
             log.debug(f"Rejecting ticket #{ticket.id} based on blocked user {user.login}")
@@ -164,17 +165,67 @@ class Client():
         return self.user_mgr.get_team_by_name(teamname) # FIXME consistent naming
 
     def update_sync_record(self, record:synctime.SyncRecord):
-        self.ticket_mgr.update_sync_record(record)
+        log.debug(f"Updating sync record in redmine: {record}")
+        fields = {
+            "custom_fields": [
+                { "id": 4, "value": record.token_str() } # cf_4, custom field syncdata, #TODO search for it
+            ]
+        }
+        self.update_ticket(record.ticket_id, fields)
 
-    # mostly for formatting
-    def get_field(self, ticket:Ticket, fieldname:str) -> str:
-        match fieldname:
-            case "url":
-                return f"{self.url}/issues/{ticket.id}"
-            case "link":
-                return f"[{ticket.id}]({self.url}/issues/{ticket.id})"
-            case _:
-                return ticket.get_field(fieldname)
+    def get_updated_field(self, ticket) -> dt.datetime:
+        return synctime.parse_str(ticket.updated_on)
+
+
+    # NOTE: This implies that ticket should be a full object with methods.
+    # Starting to move fields out to their own methods, to eventually move to
+    # their own Ticket class.
+    def get_field(self, ticket, fieldname):
+        try:
+            match fieldname:
+                case "id":
+                    return f"{ticket.id}"
+                case "url":
+                    return f"{self.url}/issues/{ticket.id}"
+                case "link":
+                    return f"[{ticket.id}]({self.url}/issues/{ticket.id})"
+                case "priority":
+                    return ticket.priority.name
+                case "updated":
+                    return ticket.updated_on # string, or dt?
+                case "assigned":
+                    return ticket.assigned_to.name
+                case "status":
+                    return ticket.status.name
+                case "subject":
+                    return ticket.subject
+                case "title":
+                    return ticket.title
+                #case "age":
+                #    updated = dt.datetime.fromisoformat(ticket.updated_on) ### UTC
+                #    age = dt.datetime.now(dt.timezone.utc) - updated
+                #    return humanize.naturaldelta(age)
+                #case "sync":
+                #    try:
+                #        # Parse custom_field into datetime
+                #        # FIXME: this is fragile: relies on specific index of custom field, add custom field lookup by name
+                #        timestr = ticket.custom_fields[1].value
+                #        return dt.datetime.fromisoformat(timestr) ### UTC
+                #    except Exception as e:
+                #        log.debug(f"sync tag not set")
+                #        return None
+        except AttributeError:
+            return "" # or None?
+
+    def get_discord_id(self, user):
+        if user:
+            for field in user.custom_fields:
+                if field.name == "Discord ID":
+                    return field.value
+        return None
+
+    def is_user_or_group(self, user:str) -> bool:
+        return self.user_mgr.is_user_or_group(user)
 
 
 if __name__ == '__main__':

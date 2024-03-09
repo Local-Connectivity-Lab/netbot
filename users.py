@@ -31,7 +31,7 @@ class CustomField():
 class NamedId:
     '''named ID in redmine'''
     id: int
-    name: str = None
+    name: str | None
 
     def __str__(self) -> str:
         if self.name:
@@ -533,7 +533,7 @@ if __name__ == '__main__':
     # load credentials
     from dotenv import load_dotenv
     load_dotenv()
-    users = UserManager(RedmineSession.fromenv())
-    for teamname in users.get_all_teams():
-        team = users.get_team_by_name(teamname)
-        print(team)
+    #users = UserManager(RedmineSession.fromenv())
+    #for teamname in users.get_all_teams():
+    #    team = users.get_team_by_name(teamname)
+    #    print(team)

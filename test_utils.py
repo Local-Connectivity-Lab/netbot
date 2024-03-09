@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 import discord
 from discord import ApplicationContext
 from users import User, UserManager
+from model import Message
 import session
 import tickets
 from redmine import Client
@@ -96,10 +97,14 @@ class RedmineTestCase(unittest.TestCase):
             cls.user_mgr.remove(cls.user)
             log.info(f"TEARDOWN removed test user: {cls.user}")
 
+
     def create_test_ticket(self) -> tickets.Ticket:
         subject = f"TEST {self.tag} {unittest.TestCase.id(self)}"
         text = f"This is a ticket for {unittest.TestCase.id(self)} with {self.tag}."
-        ticket = self.redmine.create_ticket(self.user, subject, text)
+        message = Message(self.user.mail, subject, f"to-{self.tag}@example.com", f"cc-{self.tag}@example.com")
+        message.set_note(text)
+
+        ticket = self.redmine.create_ticket(self.user, message)
         return ticket
 
 

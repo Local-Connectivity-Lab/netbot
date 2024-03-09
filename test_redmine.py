@@ -58,6 +58,22 @@ class TestRedmine(test_utils.RedmineTestCase):
             self.fail("Got unexpected timeout")
 
 
+    def test_ticket_query(self):
+        # create a ticket with the tag in the body, not the subject
+        ticket = self.create_test_ticket()
+        self.assertIsNotNone(ticket)
+
+        # search for the ticket
+        tickets = self.redmine.search_tickets(self.tag)
+
+        self.assertIsNotNone(tickets)
+        self.assertEqual(1, len(tickets))
+        self.assertEqual(ticket.id, tickets[0].id)
+
+        # clean up
+        self.redmine.remove_ticket(ticket.id)
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
