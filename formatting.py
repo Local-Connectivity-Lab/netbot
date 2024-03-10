@@ -109,8 +109,8 @@ class DiscordFormatter():
         # ### Description
         # description text
         #link_padding = ' ' * (5 - len(str(ticket.id))) # field width = 6
-        status = f"{EMOJI[ticket.status.name]} {ticket.status.name}"
-        priority = f"{EMOJI[ticket.priority.name]} {ticket.priority.name}"
+        status = f"{EMOJI[ticket.status.name]} {ticket.status}"
+        priority = f"{EMOJI[ticket.priority.name]} {ticket.priority}"
         created_age = synctime.age_str(ticket.created_on)
         updated_age = synctime.age_str(ticket.updated_on)
         assigned = ticket.assigned_to.name if ticket.assigned_to else ""

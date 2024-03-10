@@ -155,7 +155,7 @@ class NetBot(commands.Bot):
             for note in redmine_notes:
                 # Write the note to the discord thread
                 dirty_flag = True
-                await thread.send(self.format_discord_note(note))
+                await thread.send(self.formatter.format_discord_note(note))
             log.debug(f"synced {len(redmine_notes)} notes from #{ticket.id} --> {thread}")
 
             # get the new notes from discord
