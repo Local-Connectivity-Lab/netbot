@@ -22,9 +22,9 @@ EMOJI = {
     'Spam': '❌',
     'New': '🟡',
     'In Progress': '🔷',
-    'Low': '⬇️',
-    'Normal': ' ',
-    'High': '⬆️',
+    'Low': '🔽',
+    'Normal': '⏺️',
+    'High': '🔼',
     'Urgent': '⚠️',
     'Immediate': '❗',
 }
@@ -87,7 +87,7 @@ class DiscordFormatter():
         priority = EMOJI[ticket.priority.name]
         age = synctime.age_str(ticket.updated_on)
         assigned = ticket.assigned_to.name if ticket.assigned_to else ""
-        return f"`{link_padding}`{link}` {status} {priority} {age:>10} {assigned:>18}: `{ticket.subject[:60]}"
+        return f"`{link_padding}`{link}` {status} {priority}  {age:<10} {assigned:<18} `{ticket.subject[:60]}"
 
 
     def format_discord_note(self, note):
