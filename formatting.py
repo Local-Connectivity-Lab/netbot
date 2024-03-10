@@ -118,10 +118,13 @@ class DiscordFormatter():
         details =  f"# {ticket.tracker} {link}\n"
         details += f"## {ticket.subject}\n"
         details += f"Added by {ticket.author} {created_age} ago. Updated {updated_age} ago.\n"
-        details += f"**Status**: {status}\n"
-        details += f"**Priority**: {priority}\n"
-        details += f"**Assignee**: {assigned}\n"
-        details += f"**Category**: {ticket.category}\n"
+        details += f"**Status:**  {status}\n"
+        details += f"**Priority:**  {priority}\n"
+        details += f"**Assignee:**  {assigned}\n"
+        details += f"**Category:**  {ticket.category}\n"
+        if ticket.to or ticket.cc:
+            details += f"**To:** {', '.join(ticket.to)}  **Cc:** {', '.join(ticket.cc)}\n"
+
         details += f"### Description\n{ticket.description}"
         return details
 

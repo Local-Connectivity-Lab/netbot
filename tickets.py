@@ -158,16 +158,22 @@ class Ticket():
     def to(self) -> list[str]:
         val = self.get_custom_field(TO_CC_FIELD_NAME)
         if val:
-            # string contains to,to//cc,cc
-            to_str, _ = val.split('//')
+            if '//' in val:
+                # string contains to,to//cc,cc
+                to_str, _ = val.split('//')
+            else:
+                to_str = val
             return [to.strip() for to in to_str.split(',')]
 
     @property
     def cc(self) -> list[str]:
         val = self.get_custom_field(TO_CC_FIELD_NAME)
         if val:
-            # string contains to,to//cc,cc
-            _, cc_str = val.split('//')
+            if '//' in val:
+               # string contains to,to//cc,cc
+                _, cc_str = val.split('//')
+            else:
+                cc_str = val
             return [to.strip() for to in cc_str.split(',')]
 
     def __str__(self):
