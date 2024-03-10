@@ -46,19 +46,16 @@ class DiscordFormatter():
 
 
     async def print_ticket(self, ticket, ctx):
-        msg = self.format_ticket_row(ticket)
+        msg = self.format_ticket_details(ticket)
         if len(msg) > MAX_MESSAGE_LEN:
             log.warning("message over {MAX_MESSAGE_LEN} chars. truncing.")
             msg = msg[:MAX_MESSAGE_LEN]
         await ctx.respond(msg)
 
 
-    def format_tickets(self, title:str, tickets:list[Ticket], fields=None, max_len=MAX_MESSAGE_LEN):
+    def format_tickets(self, title:str, tickets:list[Ticket], max_len=MAX_MESSAGE_LEN) -> str:
         if tickets is None:
             return "No tickets found."
-
-        if fields is None:
-            fields = ["link","priority","updated_on","assigned_to","subject"]
 
         section = "**" + title + "**\n"
         for ticket in tickets:
@@ -78,7 +75,7 @@ class DiscordFormatter():
         return f"[`#{ticket.id}`]({self.base_url}/issues/{ticket.id})"
 
 
-    def format_ticket_row(self, ticket:Ticket):
+    def format_ticket_row(self, ticket:Ticket) -> str:
         link = self.format_link(ticket)
         # link is mostly hidden, so we can't use the length to format.
         # but the length of the ticket id can be used
@@ -90,12 +87,44 @@ class DiscordFormatter():
         return f"`{link_padding}`{link}` {status} {priority}  {age:<10} {assigned:<18} `{ticket.subject[:60]}"
 
 
-    def format_discord_note(self, note):
+    def format_discord_note(self, note) -> str:
         """Format a note for Discord"""
         age = synctime.age_str(note.created_on)
         log.info(f"### {note} {age} {note.user}")
-        message = f"> **{note.user}** *{age} ago*\n> {note.notes}"[:MAX_MESSAGE_LEN]
-        return message
+        return f"> **{note.user}** *{age} ago*\n> {note.notes}"[:MAX_MESSAGE_LEN]
+
+
+    def format_ticket_details(self, ticket:Ticket) -> str:
+        link = self.format_link(ticket)
+        # link is mostly hidden, so we can't use the length to format.
+        # but the length of the ticket id can be used
+        # layout, based on redmine:
+        # # Tracker #id
+        # ## **Subject**
+        # Added by author (created-ago). Updated (updated ago).
+        # Status:   status             Start date:     date
+        # Priority: priority           Due date:       date|blank
+        # Assignee: assignee           % Done:         ...
+        # Category: category           Estimated time: ...
+        # ### Description
+        # description text
+        #link_padding = ' ' * (5 - len(str(ticket.id))) # field width = 6
+        status = f"{EMOJI[ticket.status.name]} {ticket.status.name}"
+        priority = f"{EMOJI[ticket.priority.name]} {ticket.priority.name}"
+        created_age = synctime.age_str(ticket.created_on)
+        updated_age = synctime.age_str(ticket.updated_on)
+        assigned = ticket.assigned_to.name if ticket.assigned_to else ""
+
+        details =  f"# {ticket.tracker} {link}\n"
+        details += f"## {ticket.subject}\n"
+        details += f"Added by {ticket.author} {created_age} ago. Updated {updated_age} ago.\n"
+        details += f"**Status**: {status}\n"
+        details += f"**Priority**: {priority}\n"
+        details += f"**Assignee**: {assigned}\n"
+        details += f"**Category**: {ticket.category}\n"
+        details += f"### Description\n{ticket.description}"
+        return details
+
 
 def main():
     ticket_manager = TicketManager(RedmineSession.fromenvfile())

@@ -91,7 +91,7 @@ class Ticket():
     parent: NamedId|None = None
     spent_hours: float = 0.0
     total_spent_hours: float = 0.0
-    category: str|None = None
+    category: NamedId|None = None
     assigned_to: NamedId|None = None
     custom_fields: list[CustomField]|None = None
     journals: list[TicketNote]|None = None
@@ -119,6 +119,8 @@ class Ticket():
             self.custom_fields = [CustomField(**field) for field in self.custom_fields]
         if self.journals:
             self.journals = [TicketNote(**note) for note in self.journals]
+        if self.category:
+            self.category = NamedId(**self.category)
 
     def get_custom_field(self, name: str) -> str | None:
         if self.custom_fields:
