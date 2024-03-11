@@ -75,11 +75,11 @@ class TicketsCog(commands.Cog):
         args = params.split()
 
         if len(args) == 0 or args[0] == "me":
-            await self.print_tickets("My Tickets", self.redmine.my_tickets(user.login), ctx)
+            await self.bot.formatter.print_tickets("My Tickets", self.redmine.my_tickets(user.login), ctx)
         elif len(args) == 1:
             query = args[0]
             results = self.resolve_query_term(query)
-            await self.print_tickets(f"Search for '{query}'", results, ctx)
+            await self.bot.formatter.print_tickets(f"Search for '{query}'", results, ctx)
 
 
     @commands.slash_command()
@@ -94,31 +94,31 @@ class TicketsCog(commands.Cog):
                 case "show":
                     ticket = self.redmine.get_ticket(ticket_id)
                     if ticket:
-                        await ctx.respond(self.format_ticket(ticket)[:2000]) #trunc
+                        await self.bot.formatter.print_ticket(ticket, ctx)
                     else:
                         await ctx.respond(f"Ticket {ticket_id} not found.")
                 case "details":
                     # FIXME
                     ticket = self.redmine.get_ticket(ticket_id)
                     if ticket:
-                        await ctx.respond(self.format_ticket(ticket)[:2000]) #trunc
+                        await self.bot.formatter.print_ticket(ticket, ctx)
                     else:
                         await ctx.respond(f"Ticket {ticket_id} not found.")
                 case "unassign":
                     self.redmine.unassign_ticket(ticket_id, user.login)
-                    await self.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
+                    await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
                 case "resolve":
                     self.redmine.resolve_ticket(ticket_id, user.login)
-                    await self.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
+                    await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
                 case "progress":
                     self.redmine.progress_ticket(ticket_id, user.login)
-                    await self.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
+                    await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
                 #case "note":
                 #    msg = ???
                 #    self.redmine.append_message(ticket_id, user.login, msg)
                 case "assign":
                     self.redmine.assign_ticket(ticket_id, user.login)
-                    await self.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
+                    await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
                 case _:
                     await ctx.respond("unknown command: {action}")
         except Exception as e:
@@ -141,8 +141,7 @@ class TicketsCog(commands.Cog):
         message.set_note(text)
         ticket = self.redmine.create_ticket(user, message)
         if ticket:
-            await ctx.respond(self.format_ticket(ticket)[:2000]) #trunc
-        # error handling? exception?
+            await self.bot.formatter.print_ticket(ticket, ctx)
         else:
             await ctx.respond(f"error creating ticket with title={title}")
 
@@ -174,52 +173,3 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") # todo add some fancy formatting
-
-
-    ### formatting ###
-
-    async def print_tickets(self, title, tickets, ctx):
-        msg = self.format_tickets(title, tickets)
-
-        if len(msg) > 2000:
-            log.warning("message over 2000 chars. truncing.")
-            msg = msg[:2000]
-        await ctx.respond(msg)
-
-
-    async def print_ticket(self, ticket, ctx):
-        msg = self.format_ticket(ticket)
-
-        if len(msg) > 2000:
-            log.warning("message over 2000 chars. truncing.")
-            msg = msg[:2000]
-        await ctx.respond(msg)
-
-
-    def format_tickets(self, title, tickets, fields=None, max_len=2000):
-        if tickets is None:
-            return "No tickets found."
-
-        if fields is None:
-            fields = ["link","priority","updated_on","assigned_to","subject"]
-
-        section = "**" + title + "**\n"
-        for ticket in tickets:
-            ticket_line = self.format_ticket(ticket, fields)
-            if len(section) + len(ticket_line) + 1 < max_len:
-                # make sure the lenght is less that the max
-                section += ticket_line + "\n" # append each ticket
-            else:
-                break # max_len hit
-
-        return section.strip()
-
-
-    def format_ticket(self, ticket, fields=None):
-        section = ""
-        if fields is None:
-            fields = ["link","priority","updated_on","assigned_to","subject"]
-
-        for field in fields:
-            section += str(self.redmine.get_field(ticket, field)) + " " # spacer, one space
-        return section.strip() # remove trailing whitespace

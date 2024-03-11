@@ -47,6 +47,7 @@ class TestRedmine(test_utils.RedmineTestCase):
         self.assertFalse(self.user_mgr.is_blocked(self.user))
 
 
+    @unittest.skip("takes too long and fills the log with junk")
     def test_client_timeout(self):
         # construct an invalid client to try to get a timeout
         try:

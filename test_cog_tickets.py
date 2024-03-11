@@ -30,8 +30,8 @@ class TestTicketsCog(test_utils.BotTestCase):
 
 
     def parse_markdown_link(self, text:str) -> tuple[str, str]:
-        regex = r"^\[(\d+)\]\((.+)\)"
-        m = re.match(regex, text)
+        regex = r"\[`#(\d+)`\]\((.+)\)"
+        m = re.search(regex, text)
         self.assertIsNotNone(m, f"could not find ticket number in response str: {text}")
 
         ticket_id = m.group(1)

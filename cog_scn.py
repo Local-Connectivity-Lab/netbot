@@ -240,6 +240,7 @@ class SCNCog(commands.Cog):
             log.debug("trying to unblock unknown user '{username}', ignoring")
             await ctx.respond(f"Unknown user: {username}")
 
+## FIXME move to DiscordFormatter
 
     async def print_team(self, ctx, team):
         msg = f"> **{team.name}**\n"

@@ -91,7 +91,7 @@ class Ticket():
     parent: NamedId|None = None
     spent_hours: float = 0.0
     total_spent_hours: float = 0.0
-    category: str|None = None
+    category: NamedId|None = None
     assigned_to: NamedId|None = None
     custom_fields: list[CustomField]|None = None
     journals: list[TicketNote]|None = None
@@ -119,6 +119,8 @@ class Ticket():
             self.custom_fields = [CustomField(**field) for field in self.custom_fields]
         if self.journals:
             self.journals = [TicketNote(**note) for note in self.journals]
+        if self.category:
+            self.category = NamedId(**self.category)
 
     def get_custom_field(self, name: str) -> str | None:
         if self.custom_fields:
@@ -156,16 +158,22 @@ class Ticket():
     def to(self) -> list[str]:
         val = self.get_custom_field(TO_CC_FIELD_NAME)
         if val:
-            # string contains to,to//cc,cc
-            to_str, _ = val.split('//')
+            if '//' in val:
+                # string contains to,to//cc,cc
+                to_str, _ = val.split('//')
+            else:
+                to_str = val
             return [to.strip() for to in to_str.split(',')]
 
     @property
     def cc(self) -> list[str]:
         val = self.get_custom_field(TO_CC_FIELD_NAME)
         if val:
-            # string contains to,to//cc,cc
-            _, cc_str = val.split('//')
+            if '//' in val:
+               # string contains to,to//cc,cc
+                _, cc_str = val.split('//')
+            else:
+                cc_str = val
             return [to.strip() for to in cc_str.split(',')]
 
     def __str__(self):
