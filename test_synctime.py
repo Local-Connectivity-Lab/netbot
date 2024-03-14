@@ -6,6 +6,7 @@ import logging
 
 from dotenv import load_dotenv
 
+import datetime as dt
 import synctime
 import test_utils
 
@@ -41,6 +42,22 @@ class TestTime(test_utils.RedmineTestCase):
 
         # clean up
         self.redmine.remove_ticket(ticket.id)
+
+
+    def test_redmine_isoformat(self):
+        date_str = "2024-03-14T17:45:11Z"
+        date = synctime.parse_str(date_str)
+        self.assertIsNotNone(date)
+        self.assertEqual(2024, date.year)
+        self.assertEqual(3, date.month)
+        self.assertEqual(14, date.day)
+
+        date2 = dt.datetime.fromisoformat(date_str)
+        self.assertIsNotNone(date2)
+        self.assertEqual(2024, date2.year)
+        self.assertEqual(3, date2.month)
+        self.assertEqual(14, date2.day)
+
 
 
 

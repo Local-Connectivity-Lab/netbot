@@ -11,16 +11,15 @@
 # */5 * * * * /home/scn/github/netbot/threader_job.sh | /usr/bin/logger -t threader
 
 
-name=$(basename "$0")
 project_dir="$(cd -P -- "$(dirname -- "$0")" && pwd -P)"
 cd "$project_dir" || exit 1
 
-env="venv"
-PYTHON="$project_dir/venv/bin/python3"
+VENV=.venv
+PYTHON="$project_dir/$VENV/bin/python3"
 
 if [ ! -x "$PYTHON" ]; then
-    echo Building $env
-    python3 -m venv venv
+    echo Building $VENV
+    python3.11 -m venv $VENV
     $PYTHON -m pip install --upgrade pip
     $PYTHON -m pip install -r requirements.txt
 fi
