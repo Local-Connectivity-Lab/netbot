@@ -234,7 +234,7 @@ class SCNCog(commands.Cog):
         log.debug(f"unblocking {username}")
         user = self.redmine.user_mgr.find(username)
         if user:
-            self.redmine.unblock_user(user)
+            self.redmine.user_mgr.unblock(user)
             await ctx.respond(f"Unblocked user: {user.login}")
         else:
             log.debug("trying to unblock unknown user '{username}', ignoring")

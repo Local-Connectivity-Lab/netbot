@@ -109,7 +109,6 @@ class TestSCNCog(test_utils.BotTestCase):
             # call block
             ctx = self.build_context()
             await self.cog.block(ctx, self.user.login)
-            self.redmine.user_mgr.reindex_teams()
 
             # confirmed blocked
             self.assertTrue(self.redmine.user_mgr.is_blocked(self.user))
@@ -120,6 +119,19 @@ class TestSCNCog(test_utils.BotTestCase):
         finally:
             # cleanup
             self.redmine.remove_ticket(ticket.id)
+
+
+    async def test_unblock_user(self):
+        # call block
+        ctx = self.build_context()
+        await self.cog.block(ctx, self.user.login)
+
+        # confirmed blocked
+        self.assertTrue(self.redmine.user_mgr.is_blocked(self.user))
+
+        # unblock
+        await self.cog.unblock(ctx, self.user.login)
+        self.assertFalse(self.redmine.user_mgr.is_blocked(self.user))
 
 
     async def test_locked_during_sync_ticket(self):

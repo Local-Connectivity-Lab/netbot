@@ -425,8 +425,11 @@ class UserManager():
             return False
 
         team = self.get_team_by_name(teamname)
+        return self.is_user_in(user, team)
 
-        if team:
+
+    def is_user_in(self, user: User, team:Team) -> bool:
+        if user and team:
             for team_user in team.users:
                 if team_user.id == user.id:
                     return True
@@ -456,15 +459,16 @@ class UserManager():
 
 
     def join_team(self, user: User, teamname:str) -> None:
-        # look up user ID
-        #user = self.find_user(username)
-        #if user is None:
-        #    raise RedmineException(f"Unknown user name: {username}", "[n/a]")
-
         # map teamname to team
         team = self.get_team_by_name(teamname)
-        if team.id is None:
+        if team is None:
             raise RedmineException(f"Unknown team name: {teamname}", "[n/a]")
+
+        # calling POST when the user is already in the team results in a
+        # 422 Unprocessable Entity error, so checking first.
+        # Expected behavior is idempotent: if already in the team, return as expected (no exception)
+        if self.is_user_in(user, team):
+            return # already done
 
         # POST to /group/ID/users.json
         data = {

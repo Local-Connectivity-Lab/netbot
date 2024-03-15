@@ -39,6 +39,7 @@ class TestRedmine(test_utils.RedmineTestCase):
         # create ticket for blocked
         ticket = self.create_test_ticket()
         self.assertIsNotNone(ticket)
+        log.info(f"ticket: {ticket}")
         self.assertEqual("Reject", ticket.status.name)
 
         # remove the ticket and unbluck the user

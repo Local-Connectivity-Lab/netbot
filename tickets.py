@@ -297,7 +297,7 @@ class TicketManager():
                     "content_type": a.content_type,
                 })
 
-        log.debug(f"### data: {data}")
+        #log.debug(f"POST data: {data}")
         response = self.session.post(ISSUES_RESOURCE, json.dumps(data), user.login)
 
         # check status
