@@ -10,6 +10,7 @@ from discord.commands import option
 from discord.ext import commands
 
 from model import Message
+from tickets import Ticket
 from redmine import Client
 
 
@@ -146,12 +147,12 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"error creating ticket with title={title}")
 
 
-    async def create_thread(self, ticket, ctx):
+    async def create_thread(self, ticket:Ticket, ctx:discord.ApplicationContext):
         log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
-        name = f"Ticket #{ticket.id}: {ticket.subject}"
-        msg_txt = f"Syncing ticket {self.redmine.get_field(ticket, 'url')} to new thread '{name}'"
-        message = await ctx.send(msg_txt)
-        thread = await message.create_thread(name=name)
+        thread_name = f"Ticket #{ticket.id}: {ticket.subject}"
+        thread = await ctx.channel.create_thread(name=thread_name)
+        # ticket-614: Creating new thread should post the ticket details to the new thread
+        await thread.send(self.bot.formatter.format_ticket_details(ticket))
         return thread
 
 
@@ -170,6 +171,8 @@ class TicketsCog(commands.Cog):
             log.debug(f">>> found {user} for {ctx.user.name}")
             self.redmine.enable_discord_sync(ticket.id, user, note)
 
-            await ctx.respond(f"Created new thread for {ticket.id}: {thread}") # todo add some fancy formatting
+            # ticket-614: add ticket link to thread response
+            ticket_link = self.bot.formatter.format_link(ticket)
+            await ctx.respond(f"Created new thread {thread.jump_url} for ticket {ticket_link}")
         else:
-            await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") # todo add some fancy formatting
+            await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
