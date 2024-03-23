@@ -181,41 +181,8 @@ class Client():
     # Starting to move fields out to their own methods, to eventually move to
     # their own Ticket class.
     def get_field(self, ticket, fieldname):
-        try:
-            match fieldname:
-                case "id":
-                    return f"{ticket.id}"
-                case "url":
-                    return f"{self.url}/issues/{ticket.id}"
-                case "link":
-                    return f"[{ticket.id}]({self.url}/issues/{ticket.id})"
-                case "priority":
-                    return ticket.priority.name
-                case "updated":
-                    return ticket.updated_on # string, or dt?
-                case "assigned":
-                    return ticket.assigned_to.name
-                case "status":
-                    return ticket.status.name
-                case "subject":
-                    return ticket.subject
-                case "title":
-                    return ticket.title
-                #case "age":
-                #    updated = dt.datetime.fromisoformat(ticket.updated_on) ### UTC
-                #    age = dt.datetime.now(dt.timezone.utc) - updated
-                #    return humanize.naturaldelta(age)
-                #case "sync":
-                #    try:
-                #        # Parse custom_field into datetime
-                #        # FIXME: this is fragile: relies on specific index of custom field, add custom field lookup by name
-                #        timestr = ticket.custom_fields[1].value
-                #        return dt.datetime.fromisoformat(timestr) ### UTC
-                #    except Exception as e:
-                #        log.debug(f"sync tag not set")
-                #        return None
-        except AttributeError:
-            return "" # or None?
+        return self.ticket_mgr.get_field(ticket, fieldname)
+
 
     def get_discord_id(self, user):
         if user:

@@ -222,7 +222,7 @@ class Ticket():
 
         return notes
 
-    def get_field(self, fieldname):
+    def get_field(self, fieldname:str):
         val = getattr(self, fieldname)
         #log.debug(f">>> {fieldname} = {val}, type={type(val)}")
         return val
@@ -641,42 +641,19 @@ class TicketManager():
     # NOTE: This implies that ticket should be a full object with methods.
     # Starting to move fields out to their own methods, to eventually move to
     # their own Ticket class.
-    def get_field(self, ticket, fieldname):
+    def get_field(self, ticket:Ticket, fieldname:str) -> str:
         try:
             match fieldname:
-                case "id":
-                    return f"{ticket.id}"
                 case "url":
                     return f"{self.url}/issues/{ticket.id}"
                 case "link":
                     return f"[{ticket.id}]({self.url}/issues/{ticket.id})"
-                case "priority":
-                    return ticket.priority.name
                 case "updated":
-                    return ticket.updated_on # string, or dt?
-                case "assigned":
-                    return ticket.assigned_to.name
-                case "status":
-                    return ticket.status.name
-                case "subject":
-                    return ticket.subject
-                case "title":
-                    return ticket.title
-                #case "age":
-                #    updated = dt.datetime.fromisoformat(ticket.updated_on) ### UTC
-                #    age = dt.datetime.now(dt.timezone.utc) - updated
-                #    return humanize.naturaldelta(age)
-                #case "sync":
-                #    try:
-                #        # Parse custom_field into datetime
-                #        # FIXME: this is fragile: relies on specific index of custom field, add custom field lookup by name
-                #        timestr = ticket.custom_fields[1].value
-                #        return dt.datetime.fromisoformat(timestr) ### UTC
-                #    except Exception as e:
-                #        log.debug(f"sync tag not set")
-                #        return None
+                    return str(ticket.updated_on) # formatted string, or dt?
+                case _:
+                    return str(ticket.get_field(fieldname))
         except AttributeError:
-            return "" # or None?
+            return None
 
 
 def main():
