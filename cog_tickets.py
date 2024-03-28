@@ -7,7 +7,7 @@ import logging
 import discord
 
 from discord.commands import option
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from model import Message
 from tickets import Ticket
@@ -16,14 +16,17 @@ from redmine import Client
 
 log = logging.getLogger(__name__)
 
-# scn add redmine_login - setup discord userid in redmine
-# scn sync - manually sychs the current thread, or replies with warning
-# scn sync
 
-# scn join teamname - discord user joins team teamname (and maps user id)
-# scn leave teamname - discord user leaves team teamname (and maps user id)
+_TRACKER_MAPPING = {
+    "External-Comms-Intake": "admin-team",
+    "Admin": "admin-team",
+    "Comms": "outreach",
+    "Infra-Config": "routing-and-infrastructure",
+    "Infra-Field": "installs",
+    "Software-Dev": "network-software",
+    "Research": "uw-research-nsf",
+}
 
-# scn reindex
 
 def setup(bot):
     bot.add_cog(TicketsCog(bot))
@@ -35,16 +38,13 @@ class TicketsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.redmine: Client = bot.redmine
+
+        # start the expriation checker
+        self.check_expired_tickets.start() # pylint: disable=no-member
         log.debug(f"Initialized with {self.redmine}")
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
 
-#tickets - all the queries
-
-#ticket # show (default) - show ticket info
-#ticket # notes - show ticket will all notes (in a decent format)
-#ticket # note - add a note to the specific ticket. same as commenting in the ticket thread (if there is one, works without)
-#ticket # sync - creates new synced thread for ticket in the current text channel, or errors
 
     # figure out what the term refers to
     # could be ticket#, team name, user name or search term
@@ -176,3 +176,38 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Created new thread {thread.jump_url} for ticket {ticket_link}")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
+
+
+    async def expiration_alert(self, ticket: Ticket):
+        """Notify the correct people and channels when a ticket expires.
+        """
+        # lookup channel
+        if str(ticket.tracker) in _TRACKER_MAPPING:
+            channel_name = _TRACKER_MAPPING[str(ticket.tracker)]
+            channel = self.bot.get_channel_by_name(channel_name)
+            if channel:
+                channel.send(self.bot.formatter.format_expiring_alert(ticket))
+            else:
+                log.error(f"EXPIRED ticket #{ticket} on unknown channel: {channel_name}")
+        # else no mapping for channel
+
+
+    async def alert_expiring_tickets(self):
+        """Notify that tickets are about to expire.
+        Based on a 24/48h window, see MAX_TICKET_AGE, and TICKET_NOTIFY_AGE
+        """
+        # get list of tickets that will expire within TICKET_NOTIFY_AGE
+        for ticket in self.redmine.ticket_mgr.expiring_tickets():
+            await self.expiration_alert(ticket)
+
+
+    @tasks.loop(hours=24)
+    async def check_expired_tickets(self):
+        """Process expired tickets.
+        Expected to run every 24hours to:
+        - alert about tickets that are expiring
+        - expire tickets that have expired
+        Based on ticket-597
+        """
+        await self.alert_expiring_tickets()
+        self.redmine.ticket_mgr.expire_expired_tickets()

@@ -10,19 +10,27 @@ import humanize
 log = logging.getLogger(__name__)
 
 
+# 2014-01-02T08:12:32Z
+ZULU_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
+
 def now() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
+
 
 def now_millis() -> int:
     return int(now().timestamp()*1000.0)
 
+
 def parse_millis(timestamp:int) -> dt.datetime:
     return dt.datetime.fromtimestamp(timestamp, dt.timezone.utc)
+
 
 def epoch_datetime() -> dt.datetime:
     # discord API fails when using 0 as a timestamp,
     # so generate one for "three yeas ago"
     return now() - dt.timedelta(days=3*365)
+
 
 def parse_str(timestamp:str) -> dt.datetime:
     if timestamp is not None and len(timestamp) > 0:
@@ -30,11 +38,18 @@ def parse_str(timestamp:str) -> dt.datetime:
     else:
         return None
 
+
 def age(time:dt.datetime) -> dt.timedelta:
     return now() - time
 
+
 def age_str(time:dt.datetime) -> str:
     return humanize.naturaldelta(age(time))
+
+
+def zulu(timestamp:dt.datetime) -> str:
+    """convert a datetime to the UTC Zulu string redmine expects"""
+    return timestamp.strftime(ZULU_FORMAT)
 
 
 class SyncRecord():
@@ -77,8 +92,10 @@ class SyncRecord():
     def age(self) -> dt.timedelta:
         age(self.last_sync)
 
+
     def token_str(self) -> str:
         return f"{self.channel_id}|{self.last_sync}"
+
 
     def __str__(self) -> str:
         return f"SYNC #{self.ticket_id} <-> {self.channel_id}, {age_str(self.last_sync)}"

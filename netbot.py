@@ -18,6 +18,7 @@ import redmine
 log = logging.getLogger(__name__)
 
 
+
 class NetbotException(Exception):
     """netbot exception"""
 
@@ -180,6 +181,15 @@ class NetBot(commands.Bot):
         else:
             log.debug(f"empty sync_rec for channel={thread.id}, assuming mismatch and skipping")
             return False # not found
+
+
+    def get_channel_by_name(self, channel_name: str):
+        for channel in self.get_all_channels():
+            if channel_name == channel.name:
+                return channel
+
+        log.warning(f"Channel not found: {channel_name}")
+        return None
 
 
     async def on_application_command_error(self, context: discord.ApplicationContext,

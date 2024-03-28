@@ -24,6 +24,12 @@ DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
 SCN_PROJECT_ID = 1  # could lookup scn in projects
 SYNC_FIELD_NAME = "syncdata"
 TO_CC_FIELD_NAME = "To/CC"
+INTAKE_TEAM = "ticket-intake"
+INTAKE_TEAM_ID = 19 # FIXME
+
+
+TICKET_MAX_AGE = 4 * 7 # 4 weeks; 28 days
+TICKET_EXPIRE_NOTIFY = TICKET_MAX_AGE - 1 # 27 days, one day shorter than MAX_AGE
 
 
 @dataclass
@@ -176,8 +182,17 @@ class Ticket():
                 cc_str = val
             return [to.strip() for to in cc_str.split(',')]
 
+
+    @property
+    def assigned(self) -> str:
+        if self.assigned_to:
+            return self.assigned_to.name
+        else:
+            return ""
+
+
     def __str__(self):
-        return f"#{self.id} {self.project} {self.status} {self.priority} {self.assigned_to}: {self.subject}"
+        return f"#{self.id:04d}  {self.status.name:<11}  {self.priority.name:<6}  {self.assigned:<20}  {self.subject}"
 
     def get_sync_record(self, expected_channel: int) -> synctime.SyncRecord | None:
         # Parse custom_field into datetime
@@ -406,6 +421,51 @@ class TicketManager():
             log.info(f"Unknown ticket numbers: {ticket_ids}")
             return []
 
+
+    def expire(self, ticket:Ticket):
+        """Expire a ticket"""
+        # rest to new/intake - "unassign"
+        self.unassign_ticket(ticket.id)
+        log.info(f"Expired ticket {ticket.id}")
+
+
+    def expiring_tickets(self) -> list[Ticket]:
+        # tickets that are about to expire
+        return self.older_than(TICKET_EXPIRE_NOTIFY)
+
+
+    def expired_tickets(self) -> list[Ticket]:
+        # tickets that have expired; > date due or older that TICKET_MAX_AGE
+        return self.older_than(TICKET_MAX_AGE)
+
+
+    def older_than(self, days_old: int) ->list[Ticket]:
+        """Get all the open tickets that haven't been updated
+        in day_old days.
+        """
+        # before a certain date (uncrypted filter is "<= 2012-03-07") :
+        # GET /issues.json?created_on=%3C%3D2012-03-07
+
+        since = synctime.now() - dt.timedelta(days=days_old) # day_ago to a timestamp
+        # To fetch issues updated before a certain timestamp (uncrypted filter is "<=2014-01-02T08:12:32Z") :
+        query = f"/issues.json?updated_on=%3C%3D{synctime.zulu(since)}"
+        log.info(f"QUERY: {query}")
+        response = self.session.get(query)
+        return TicketsResult(**response).issues
+
+
+    def due(self) ->list[Ticket]:
+        """Get all open tickets that are due today or earlier
+        """
+        response = self.session.get(f"/issues.json?due_date%3E%3D{synctime.now()}")
+        return TicketsResult(**response).issues
+
+
+    def expire_expired_tickets(self):
+        for ticket in self.expired_tickets():
+            self.expire(ticket)
+
+
     def find_ticket_from_str(self, string:str):
         """parse a ticket number from a string and get the associated ticket"""
         # for now, this is a trivial REGEX to match '#nnn' in a string, and return ticket #nnn
@@ -576,7 +636,7 @@ class TicketManager():
 
     def unassign_ticket(self, ticket_id, user_id=None):
         fields = {
-            "assigned_to_id": "", # FIXME this *should* be the team it was assigned to, but there's no way to calculate.
+            "assigned_to_id": INTAKE_TEAM_ID,
             "status_id": "1", # New
         }
         self.update(ticket_id, fields, user_id)
@@ -656,10 +716,12 @@ class TicketManager():
             return None
 
 
+
 def main():
     ticket_mgr = TicketManager(RedmineSession.fromenv())
-    fields = ticket_mgr.load_custom_fields()
-    print(fields)
+    #fields = ticket_mgr.load_custom_fields()
+    for expired in ticket_mgr.expired_tickets():
+        print(synctime.age_str(expired.updated_on), expired)
 
 
 # for testing the redmine
@@ -667,5 +729,7 @@ if __name__ == '__main__':
     # load credentials
     from dotenv import load_dotenv
     load_dotenv()
+    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
 
     main()
