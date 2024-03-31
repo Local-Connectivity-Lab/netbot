@@ -178,27 +178,43 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
 
 
-    async def expiration_alert(self, ticket: Ticket):
+    async def expiration_notification(self, ticket: Ticket):
         """Notify the correct people and channels when a ticket expires.
+        ticket-597
+        When a ticket is about to expire, put a message in the related thread that it is about to expire.
+        "In {hours}, this ticket will expire."
         """
-        # lookup channel
-        if str(ticket.tracker) in _TRACKER_MAPPING:
+
+        # first, check the syncdata.
+        sync = ticket.get_sync_record()
+        if sync:
+            notification = self.bot.formatter.format.format_expiration_notification(ticket)
+            thread: discord.Thread = self.bot.get_channel(sync.channel_id)
+            thread.send(notification)
+        elif str(ticket.tracker) in _TRACKER_MAPPING:
+            # lookup channel
             channel_name = _TRACKER_MAPPING[str(ticket.tracker)]
             channel = self.bot.get_channel_by_name(channel_name)
             if channel:
                 channel.send(self.bot.formatter.format_expiring_alert(ticket))
-            else:
-                log.error(f"EXPIRED ticket #{ticket} on unknown channel: {channel_name}")
-        # else no mapping for channel
+        else:
+            log.error(f"EXPIRED ticket #{ticket.id} on unknown channel: {channel_name}")
 
 
-    async def alert_expiring_tickets(self):
+    async def notify_expiring_tickets(self):
         """Notify that tickets are about to expire.
-        Based on a 24/48h window, see MAX_TICKET_AGE, and TICKET_NOTIFY_AGE
+        ticket-597
         """
-        # get list of tickets that will expire within TICKET_NOTIFY_AGE
+        # get list of tickets that will expire (based on rules in ticket_mgr)
         for ticket in self.redmine.ticket_mgr.expiring_tickets():
-            await self.expiration_alert(ticket)
+            await self.expiration_notification(ticket)
+
+
+    def expire_expired_tickets(self):
+        for ticket in self.redmine.ticket_mgr.expired_tickets():
+            # notification to discord, or just note provided by expire?
+            # - for now, add note to ticket with expire info, and allow sync.
+            self.redmine.ticket_mgr.expire(ticket)
 
 
     @tasks.loop(hours=24)
@@ -209,5 +225,5 @@ class TicketsCog(commands.Cog):
         - expire tickets that have expired
         Based on ticket-597
         """
-        await self.alert_expiring_tickets()
-        self.redmine.ticket_mgr.expire_expired_tickets()
+        await self.notify_expiring_tickets()
+        self.expire_expired_tickets()

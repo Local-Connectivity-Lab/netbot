@@ -128,6 +128,18 @@ class Ticket():
         if self.category:
             self.category = NamedId(**self.category)
 
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __repr__(self):
+        return f'<Ticket {self.id}>'
+
+
     def get_custom_field(self, name: str) -> str | None:
         if self.custom_fields:
             for field in self.custom_fields:
@@ -191,8 +203,14 @@ class Ticket():
             return ""
 
 
+    @property
+    def age_str(self) -> str:
+        return synctime.age_str(self.updated_on)
+
+
     def __str__(self):
         return f"#{self.id:04d}  {self.status.name:<11}  {self.priority.name:<6}  {self.assigned:<20}  {self.subject}"
+
 
     def get_sync_record(self, expected_channel: int) -> synctime.SyncRecord | None:
         # Parse custom_field into datetime
@@ -423,10 +441,22 @@ class TicketManager():
 
 
     def expire(self, ticket:Ticket):
-        """Expire a ticket"""
-        # rest to new/intake - "unassign"
-        self.unassign_ticket(ticket.id)
-        log.info(f"Expired ticket {ticket.id}")
+        """Expire a ticket:
+        - reassign to intake
+        - set status to new
+        - add note to owner and collaborators
+        """
+        # note: there's no way to get the owner's details (like discord ID)
+        # without accessing user manager. "owner" only provide ID and "name" (not unique login str)
+        # ID can be resolved to discord-id, but not without call in user manager.
+        # Ideally, this would @ the owner and collaborators.
+        fields = {
+            "assigned_to_id": INTAKE_TEAM_ID,
+            "status_id": "1", # New
+            "notes": f"Ticket automatically expired after {TICKET_MAX_AGE} days due to inactivity.",
+        }
+        self.update(ticket.id, fields)
+        log.info(f"Expired ticket {ticket.id}, {ticket.age_str}")
 
 
     def expiring_tickets(self) -> list[Ticket]:
@@ -434,8 +464,8 @@ class TicketManager():
         return self.older_than(TICKET_EXPIRE_NOTIFY)
 
 
-    def expired_tickets(self) -> list[Ticket]:
-        # tickets that have expired; > date due or older that TICKET_MAX_AGE
+    def expired_tickets(self) -> set[Ticket]:
+        # tickets that have expired: older that TICKET_MAX_AGE
         return self.older_than(TICKET_MAX_AGE)
 
 
@@ -454,16 +484,13 @@ class TicketManager():
         return TicketsResult(**response).issues
 
 
-    def due(self) ->list[Ticket]:
-        """Get all open tickets that are due today or earlier
-        """
-        response = self.session.get(f"/issues.json?due_date%3E%3D{synctime.now()}")
+    def due(self) -> list[Ticket]:
+        """Get all open tickets that are due today or earlier"""
+        # To fetch issues updated before a certain timestamp (uncrypted filter is "<=2014-01-02T08:12:32Z")
+        query = f"/issues.json?due_date=%3C%3D{synctime.zulu(synctime.now())}"
+        log.info(f"QUERY due: {query}")
+        response = self.session.get(query)
         return TicketsResult(**response).issues
-
-
-    def expire_expired_tickets(self):
-        for ticket in self.expired_tickets():
-            self.expire(ticket)
 
 
     def find_ticket_from_str(self, string:str):
@@ -719,7 +746,9 @@ class TicketManager():
 
 def main():
     ticket_mgr = TicketManager(RedmineSession.fromenv())
-    #fields = ticket_mgr.load_custom_fields()
+
+    #ticket_mgr.expire_expired_tickets()
+
     for expired in ticket_mgr.expired_tickets():
         print(synctime.age_str(expired.updated_on), expired)
 

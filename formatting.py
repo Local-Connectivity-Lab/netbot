@@ -129,7 +129,7 @@ class DiscordFormatter():
         return details
 
 
-    def format_expiring_alert(self, ticket:Ticket):
+    def format_expiration_notification(self, ticket:Ticket):
         # format an alert.
         # https://discord.com/developers/docs/interactions/message-components#action-rows
         # action row with what options?
