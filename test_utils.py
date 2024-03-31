@@ -148,15 +148,34 @@ class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
         return ctx
 
 
+def audit_expected_values():
+    redmine = Client(session.RedmineSession.fromenv())
+
+    # audit checks...
+    # 1. make sure admin use exists
+    user = redmine.user_mgr.find("admin") # TODO move to const
+    if not user:
+        log.error("Expected user not found: admin")
+
+    # 2. custom fields exist
+    for name in custom_fields():
+        if name not in redmine.ticket_mgr.custom_fields:
+            log.error("Expected custom field defination not found: %s", name)
+
+    log.info("Audit complete.")
+
+
 if __name__ == '__main__':
     # when running this main, turn on DEBUG
-    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+    logging.basicConfig(level=logging.INFO, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 
     # load credentials
     load_dotenv()
 
     # construct the client and run the email check
-    client = session.RedmineSession.fromenv()
-    users = UserManager(client)
-    remove_test_users(users)
+    #client = session.RedmineSession.fromenv()
+    #users = UserManager(client)
+    #remove_test_users(users)
+
+    audit_expected_values()
