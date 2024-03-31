@@ -39,11 +39,13 @@ class TicketManager():
     def load_custom_fields(self) -> dict[str,NamedId]:
         # call redmine to get the ticket custom fields
         fields_response = self.session.get("/custom_fields.json")
-        if fields_response:
+        if fields_response and 'custom_fields' in fields_response:
             fields = {}
             for field in fields_response['custom_fields']:
                 fields[field['name']] = NamedId(id=field['id'], name=field['name'])
             return fields
+        else:
+            log.warning("No custom fields to load")
 
 
     def get_field_id(self, name:str) -> int | None:
@@ -255,6 +257,7 @@ class TicketManager():
         query = f"/issues.json?due_date=%3C%3D{synctime.zulu(synctime.now())}"
         log.info(f"QUERY due: {query}")
         response = self.session.get(query)
+        print(response)
         return TicketsResult(**response).issues
 
 
@@ -513,13 +516,12 @@ def main():
     ticket_mgr = TicketManager(RedmineSession.fromenv())
 
     #ticket_mgr.expire_expired_tickets()
-
     #for ticket in ticket_mgr.older_than(7): #ticket_mgr.expired_tickets():
     #    print(synctime.age_str(ticket.updated_on), ticket)
-
     #print(ticket_mgr.get(105, include_children=True).json_str())
+    #print(json.dumps(ticket_mgr.load_custom_fields(), indent=4, default=vars))
 
-    print(json.dumps(ticket_mgr.load_custom_fields()))
+    #print(ticket_mgr.due())
 
 # for testing the redmine
 if __name__ == '__main__':

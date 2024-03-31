@@ -19,15 +19,21 @@ class TestTicketManager(unittest.TestCase):
     def mock_mgr(self):
         return TicketManager(test_utils.mock_session())
 
-    @unittest.skip # until I get the mocking worked out
+
     @patch('session.RedmineSession.get')
     def test_expired_tickets(self, mock_get:MagicMock):
-        mock_get.return_value = test_utils.create_mock_result().asdict()
+        ticket = test_utils.mock_ticket()
+        result = test_utils.mock_result([
+            ticket,
+            test_utils.mock_ticket(),
+        ])
+
+        mock_get.return_value = result.asdict()
 
         expired = self.mock_mgr().expired_tickets()
         self.assertGreater(len(expired), 0)
         expired_ids = [ticket.id for ticket in expired]
-        self.assertIn(id, expired_ids)
+        self.assertIn(ticket.id, expired_ids)
         mock_get.assert_called_once()
 
 

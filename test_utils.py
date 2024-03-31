@@ -70,20 +70,21 @@ def create_test_user(user_mgr:UserManager, tag:str):
     return user_mgr.get_by_name(user.login)
 
 
-def create_mock_ticket() -> model.Ticket:
+def mock_ticket(**kwargs) -> model.Ticket:
     with open('test/test-ticket.json', "r", encoding="utf-8") as ticket_file:
         data = json.load(ticket_file)
         ticket = model.Ticket(**data)
         ticket.id = random.randint(100,9999)
 
+        for key, value in kwargs.items():
+            ticket.set_field(key, value)
+
         return ticket
 
 
-def create_mock_result(num_tickets:int=1) -> model.TicketsResult:
-    result = model.TicketsResult(num_tickets, 0, 0, None)
-    result.issues = [create_mock_ticket() for i in range(num_tickets)]
+def mock_result(tickets: list[model.Ticket]) -> model.TicketsResult:
+    return model.TicketsResult(len(tickets), 0, 25, tickets)
 
-    return result
 
 def mock_session() -> session.RedmineSession:
     return session.RedmineSession("","")

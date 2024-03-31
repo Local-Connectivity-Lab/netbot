@@ -8,7 +8,6 @@ from dataclasses import dataclass
 import datetime as dt
 import re
 import json
-from json import JSONEncoder
 
 import synctime
 
@@ -75,13 +74,6 @@ class Message():
             return '//'.join([self.to, self.cc])
 
 
-
-class Encoder(JSONEncoder):
-    """JSON Encoder used by model objects"""
-    def default(self, o):
-        return o.__dict__
-
-
 @dataclass
 class TicketStatus():
     """status of a ticket"""
@@ -106,7 +98,7 @@ class PropertyChange(): # https://www.redmine.org/projects/redmine/wiki/Rest_Iss
 
 
 @dataclass
-class NamedId:
+class NamedId():
     '''named ID in redmine'''
     id: int
     name: str | None
@@ -265,23 +257,23 @@ class Ticket():
         self.project =  NamedId(**self.project)
         self.tracker = NamedId(**self.tracker)
 
-        if self.assigned_to:
+        if self.assigned_to and isinstance(self.assigned_to, dict):
             self.assigned_to = NamedId(**self.assigned_to)
-        if self.created_on:
+        if self.created_on and isinstance(self.assigned_to, str):
             self.created_on = synctime.parse_str(self.created_on)
-        if self.updated_on:
+        if self.updated_on and isinstance(self.assigned_to, str):
             self.updated_on = synctime.parse_str(self.updated_on)
-        if self.closed_on:
+        if self.closed_on and isinstance(self.assigned_to, str):
             self.closed_on = synctime.parse_str(self.closed_on)
-        if self.start_date:
+        if self.start_date and isinstance(self.assigned_to, str):
             self.start_date = synctime.parse_str(self.start_date)
-        if self.due_date:
+        if self.due_date and isinstance(self.assigned_to, str):
             self.due_date = synctime.parse_str(self.due_date)
-        if self.custom_fields:
+        if self.custom_fields and isinstance(self.assigned_to, dict):
             self.custom_fields = [CustomField(**field) for field in self.custom_fields]
-        if self.journals:
+        if self.journals and isinstance(self.assigned_to, dict):
             self.journals = [TicketNote(**note) for note in self.journals]
-        if self.category:
+        if self.category and isinstance(self.assigned_to, dict):
             self.category = NamedId(**self.category)
 
 
@@ -328,8 +320,9 @@ class Ticket():
     def asdict(self):
         return dataclasses.asdict(self)
 
-    def json_str(self):
-        return json.dumps(self.asdict(), indent=4, default=str)
+    @property
+    def json(self):
+        return json.dumps(self.asdict(), indent=4, default=vars)
 
     @property
     def to(self) -> list[str]:
@@ -420,6 +413,13 @@ class Ticket():
         return val
 
 
+    def set_field(self, fieldname:str, value):
+        setattr(self, fieldname, value)
+        log.debug(f"ticket-{self.id} {fieldname} <= {value}")
+
+
+
+
 @dataclass
 class TicketsResult:
     """Encapsulates a set of tickets"""
@@ -429,8 +429,12 @@ class TicketsResult:
     issues: list[Ticket]
 
     def __post_init__(self):
-        if self.issues:
+        if self.issues and len(self.issues) > 0 and isinstance(self.issues[0], dict):
             self.issues = [Ticket(**ticket) for ticket in self.issues]
 
     def asdict(self):
         return dataclasses.asdict(self)
+
+    @property
+    def json(self):
+        return json.dumps(self.asdict(), indent=4, default=vars)
