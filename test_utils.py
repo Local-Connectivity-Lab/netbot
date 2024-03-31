@@ -90,6 +90,11 @@ def mock_session() -> session.RedmineSession:
     return session.RedmineSession("","")
 
 
+def custom_fields() -> dict:
+    with open('test/custom-fields.json', "r", encoding="utf-8") as fields_file:
+        return json.load(fields_file)
+
+
 def remove_test_users(user_mgr:UserManager):
     for user in user_mgr.get_all():
         if user.login.startswith("test-") or user.login == "philion@acmerocket.com":

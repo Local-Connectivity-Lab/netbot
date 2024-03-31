@@ -241,11 +241,8 @@ class TicketManager():
         since = synctime.now() - dt.timedelta(days=days_old) # day_ago to a timestamp
         # To fetch issues updated before a certain timestamp (uncrypted filter is "<=2014-01-02T08:12:32Z")
         query = f"/issues.json?updated_on=%3C%3D{synctime.zulu(since)}&include=children"
-        log.info(f"QUERY: {query}")
         response = self.session.get(query)
         if response:
-            log.info(f"RESPONSE: {str(response)}")
-
             return TicketsResult(**response).issues
         else:
             return []

@@ -259,19 +259,19 @@ class Ticket():
 
         if self.assigned_to and isinstance(self.assigned_to, dict):
             self.assigned_to = NamedId(**self.assigned_to)
-        if self.created_on and isinstance(self.assigned_to, str):
+        if self.created_on and isinstance(self.created_on, str):
             self.created_on = synctime.parse_str(self.created_on)
-        if self.updated_on and isinstance(self.assigned_to, str):
+        if self.updated_on and isinstance(self.updated_on, str):
             self.updated_on = synctime.parse_str(self.updated_on)
-        if self.closed_on and isinstance(self.assigned_to, str):
+        if self.closed_on and isinstance(self.closed_on, str):
             self.closed_on = synctime.parse_str(self.closed_on)
-        if self.start_date and isinstance(self.assigned_to, str):
+        if self.start_date and isinstance(self.start_date, str):
             self.start_date = synctime.parse_str(self.start_date)
-        if self.due_date and isinstance(self.assigned_to, str):
+        if self.due_date and isinstance(self.due_date, str):
             self.due_date = synctime.parse_str(self.due_date)
-        if self.custom_fields and isinstance(self.assigned_to, dict):
+        if self.custom_fields and len(self.custom_fields) > 0 and isinstance(self.custom_fields[0], dict):
             self.custom_fields = [CustomField(**field) for field in self.custom_fields]
-        if self.journals and isinstance(self.assigned_to, dict):
+        if self.journals and len(self.journals) > 0 and isinstance(self.journals[0], dict):
             self.journals = [TicketNote(**note) for note in self.journals]
         if self.category and isinstance(self.assigned_to, dict):
             self.category = NamedId(**self.category)

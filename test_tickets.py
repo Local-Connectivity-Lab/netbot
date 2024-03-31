@@ -19,15 +19,18 @@ class TestTicketManager(unittest.TestCase):
     def mock_mgr(self):
         return TicketManager(test_utils.mock_session())
 
-
+    @patch('tickets.TicketManager.load_custom_fields')
     @patch('session.RedmineSession.get')
-    def test_expired_tickets(self, mock_get:MagicMock):
+    def test_expired_tickets(self, mock_get:MagicMock, mock_cf:MagicMock):
+        # setup custom fields
+        mock_cf.return_value = test_utils.custom_fields() # TODO move to mgr setup
+
+        # setup the mock tickets
         ticket = test_utils.mock_ticket()
         result = test_utils.mock_result([
             ticket,
             test_utils.mock_ticket(),
         ])
-
         mock_get.return_value = result.asdict()
 
         expired = self.mock_mgr().expired_tickets()
