@@ -18,7 +18,7 @@ Each Redmine API token is associated with a specific user, so an specific "admin
 
 NOTE: this should be moved to the scn-redmine install process
 
-If the `admin` user already exists and Administrator privlidges, skip this step.
+If the `admin` user already exists and has Administrator privlidges, skip this step.
 
 An existing Redmine administrator must log into the Redmine instance to access REDMINE_URL/user to create a new user:
 * Login to Redmine via REDMINE_URL
@@ -26,7 +26,7 @@ An existing Redmine administrator must log into the Redmine instance to access R
 * Enter the follow values. Everything else can be left as is.
   * Login: `admin`
   * First name: `Admin`
-  * Last name: `-`
+  * Last name: `Bot`
   * Email: `root@example.com`
   * Administrator: (check the box)
   * Authentication mode: Internal
