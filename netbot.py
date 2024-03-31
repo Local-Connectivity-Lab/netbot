@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from discord.ext import commands
 
 from formatting import DiscordFormatter
-from tickets import TicketNote
+from model import TicketNote
 import synctime
 import redmine
 

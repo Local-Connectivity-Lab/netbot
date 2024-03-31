@@ -5,13 +5,12 @@ import datetime as dt
 import logging
 import re
 import json
+import urllib.parse
 
-import dataclasses
-from dataclasses import dataclass
 
-from model import Message
+
+from model import SYNC_FIELD_NAME, TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult
 from session import RedmineSession, RedmineException
-from users import CustomField, User, Team, NamedId
 import synctime
 
 
@@ -22,258 +21,12 @@ ISSUES_RESOURCE="/issues.json"
 ISSUE_RESOURCE="/issues/"
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
 SCN_PROJECT_ID = 1  # could lookup scn in projects
-SYNC_FIELD_NAME = "syncdata"
-TO_CC_FIELD_NAME = "To/CC"
 INTAKE_TEAM = "ticket-intake"
 INTAKE_TEAM_ID = 19 # FIXME
 
 
 TICKET_MAX_AGE = 4 * 7 # 4 weeks; 28 days
 TICKET_EXPIRE_NOTIFY = TICKET_MAX_AGE - 1 # 27 days, one day shorter than MAX_AGE
-
-
-@dataclass
-class TicketStatus():
-    """status of a ticket"""
-    id: int
-    name: str
-    is_closed: bool
-
-    def __str__(self):
-        return self.name
-
-
-@dataclass
-class PropertyChange(): # https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
-    """a documented change in a single property"""
-    property: str
-    name: str
-    old_value: str
-    new_value: str
-
-    def __str__(self):
-        return f"{self.name}/{self.property} {self.old_value} -> {self.new_value}"
-
-
-@dataclass
-class TicketNote(): # https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
-    """a message sent to a ticket"""
-    id: int
-    notes: str
-    created_on: dt.datetime
-    private_notes: bool
-    details: list[PropertyChange]
-    user: NamedId | None = None
-
-    def __post_init__(self):
-        self.user = NamedId(**self.user)
-        self.created_on = synctime.parse_str(self.created_on)
-        if self.details:
-            self.details = [PropertyChange(**change) for change in self.details]
-
-    def __str__(self):
-        return f"#{self.id} - {self.user}: {self.notes}"
-
-@dataclass
-class Ticket():
-    """Encapsulates a redmine ticket"""
-    id: int
-    subject: str
-    description: str
-    done_ratio: float
-    is_private: bool
-    estimated_hours: float
-    total_estimated_hours: float
-    start_date: dt.date
-    due_date: dt.date
-    created_on: dt.datetime
-    updated_on: dt.datetime
-    closed_on: dt.datetime
-    project: NamedId|None = None
-    tracker: NamedId|None = None
-    priority: NamedId|None = None
-    author: NamedId|None = None
-    status: TicketStatus|None = None
-    parent: NamedId|None = None
-    spent_hours: float = 0.0
-    total_spent_hours: float = 0.0
-    category: NamedId|None = None
-    assigned_to: NamedId|None = None
-    custom_fields: list[CustomField]|None = None
-    journals: list[TicketNote]|None = None
-
-    def __post_init__(self):
-        self.status = TicketStatus(**self.status)
-        self.author = NamedId(**self.author)
-        self.priority = NamedId(**self.priority)
-        self.project =  NamedId(**self.project)
-        self.tracker = NamedId(**self.tracker)
-
-        if self.assigned_to:
-            self.assigned_to = NamedId(**self.assigned_to)
-        if self.created_on:
-            self.created_on = synctime.parse_str(self.created_on)
-        if self.updated_on:
-            self.updated_on = synctime.parse_str(self.updated_on)
-        if self.closed_on:
-            self.closed_on = synctime.parse_str(self.closed_on)
-        if self.start_date:
-            self.start_date = synctime.parse_str(self.start_date)
-        if self.due_date:
-            self.due_date = synctime.parse_str(self.due_date)
-        if self.custom_fields:
-            self.custom_fields = [CustomField(**field) for field in self.custom_fields]
-        if self.journals:
-            self.journals = [TicketNote(**note) for note in self.journals]
-        if self.category:
-            self.category = NamedId(**self.category)
-
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self.id == other.id
-
-    def __hash__(self):
-        return hash(self.id)
-
-    def __repr__(self):
-        return f'<Ticket {self.id}>'
-
-
-    def get_custom_field(self, name: str) -> str | None:
-        if self.custom_fields:
-            for field in self.custom_fields:
-                if field.name == name:
-                    return field.value
-
-        log.debug(f"missing expected custom field: {name}")
-        return None
-
-    def set_custom_field(self, field_id: int, name: str, value: str) -> str | None:
-        """
-        Set the value of a custom field on a ticket. If
-        """
-        if self.custom_fields:
-            for field in self.custom_fields:
-                if field.id == field_id and field.name == name:
-                    old_value = field.value
-                    field.value = value
-                    return old_value
-        else:
-            # adding new value to empty list, initialize
-            self.custom_fields = []
-
-        # there is no matching custom field, add one
-        cf = CustomField(id=id, name=name, value=value)
-        self.custom_fields.append(cf)
-        log.debug(f"added new custom field to ticket #{self.id}: {cf}")
-        return None
-
-    def json_str(self):
-        return json.dumps(dataclasses.asdict(self))
-
-    @property
-    def to(self) -> list[str]:
-        val = self.get_custom_field(TO_CC_FIELD_NAME)
-        if val:
-            if '//' in val:
-                # string contains to,to//cc,cc
-                to_str, _ = val.split('//')
-            else:
-                to_str = val
-            return [to.strip() for to in to_str.split(',')]
-
-    @property
-    def cc(self) -> list[str]:
-        val = self.get_custom_field(TO_CC_FIELD_NAME)
-        if val:
-            if '//' in val:
-               # string contains to,to//cc,cc
-                _, cc_str = val.split('//')
-            else:
-                cc_str = val
-            return [to.strip() for to in cc_str.split(',')]
-
-
-    @property
-    def assigned(self) -> str:
-        if self.assigned_to:
-            return self.assigned_to.name
-        else:
-            return ""
-
-
-    @property
-    def age_str(self) -> str:
-        return synctime.age_str(self.updated_on)
-
-
-    def __str__(self):
-        return f"#{self.id:04d}  {self.status.name:<11}  {self.priority.name:<6}  {self.assigned:<20}  {self.subject}"
-
-
-    def get_sync_record(self, expected_channel: int) -> synctime.SyncRecord | None:
-        # Parse custom_field into datetime
-        # lookup field by name
-        token = self.get_custom_field(SYNC_FIELD_NAME)
-        #log.info(f"### found '{token}' for #{self.id}:{SYNC_FIELD_NAME}")
-        #log.info(f"### custom field: {self.custom_fields}")
-        if token:
-            record = synctime.SyncRecord.from_token(self.id, token)
-            log.debug(f"created sync_rec from token: {record}")
-            if record:
-                # check channel
-                if record.channel_id == 0:
-                    # no valid channel set in sync data, assume lagacy
-                    record.channel_id = expected_channel
-                    # update the record in redmine after adding the channel info
-                    # self.update_sync_record(record) REALLY needed? should be handled when token created
-                    return record
-                elif record.channel_id != expected_channel:
-                    log.debug(f"channel mismatch: rec={record.channel_id} =/= {expected_channel}, token={token}")
-                    return None
-                else:
-                    return record
-        else:
-            # no token implies not-yet-initialized
-            record = synctime.SyncRecord(self.id, expected_channel, synctime.epoch_datetime())
-            # apply the new sync record back to redmine
-            # self.update_sync_record(record) same REALLY as above ^^^^
-            log.debug(f"created new sync record, none found: {record}")
-            return record
-        return None
-
-
-    def get_notes(self, since:dt.datetime|None=None) -> list[TicketNote]:
-        notes = []
-
-        for note in self.journals:
-            # note.notes is a text field with notes, or empty. if there are no notes, ignore the journal
-            if note.notes:
-                if not since or since < note.created_on:
-                    notes.append(note)
-
-        return notes
-
-    def get_field(self, fieldname:str):
-        val = getattr(self, fieldname)
-        #log.debug(f">>> {fieldname} = {val}, type={type(val)}")
-        return val
-
-
-
-@dataclass
-class TicketsResult:
-    """Encapsulates a set of tickets"""
-    total_count: int
-    limit: int
-    offset: int
-    issues: list[Ticket]
-
-
-    def __post_init__(self):
-        if self.issues:
-            self.issues = [Ticket(**ticket) for ticket in self.issues]
 
 
 class TicketManager():
@@ -401,17 +154,24 @@ class TicketManager():
             return None
 
 
-    def get(self, ticket_id:int, include_journals:bool = False) -> Ticket|None:
+    def get(self, ticket_id:int, include_journals:bool = False, include_children:bool = False) -> Ticket|None:
         """get a ticket by ID"""
         if ticket_id is None or ticket_id == 0:
             #log.debug(f"Invalid ticket number: {ticket_id}")
             return None
 
-        query = f"/issues/{ticket_id}.json"
-        if include_journals:
-            query += "?include=journals" # as per https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
+        query = f"/issues/{ticket_id}.json?"
 
-        response = self.session.get(query)
+        #params = {'var1': 'some data', 'var2': 1337}
+        params = {}
+
+        if include_journals:
+            params['include'] = "journals" # as per https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
+
+        if include_children:
+            params['include'] = "children"
+
+        response = self.session.get(query + urllib.parse.urlencode(params))
         if response:
             return Ticket(**response['issue'])
         else:
@@ -469,7 +229,7 @@ class TicketManager():
         return self.older_than(TICKET_MAX_AGE)
 
 
-    def older_than(self, days_old: int) ->list[Ticket]:
+    def older_than(self, days_old: int) -> list[Ticket]:
         """Get all the open tickets that haven't been updated
         in day_old days.
         """
@@ -477,11 +237,16 @@ class TicketManager():
         # GET /issues.json?created_on=%3C%3D2012-03-07
 
         since = synctime.now() - dt.timedelta(days=days_old) # day_ago to a timestamp
-        # To fetch issues updated before a certain timestamp (uncrypted filter is "<=2014-01-02T08:12:32Z") :
-        query = f"/issues.json?updated_on=%3C%3D{synctime.zulu(since)}"
+        # To fetch issues updated before a certain timestamp (uncrypted filter is "<=2014-01-02T08:12:32Z")
+        query = f"/issues.json?updated_on=%3C%3D{synctime.zulu(since)}&include=children"
         log.info(f"QUERY: {query}")
         response = self.session.get(query)
-        return TicketsResult(**response).issues
+        if response:
+            log.info(f"RESPONSE: {str(response)}")
+
+            return TicketsResult(**response).issues
+        else:
+            return []
 
 
     def due(self) -> list[Ticket]:
@@ -749,9 +514,12 @@ def main():
 
     #ticket_mgr.expire_expired_tickets()
 
-    for expired in ticket_mgr.expired_tickets():
-        print(synctime.age_str(expired.updated_on), expired)
+    #for ticket in ticket_mgr.older_than(7): #ticket_mgr.expired_tickets():
+    #    print(synctime.age_str(ticket.updated_on), ticket)
 
+    #print(ticket_mgr.get(105, include_children=True).json_str())
+
+    print(json.dumps(ticket_mgr.load_custom_fields()))
 
 # for testing the redmine
 if __name__ == '__main__':

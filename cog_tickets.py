@@ -9,8 +9,7 @@ import discord
 from discord.commands import option
 from discord.ext import commands, tasks
 
-from model import Message
-from tickets import Ticket
+from model import Message, Ticket
 from redmine import Client
 
 

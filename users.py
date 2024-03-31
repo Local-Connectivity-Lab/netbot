@@ -5,111 +5,17 @@ import datetime as dt
 import logging
 import json
 
-from dataclasses import dataclass
 
+from model import Team, User, UserResult
 from session import RedmineSession, RedmineException
+
 
 log = logging.getLogger(__name__)
 
+
 USER_RESOURCE = "/users.json"
 TEAM_RESOURCE = "/groups.json"
-DISCORD_ID_FIELD = "Discord ID"
 BLOCKED_TEAM_NAME = "blocked"
-
-
-@dataclass
-class CustomField():
-    """A redmine custom field"""
-    id: int
-    name: str
-    value: str
-
-    def __str__(self) -> str:
-        return f"field-{self.id}:{self.name}={self.value}"
-
-@dataclass
-class NamedId:
-    '''named ID in redmine'''
-    id: int
-    name: str | None
-
-    def __str__(self) -> str:
-        if self.name:
-            return self.name
-        else:
-            return str(self.id)
-
-
-@dataclass
-class Team:
-    """Encapsulates a team"""
-    id: int
-    name: str
-    users: list[NamedId] = None
-
-    def __post_init__(self):
-        if self.users:
-            self.users = [NamedId(**name) for name in self.users]
-
-    def __str__(self) -> str:
-        return self.name
-
-
-@dataclass
-class User():
-    """Encapsulates a redmine user"""
-    id: int
-    login: str
-    mail: str
-    custom_fields: dict
-    admin: bool
-    firstname: str
-    lastname: str
-    mail: str
-    created_on: dt.datetime
-    updated_on: dt.datetime
-    last_login_on: dt.datetime
-    passwd_changed_on: dt.datetime
-    twofa_scheme: str
-    api_key: str = ""
-    status: int = ""
-    custom_fields: list[CustomField]
-
-    def __post_init__(self):
-        self.custom_fields = [CustomField(**field) for field in self.custom_fields]
-        self.discord_id = self.get_custom_field(DISCORD_ID_FIELD)
-
-    def get_custom_field(self, name: str) -> str:
-        for field in self.custom_fields:
-            if field.name == name:
-                return field.value
-
-        return None
-
-    def full_name(self) -> str:
-        if self.firstname is None or len(self.firstname) < 2:
-            return self.lastname
-        if self.lastname is None or len(self.lastname) < 2:
-            return self.firstname
-        return self.firstname + " " + self.lastname
-
-    def __str__(self):
-        return f"#{self.id} {self.full_name()} login={self.login} discord={self.discord_id}"
-
-
-@dataclass
-class UserResult:
-    """Encapsulates a set of users"""
-    users: list[User]
-    total_count: int
-    limit: int
-    offset: int
-
-    def __post_init__(self):
-        self.users = [User(**user) for user in self.users]
-
-    def __str__(self):
-        return f"users:({[u.login + ',' for u in self.users]}), total={self.total_count}, {self.limit}/{self.offset}"
 
 
 class UserCache():

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Utilities to help testing"""
 
+import json
 import time
 import string
 import random
@@ -12,10 +13,10 @@ from dotenv import load_dotenv
 
 import discord
 from discord import ApplicationContext
-from users import User, UserManager
-from model import Message
+import model
+from users import UserManager
+from model import Message, User
 import session
-import tickets
 from redmine import Client
 
 log = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ def randstr(length:int=12) -> str:
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
 
+
 def create_test_user(user_mgr:UserManager, tag:str):
     # create new test user name: test-12345@example.com, login test-12345
     first = "test-" + tag
@@ -66,6 +68,25 @@ def create_test_user(user_mgr:UserManager, tag:str):
 
     # lookup based on login
     return user_mgr.get_by_name(user.login)
+
+
+def create_mock_ticket() -> model.Ticket:
+    with open('test/test-ticket.json', "r", encoding="utf-8") as ticket_file:
+        data = json.load(ticket_file)
+        ticket = model.Ticket(**data)
+        ticket.id = random.randint(100,9999)
+
+        return ticket
+
+
+def create_mock_result(num_tickets:int=1) -> model.TicketsResult:
+    result = model.TicketsResult(num_tickets, 0, 0, None)
+    result.issues = [create_mock_ticket() for i in range(num_tickets)]
+
+    return result
+
+def mock_session() -> session.RedmineSession:
+    return session.RedmineSession("","")
 
 
 def remove_test_users(user_mgr:UserManager):
@@ -98,7 +119,7 @@ class RedmineTestCase(unittest.TestCase):
             log.info(f"TEARDOWN removed test user: {cls.user}")
 
 
-    def create_test_ticket(self) -> tickets.Ticket:
+    def create_test_ticket(self) -> model.Ticket:
         subject = f"TEST {self.tag} {unittest.TestCase.id(self)}"
         text = f"This is a ticket for {unittest.TestCase.id(self)} with {self.tag}."
         message = Message(self.user.mail, subject, f"to-{self.tag}@example.com", f"cc-{self.tag}@example.com")

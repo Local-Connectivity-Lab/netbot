@@ -6,7 +6,8 @@ import logging
 
 import discord
 
-from tickets import Ticket, TicketManager
+from model import Ticket
+from tickets import TicketManager
 from session import RedmineSession
 import synctime
 

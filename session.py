@@ -121,35 +121,6 @@ class RedmineSession():
             raise RedmineException(f"DELETE failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
 
 
-    def xxxxupload_file(self, user_login: str, data, filename, content_type):
-        """Upload a file to redmine"""
-        # POST /uploads.json?filename=image.png
-        # Content-Type: application/octet-stream
-        # (request body is the file content)
-
-        headers = {
-            'User-Agent': 'netbot/0.0.1', # TODO update to project version, and add version management
-            'Content-Type': 'application/octet-stream', # <-- VERY IMPORTANT
-            'X-Redmine-API-Key': self.token,
-            'X-Redmine-Switch-User': user_login, # Make sure the comment is noted by the correct user
-        }
-
-        r = self.session.post(
-            url=f"{self.url}/uploads.json?filename={filename}",
-            timeout=TIMEOUT,
-            files={ 'upload_file': (filename, data, content_type) },
-            headers=headers)
-
-        # 201 response: {"upload":{"token":"7167.ed1ccdb093229ca1bd0b043618d88743"}}
-        if r.ok:
-            # all good, get token
-            #root = json.loads(r.text, object_hook= lambda x: SimpleNamespace(**x))
-            token = r.json()['upload']['token']
-            log.info(f"Uploaded {filename} {content_type}, got token={token}")
-            return token
-        else:
-            raise RedmineException(f"UPLOAD failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
-
     def upload_file(self, user_login:str, data, filename:str, content_type:str):
         """Upload a file to redmine"""
         # POST /uploads.json?filename=image.png
