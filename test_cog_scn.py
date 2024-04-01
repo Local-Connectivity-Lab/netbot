@@ -33,6 +33,20 @@ class TestSCNCog(test_utils.BotTestCase):
         self.cog:SCNCog = self.bot.cogs["SCNCog"] # Note class name, note filename.
 
 
+    async def test_add_self(self):
+        # invoke "add" to add a discord mapping for the test user.
+        # setup: remove existing mapping
+        discord_id = self.user.discord_id
+        self.user_mgr.remove_discord_mapping(self.user)
+        self.user_mgr.reindex_users() # to remove the discord ID from the cache
+
+        ctx = self.build_context()
+        await self.cog.add(ctx, self.user.login) # invoke cog to add uer
+
+        expected = f"Discord user: {discord_id} has been paired with redmine user: {self.user.login}"
+        ctx.respond.assert_called_with(expected)
+
+
     async def test_team_join_leave(self):
         test_team_name = "test-team"
 

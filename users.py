@@ -353,7 +353,7 @@ class UserManager():
 
 
     def create_discord_mapping(self, user:User, discord_name:str) -> User:
-        field_id = 2 ## "Discord ID"search for me in cached custom fields
+        field_id = 2 ## FIXME "Discord ID"search for me in cached custom fields
         fields = {
             "custom_fields": [
                 { "id": field_id, "value": discord_name } # cf_4, custom field syncdata
@@ -361,6 +361,15 @@ class UserManager():
         }
         return self.update(user, fields)
 
+    # for testing
+    def remove_discord_mapping(self, user:User) -> User:
+        field_id = 2 ## FIXME "Discord ID"search for me in cached custom fields
+        fields = {
+            "custom_fields": [
+                { "id": field_id, "value": "" }
+            ]
+        }
+        return self.update(user, fields)
 
     def get_all_teams(self, include_users: bool = True) -> dict[str, Team]:
         resp = self.session.get(f"{TEAM_RESOURCE}?limit=100")

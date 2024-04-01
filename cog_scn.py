@@ -52,7 +52,7 @@ class NewUserModal(discord.ui.Modal):
         if user is None:
             log.error(f"Unable to create user from {first}, {last}, {email}, {interaction.user.name}")
         else:
-            self.redmine.create_discord_mapping(user.login, interaction.user.name)
+            self.redmine.user_mgr.create_discord_mapping(user, interaction.user.name)
             await interaction.response.send_message(embeds=[embed])
 
 
@@ -82,14 +82,14 @@ class SCNCog(commands.Cog):
         else:
             user = self.redmine.user_mgr.find(redmine_login)
             if user:
-                self.redmine.create_discord_mapping(redmine_login, discord_name)
+                self.redmine.user_mgr.create_discord_mapping(user, discord_name)
                 await ctx.respond(f"Discord user: {discord_name} has been paired with redmine user: {redmine_login}")
             else:
                 # no user exists for that login
                 modal = NewUserModal(self.redmine, title="Create new user in Redmine")
                 await ctx.send_modal(modal)
             # reindex users after changes
-            self.redmine.reindex_users()
+            self.redmine.user_mgr.reindex_users()
 
 
     async def sync_thread(self, thread:discord.Thread):
