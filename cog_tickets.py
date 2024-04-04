@@ -115,7 +115,8 @@ class TicketsCog(commands.Cog):
     async def create_thread(self, ticket:Ticket, ctx:discord.ApplicationContext):
         log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
         thread_name = f"Ticket #{ticket.id}: {ticket.subject}"
-        thread = await ctx.channel.create_thread(name=thread_name)
+        # added public_thread type param
+        thread = await ctx.channel.create_thread(name=thread_name, type=discord.ChannelType.public_thread)
         # ticket-614: Creating new thread should post the ticket details to the new thread
         await thread.send(self.bot.formatter.format_ticket_details(ticket))
         return thread
