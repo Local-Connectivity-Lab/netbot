@@ -112,6 +112,15 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Error {action} {ticket_id}: {e}")
 
 
+    async def create_thread(self, ticket:Ticket, ctx:discord.ApplicationContext):
+        log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
+        thread_name = f"Ticket #{ticket.id}: {ticket.subject}"
+        thread = await ctx.channel.create_thread(name=thread_name)
+        # ticket-614: Creating new thread should post the ticket details to the new thread
+        await thread.send(self.bot.formatter.format_ticket_details(ticket))
+        return thread
+
+
     @commands.slash_command(name="new", description="Create a new ticket")
     @option("title", description="Title of the new SCN ticket")
     @option("add_thread", description="Create a Discord thread for the new ticket", default=False)
@@ -120,25 +129,32 @@ class TicketsCog(commands.Cog):
         if user is None:
             await ctx.respond(f"Unknown user: {ctx.user.name}")
             return
-
+        channel_name = ctx.channel.name
         # text templating
         text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
         message = Message(from_addr=user.mail, subject=title, to=ctx.channel.name)
         message.set_note(text)
+        ## TODO cleanup with cogscn.sync: both have complex ticket creation
         ticket = self.redmine.create_ticket(user, message)
         if ticket:
-            await self.bot.formatter.print_ticket(ticket, ctx)
+            # ticket created, set tracker
+            # set tracker
+            # TODO: search up all parents in hierarchy?
+            tracker = self.bot.lookup_tracker(channel_name)
+            if tracker:
+                log.debug(f"found {channel_name} => {tracker}")
+                params = {
+                    "tracker_id": str(tracker.id),
+                    "notes": f"Setting tracker based on channel name: {channel_name}"
+                }
+                self.redmine.ticket_mgr.update(ticket.id, params, user.login)
+            else:
+                log.debug(f"not tracker for {channel_name}")
+            # create related discord thread
+            await self.thread_ticket(ctx, ticket.id)
+            #await self.bot.formatter.print_ticket(ticket, ctx)
         else:
-            await ctx.respond(f"error creating ticket with title={title}")
-
-
-    async def create_thread(self, ticket:Ticket, ctx:discord.ApplicationContext):
-        log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
-        thread_name = f"Ticket #{ticket.id}: {ticket.subject}"
-        thread = await ctx.channel.create_thread(name=thread_name)
-        # ticket-614: Creating new thread should post the ticket details to the new thread
-        await thread.send(self.bot.formatter.format_ticket_details(ticket))
-        return thread
+            await ctx.respond(f"Error creating ticket with title={title}")
 
 
     @commands.slash_command(name="thread", description="Create a Discord thread for the specified ticket")
