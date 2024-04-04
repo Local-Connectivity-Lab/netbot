@@ -10,9 +10,9 @@ from dotenv import load_dotenv
 
 import synctime
 from session import RedmineSession
-from model import Message
-from users import User, UserManager
-from tickets import Ticket, TicketManager
+from model import Message, Ticket, User
+from users import UserManager
+from tickets import TicketManager
 
 
 log = logging.getLogger(__name__)

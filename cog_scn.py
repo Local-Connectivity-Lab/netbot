@@ -61,7 +61,6 @@ class SCNCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.redmine: Client = bot.redmine
-        self.sync_all_threads.start() # pylint: disable=no-member
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
 
@@ -109,32 +108,6 @@ class SCNCog(commands.Cog):
 
         return None
 
-
-    @tasks.loop(minutes=1.0) # FIXME to 5.0 minutes. set to 1 min for testing
-    async def sync_all_threads(self):
-        """
-        Configured to run every minute using the tasks.loop annotation.
-        Get all Threads and sync each one.
-        """
-        log.info(f"sync_all_threads: starting for {self.bot.guilds}")
-
-        # get all threads
-        for guild in self.bot.guilds:
-            for thread in guild.threads:
-                try:
-                    # try syncing each thread. if there's no ticket found, there's no thread to sync.
-                    ticket = await self.sync_thread(thread)
-                    if ticket:
-                        # successful sync
-                        log.debug(f"SYNC complete for ticket #{ticket.id} to {thread.name}")
-                    #else:
-                        #log.debug(f"no ticket found for {thread.name}")
-                except NetbotException as ex:
-                    # ticket is locked.
-                    # skip gracefully
-                    log.debug(f"Ticket locked, sync in progress: {thread}: {ex}")
-                except Exception:
-                    log.exception(f"Error syncing {thread}")
 
     @scn.command()
     async def sync(self, ctx:discord.ApplicationContext):

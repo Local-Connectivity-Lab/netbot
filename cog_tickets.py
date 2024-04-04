@@ -7,23 +7,14 @@ import logging
 import discord
 
 from discord.commands import option
-from discord.ext import commands
+from discord.ext import commands, tasks
 
-from model import Message
-from tickets import Ticket
+from model import Message, Ticket
 from redmine import Client
 
 
 log = logging.getLogger(__name__)
 
-# scn add redmine_login - setup discord userid in redmine
-# scn sync - manually sychs the current thread, or replies with warning
-# scn sync
-
-# scn join teamname - discord user joins team teamname (and maps user id)
-# scn leave teamname - discord user leaves team teamname (and maps user id)
-
-# scn reindex
 
 def setup(bot):
     bot.add_cog(TicketsCog(bot))
@@ -35,16 +26,9 @@ class TicketsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.redmine: Client = bot.redmine
-        log.debug(f"Initialized with {self.redmine}")
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
 
-#tickets - all the queries
-
-#ticket # show (default) - show ticket info
-#ticket # notes - show ticket will all notes (in a decent format)
-#ticket # note - add a note to the specific ticket. same as commenting in the ticket thread (if there is one, works without)
-#ticket # sync - creates new synced thread for ticket in the current text channel, or errors
 
     # figure out what the term refers to
     # could be ticket#, team name, user name or search term
@@ -61,6 +45,7 @@ class TicketsCog(commands.Cog):
             else:
                 # assume a search term
                 return self.redmine.search_tickets(term)
+
 
     @commands.slash_command()     # guild_ids=[...] # Create a slash command for the supplied guilds.
     async def tickets(self, ctx: discord.ApplicationContext, params: str = ""):

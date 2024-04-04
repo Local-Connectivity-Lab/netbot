@@ -6,7 +6,8 @@ import logging
 
 import discord
 
-from tickets import Ticket, TicketManager
+from model import Ticket
+from tickets import TicketManager
 from session import RedmineSession
 import synctime
 
@@ -127,6 +128,17 @@ class DiscordFormatter():
 
         details += f"### Description\n{ticket.description}"
         return details
+
+
+    def format_expiration_notification(self, ticket:Ticket):
+        # format an alert.
+        # https://discord.com/developers/docs/interactions/message-components#action-rows
+        # action row with what options?
+        # :warning:
+        # ⚠️
+        # [icon] **Alert** [Ticket x](link) will expire in x hours, as xyz.
+        return f"ALERT: Expiring ticket: {ticket}" #FIXME
+        # return self.format_alert(message)
 
 
 def main():

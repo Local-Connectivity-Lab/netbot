@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Utilities to help testing"""
 
+import json
 import time
 import string
 import random
@@ -12,10 +13,10 @@ from dotenv import load_dotenv
 
 import discord
 from discord import ApplicationContext
-from users import User, UserManager
-from model import Message
+import model
+from users import UserManager
+from model import Message, User
 import session
-import tickets
 from redmine import Client
 
 log = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ def randstr(length:int=12) -> str:
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
 
+
 def create_test_user(user_mgr:UserManager, tag:str):
     # create new test user name: test-12345@example.com, login test-12345
     first = "test-" + tag
@@ -66,6 +68,31 @@ def create_test_user(user_mgr:UserManager, tag:str):
 
     # lookup based on login
     return user_mgr.get_by_name(user.login)
+
+
+def mock_ticket(**kwargs) -> model.Ticket:
+    with open('test/test-ticket.json', "r", encoding="utf-8") as ticket_file:
+        data = json.load(ticket_file)
+        ticket = model.Ticket(**data)
+        ticket.id = random.randint(100,9999)
+
+        for key, value in kwargs.items():
+            ticket.set_field(key, value)
+
+        return ticket
+
+
+def mock_result(tickets: list[model.Ticket]) -> model.TicketsResult:
+    return model.TicketsResult(len(tickets), 0, 25, tickets)
+
+
+def mock_session() -> session.RedmineSession:
+    return session.RedmineSession("","")
+
+
+def custom_fields() -> dict:
+    with open('test/custom-fields.json', "r", encoding="utf-8") as fields_file:
+        return json.load(fields_file)
 
 
 def remove_test_users(user_mgr:UserManager):
@@ -98,7 +125,7 @@ class RedmineTestCase(unittest.TestCase):
             log.info(f"TEARDOWN removed test user: {cls.user}")
 
 
-    def create_test_ticket(self) -> tickets.Ticket:
+    def create_test_ticket(self) -> model.Ticket:
         subject = f"TEST {self.tag} {unittest.TestCase.id(self)}"
         text = f"This is a ticket for {unittest.TestCase.id(self)} with {self.tag}."
         message = Message(self.user.mail, subject, f"to-{self.tag}@example.com", f"cc-{self.tag}@example.com")
@@ -121,15 +148,34 @@ class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
         return ctx
 
 
+def audit_expected_values():
+    redmine = Client(session.RedmineSession.fromenv())
+
+    # audit checks...
+    # 1. make sure admin use exists
+    user = redmine.user_mgr.find("admin") # TODO move to const
+    if not user:
+        log.error("Expected user not found: admin")
+
+    # 2. custom fields exist
+    for name in custom_fields():
+        if name not in redmine.ticket_mgr.custom_fields:
+            log.error("Expected custom field defination not found: %s", name)
+
+    log.info("Audit complete.")
+
+
 if __name__ == '__main__':
     # when running this main, turn on DEBUG
-    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
+    logging.basicConfig(level=logging.INFO, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 
     # load credentials
     load_dotenv()
 
     # construct the client and run the email check
-    client = session.RedmineSession.fromenv()
-    users = UserManager(client)
-    remove_test_users(users)
+    #client = session.RedmineSession.fromenv()
+    #users = UserManager(client)
+    #remove_test_users(users)
+
+    audit_expected_values()
