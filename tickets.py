@@ -48,6 +48,19 @@ class TicketManager():
             log.warning("No custom fields to load")
 
 
+    def load_trackers(self) -> dict[str,NamedId]:
+        # call redmine to get the ticket trackers
+        response = self.session.get("/trackers.json")
+        if response:
+            trackers = {}
+            for item in response['trackers']:
+                print(f"##### {item}")
+                trackers[item['name']] = NamedId(id=item['id'], name=item['name'])
+            return trackers
+        else:
+            log.warning("No custom fields to load")
+
+
     def get_field_id(self, name:str) -> int | None:
         if name in self.custom_fields:
             return self.custom_fields[name].id

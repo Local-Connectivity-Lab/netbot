@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from discord.ext import commands, tasks
 
 from formatting import DiscordFormatter
-from model import TicketNote, Ticket
+from model import TicketNote, Ticket, NamedId
 import synctime
 import redmine
 
@@ -60,9 +60,23 @@ class NetBot(commands.Bot):
         )
 
 
+    def initialize_tracker_mapping(self):
+        # load the trackers, indexed by tracker name
+        self.trackers = self.redmine.ticket_mgr.load_trackers()
+        # update to include each mapping in
+        for tracker_name, channel_name in _TRACKER_MAPPING.items():
+            if tracker_name in self.trackers:
+                self.trackers[channel_name] = self.trackers[tracker_name]
+            else:
+                log.debug(f"unmapped tracker: {tracker_name}")
+
+
     def run_bot(self):
         """start netbot"""
         log.info(f"starting {self}")
+
+        self.initialize_tracker_mapping()
+
         super().run(os.getenv('DISCORD_TOKEN'))
 
 
@@ -333,6 +347,10 @@ class NetBot(commands.Bot):
         """
         await self.notify_expiring_tickets()
         self.expire_expired_tickets()
+
+
+    def lookup_tracker(self, tracker:str) -> NamedId:
+        return self.trackers[tracker]
 
 
 def main():

@@ -111,7 +111,14 @@ class SCNCog(commands.Cog):
                     message = Message(user.login, subject) # user.mail?
                     message.note = subject + "\n\nCreated by netbot by syncing Discord thread with same name."
                     ticket = self.redmine.ticket_mgr.create(user, message)
-                    # TODO set tracker
+                    # set tracker
+                    #tracker = self.bot.lookup_tracker(thread.parent.name)
+                    #if tracker:
+                    #    log.debug(f"found {thread.parent.name} => {tracker}")
+                    #    params = { "tracker_id": str(tracker.id) }
+                    #    self.redmine.ticket_mgr.update(ticket.id, params, user.login)
+                    #else:
+                    #    log.debug(f"not tracker for {thread.parent.name}")
                     # rename thread
                     await thread.edit(name=f"Ticket #{ticket.id}: {ticket.subject}")
                     # sync
