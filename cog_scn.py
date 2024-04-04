@@ -116,7 +116,7 @@ class SCNCog(commands.Cog):
                     await thread.edit(name=f"Ticket #{ticket.id}: {ticket.subject}")
                     # sync
                     ticket = await self.bot.sync_thread(thread) # refesh the ticket
-                    await ctx.respond(f"Converted thread into ticket #{ticket.id}") # TODO add ticket link
+                    await ctx.respond(self.bot.formatter.format_ticket(ticket))
 
                 #OLD await ctx.respond(f"Cannot find ticket# in thread name: {ctx.channel.name}") # error
         else:

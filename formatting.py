@@ -95,6 +95,14 @@ class DiscordFormatter():
         return f"> **{note.user}** *{age} ago*\n> {note.notes}"[:MAX_MESSAGE_LEN]
 
 
+    def format_ticket(self, ticket:Ticket) -> str:
+        link = self.format_link(ticket)
+        status = f"{EMOJI[ticket.status.name]} {ticket.status.name}"
+        priority = f"{EMOJI[ticket.priority.name]} {ticket.priority.name}"
+        assigned = ticket.assigned_to.name if ticket.assigned_to else ""
+        return " ".join([link, priority, status, ticket.tracker.name, assigned, ticket.subject])
+
+
     def format_ticket_details(self, ticket:Ticket) -> str:
         link = self.format_link(ticket)
         # link is mostly hidden, so we can't use the length to format.
