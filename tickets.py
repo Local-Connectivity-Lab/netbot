@@ -155,29 +155,21 @@ class TicketManager():
             log.debug(f"Unknown user: {user}")
             return None
 
-
-    def get(self, ticket_id:int, include_journals:bool = False, include_children:bool = False) -> Ticket|None:
+    ## TODO add **kwargs
+    def get(self, ticket_id:int, **params) -> Ticket|None:
         """get a ticket by ID"""
         if ticket_id is None or ticket_id == 0:
             #log.debug(f"Invalid ticket number: {ticket_id}")
             return None
 
-        query = f"/issues/{ticket_id}.json?"
+        query = f"/issues/{ticket_id}.json?{urllib.parse.urlencode(params)}"
+        log.debug(f"getting #{ticket_id} with {query}")
 
-        #params = {'var1': 'some data', 'var2': 1337}
-        params = {}
-
-        if include_journals:
-            params['include'] = "journals" # as per https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
-
-        if include_children:
-            params['include'] = "children"
-
-        response = self.session.get(query + urllib.parse.urlencode(params))
+        response = self.session.get(query)
         if response:
             return Ticket(**response['issue'])
         else:
-            log.debug(f"Unknown ticket number: {ticket_id}")
+            log.debug(f"Unknown ticket number: {ticket_id}, params:{params}")
             return None
 
 

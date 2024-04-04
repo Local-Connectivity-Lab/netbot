@@ -140,6 +140,14 @@ class TicketsCog(commands.Cog):
         await thread.send(self.bot.formatter.format_ticket_details(ticket))
         return thread
 
+    @commands.slash_command(name="alert", description="Alert collaborators on a ticket")
+    @option("ticket_id", description="ID of ticket to alert")
+    async def alert_ticket(self, ctx: discord.ApplicationContext, ticket_id:int):
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            #
+        else:
+            await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") ## TODO format error message
 
     @commands.slash_command(name="thread", description="Create a Discord thread for the specified ticket")
     @option("ticket_id", description="ID of tick to create thread for")

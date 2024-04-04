@@ -288,21 +288,18 @@ class NetBot(commands.Bot):
         ticket-597
         """
         # get list of tickets that will expire (based on rules in ticket_mgr)
-        for ticket in self.redmine.ticket_mgr.expiring_tickets():
+        expiring = self.redmine.ticket_mgr.expiring_tickets()
+        for ticket in expiring:
             await self.expiration_notification(ticket)
 
 
     def expire_expired_tickets(self):
-        for ticket in self.redmine.ticket_mgr.expired_tickets():
+        expired = self.redmine.ticket_mgr.expired_tickets()
+        for ticket in expired:
             # notification to discord, or just note provided by expire?
             # - for now, add note to ticket with expire info, and allow sync.
             self.redmine.ticket_mgr.expire(ticket)
-
-
-    @commands.slash_command(name="notify", description="Force ticket notifications")
-    async def force_notify(self, ctx: discord.ApplicationContext):
-        log.debug(ctx)
-        await self.notify_expiring_tickets()
+        log.info(f"Expired {len(expired)} tickets.")
 
 
     @tasks.loop(hours=24)
