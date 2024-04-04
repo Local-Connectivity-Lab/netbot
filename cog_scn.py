@@ -5,9 +5,9 @@ import logging
 import discord
 
 from discord.commands import SlashCommandGroup
-from discord.ext import commands, tasks
+from discord.ext import commands
 
-from netbot import NetbotException
+from model import Message
 from redmine import Client
 
 
@@ -91,33 +91,34 @@ class SCNCog(commands.Cog):
             self.redmine.user_mgr.reindex_users()
 
 
-    async def sync_thread(self, thread:discord.Thread):
-        """syncronize an existing ticket thread with redmine"""
-        # get the ticket id from the thread name
-        ticket_id = self.bot.parse_thread_title(thread.name)
-
-        ticket = self.redmine.get_ticket(ticket_id, include_journals=True)
-        if ticket:
-            completed = await self.bot.synchronize_ticket(ticket, thread)
-            if completed:
-                return ticket
-            else:
-                raise NetbotException(f"Ticket {ticket.id} is locked for syncronization.")
-        else:
-            log.debug(f"no ticket found for {thread.name}")
-
-        return None
-
-
     @scn.command()
     async def sync(self, ctx:discord.ApplicationContext):
         """syncronize an existing ticket thread with redmine"""
         if isinstance(ctx.channel, discord.Thread):
-            ticket = await self.sync_thread(ctx.channel)
+            thread = ctx.channel
+            ticket = await self.bot.sync_thread(thread)
             if ticket:
-                await ctx.respond(f"SYNC ticket {ticket.id} to thread: {ctx.channel.name} complete")
+                await ctx.respond(f"SYNC ticket {ticket.id} to thread: {thread.name} complete")
             else:
-                await ctx.respond(f"Cannot find ticket# in thread name: {ctx.channel.name}") # error
+                # double-check thread name
+                ticket_id = self.bot.parse_thread_title(thread.name)
+                if ticket_id:
+                    await ctx.respond(f"No ticket (#{ticket_id}) found for thread named: {thread.name}")
+                else:
+                    # create new ticket
+                    subject = thread.name
+                    user = self.redmine.user_mgr.find(ctx.user.name)
+                    message = Message(user.login, subject) # user.mail?
+                    message.note = subject + "\n\nCreated by netbot by syncing Discord thread with same name."
+                    ticket = self.redmine.ticket_mgr.create(user, message)
+                    # TODO set tracker
+                    # rename thread
+                    await thread.edit(name=f"Ticket #{ticket.id}: {ticket.subject}")
+                    # sync
+                    ticket = await self.bot.sync_thread(thread) # refesh the ticket
+                    await ctx.respond(f"Converted thread into ticket #{ticket.id}") # TODO add ticket link
+
+                #OLD await ctx.respond(f"Cannot find ticket# in thread name: {ctx.channel.name}") # error
         else:
             await ctx.respond("Not a thread.") # error
 

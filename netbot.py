@@ -84,7 +84,7 @@ class NetBot(commands.Bot):
             if isinstance(message.channel, discord.Thread):
                 # IS a thread, check the name
                 ticket_id = self.parse_thread_title(message.channel.name)
-                if ticket_id > 0:
+                if ticket_id:
                     user = self.redmine.user_mgr.find(message.author.name)
                     if user:
                         log.debug(f"known user commenting on ticket #{ticket_id}: redmine={user.login}, discord={message.author.name}")
@@ -220,6 +220,24 @@ class NetBot(commands.Bot):
             log.warning(f"{context.user}/{context.command} - {exception.__cause__}", exc_info=exception.__cause__)
             #raise error  # Here we raise other errors to ensure they aren't ignored
             await context.respond(f"Error processing due to: {exception.__cause__}")
+
+
+    async def sync_thread(self, thread:discord.Thread):
+        """syncronize an existing ticket thread with redmine"""
+        # get the ticket id from the thread name
+        ticket_id = self.parse_thread_title(thread.name)
+
+        ticket = self.redmine.get_ticket(ticket_id, include_journals=True)
+        if ticket:
+            completed = await self.synchronize_ticket(ticket, thread)
+            if completed:
+                return ticket
+            else:
+                raise NetbotException(f"Ticket {ticket.id} is locked for syncronization.")
+        else:
+            log.debug(f"no ticket found for {thread.name}")
+
+        return None
 
 
     @tasks.loop(minutes=1.0) # FIXME to 5.0 minutes. set to 1 min for testing

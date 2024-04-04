@@ -7,7 +7,7 @@ import logging
 import discord
 
 from discord.commands import option
-from discord.ext import commands, tasks
+from discord.ext import commands
 
 from model import Message, Ticket
 from redmine import Client
