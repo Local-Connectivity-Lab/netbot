@@ -215,6 +215,7 @@ class TicketManager():
         fields = {
             "assigned_to_id": INTAKE_TEAM_ID,
             "status_id": "1", # New
+            "due_date": "", # empty? FOR NOW
             "notes": f"Ticket automatically expired after {TICKET_MAX_AGE} days due to inactivity.",
         }
         self.update(ticket.id, fields)
@@ -223,12 +224,18 @@ class TicketManager():
 
     def expiring_tickets(self) -> list[Ticket]:
         # tickets that are about to expire
-        return self.older_than(TICKET_EXPIRE_NOTIFY)
+        tickets = set()
+        tickets.update(self.older_than(TICKET_EXPIRE_NOTIFY))
+        tickets.update(self.due()) ### FIXME REMOVE
+        return tickets
 
 
     def expired_tickets(self) -> set[Ticket]:
         # tickets that have expired: older that TICKET_MAX_AGE
-        return self.older_than(TICKET_MAX_AGE)
+        tickets = set()
+        tickets.update(self.older_than(TICKET_MAX_AGE))
+        tickets.update(self.due()) ### FIXME REMOVE
+        return tickets
 
 
     def older_than(self, days_old: int) -> list[Ticket]:
@@ -254,7 +261,6 @@ class TicketManager():
         query = f"/issues.json?due_date=%3C%3D{synctime.zulu(synctime.now())}"
         log.info(f"QUERY due: {query}")
         response = self.session.get(query)
-        print(response)
         return TicketsResult(**response).issues
 
 
@@ -436,44 +442,6 @@ class TicketManager():
 
     def resolve_ticket(self, ticket_id, user_id=None):
         self.update(ticket_id, {"status_id": "3"}, user_id) # '3' is the status_id, it doesn't accept "Resolved"
-
-
-    def get_sync_record(self, ticket, expected_channel: int) -> synctime.SyncRecord:
-        # Parse custom_field into datetime
-        # lookup field by name
-        token = None
-        try :
-            for field in ticket.custom_fields:
-                if field.name == SYNC_FIELD_NAME:
-                    token = field.value
-                    log.debug(f"found {field.name} => '{field.value}'")
-                    break
-        except AttributeError:
-            # custom_fields not set, handle same as no sync field
-            pass
-
-        if token:
-            record = synctime.SyncRecord.from_token(ticket.id, token)
-            log.debug(f"created sync_rec from token: {record}")
-            if record:
-                # check channel
-                if record.channel_id == 0:
-                    # no valid channel set in sync data, assume lagacy
-                    record.channel_id = expected_channel
-                    # update the record in redmine after adding the channel info
-                    self.update_sync_record(record)
-                    return record
-                elif record.channel_id != expected_channel:
-                    log.debug(f"channel mismatch: rec={record.channel_id} =/= {expected_channel}, token={token}")
-                    return None
-                else:
-                    return record
-        else:
-            # no token implies not-yet-initialized
-            record = synctime.SyncRecord(ticket.id, expected_channel, synctime.epoch_datetime())
-            # apply the new sync record back to redmine
-            self.update_sync_record(record)
-            return record
 
 
     def update_sync_record(self, record:synctime.SyncRecord):

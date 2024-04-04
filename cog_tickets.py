@@ -16,17 +16,6 @@ from redmine import Client
 log = logging.getLogger(__name__)
 
 
-_TRACKER_MAPPING = {
-    "External-Comms-Intake": "admin-team",
-    "Admin": "admin-team",
-    "Comms": "outreach",
-    "Infra-Config": "routing-and-infrastructure",
-    "Infra-Field": "installs",
-    "Software-Dev": "network-software",
-    "Research": "uw-research-nsf",
-}
-
-
 def setup(bot):
     bot.add_cog(TicketsCog(bot))
     log.info("initialized tickets cog")
@@ -37,10 +26,6 @@ class TicketsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.redmine: Client = bot.redmine
-
-        # start the expriation checker
-        self.check_expired_tickets.start() # pylint: disable=no-member
-        log.debug(f"Initialized with {self.redmine}")
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
 
@@ -60,6 +45,7 @@ class TicketsCog(commands.Cog):
             else:
                 # assume a search term
                 return self.redmine.search_tickets(term)
+
 
     @commands.slash_command()     # guild_ids=[...] # Create a slash command for the supplied guilds.
     async def tickets(self, ctx: discord.ApplicationContext, params: str = ""):
@@ -175,54 +161,3 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Created new thread {thread.jump_url} for ticket {ticket_link}")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
-
-
-    async def expiration_notification(self, ticket: Ticket):
-        """Notify the correct people and channels when a ticket expires.
-        ticket-597
-        When a ticket is about to expire, put a message in the related thread that it is about to expire.
-        "In {hours}, this ticket will expire."
-        """
-
-        # first, check the syncdata.
-        sync = ticket.get_sync_record()
-        if sync:
-            notification = self.bot.formatter.format.format_expiration_notification(ticket)
-            thread: discord.Thread = self.bot.get_channel(sync.channel_id)
-            thread.send(notification)
-        elif str(ticket.tracker) in _TRACKER_MAPPING:
-            # lookup channel
-            channel_name = _TRACKER_MAPPING[str(ticket.tracker)]
-            channel = self.bot.get_channel_by_name(channel_name)
-            if channel:
-                channel.send(self.bot.formatter.format_expiring_alert(ticket))
-        else:
-            log.error(f"EXPIRED ticket #{ticket.id} on unknown channel: {channel_name}")
-
-
-    async def notify_expiring_tickets(self):
-        """Notify that tickets are about to expire.
-        ticket-597
-        """
-        # get list of tickets that will expire (based on rules in ticket_mgr)
-        for ticket in self.redmine.ticket_mgr.expiring_tickets():
-            await self.expiration_notification(ticket)
-
-
-    def expire_expired_tickets(self):
-        for ticket in self.redmine.ticket_mgr.expired_tickets():
-            # notification to discord, or just note provided by expire?
-            # - for now, add note to ticket with expire info, and allow sync.
-            self.redmine.ticket_mgr.expire(ticket)
-
-
-    @tasks.loop(hours=24)
-    async def check_expired_tickets(self):
-        """Process expired tickets.
-        Expected to run every 24hours to:
-        - alert about tickets that are expiring
-        - expire tickets that have expired
-        Based on ticket-597
-        """
-        await self.notify_expiring_tickets()
-        self.expire_expired_tickets()

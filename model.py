@@ -273,7 +273,7 @@ class Ticket():
             self.custom_fields = [CustomField(**field) for field in self.custom_fields]
         if self.journals and len(self.journals) > 0 and isinstance(self.journals[0], dict):
             self.journals = [TicketNote(**note) for note in self.journals]
-        if self.category and isinstance(self.assigned_to, dict):
+        if self.category and isinstance(self.category, dict):
             self.category = NamedId(**self.category)
 
 
@@ -364,7 +364,7 @@ class Ticket():
         return f"#{self.id:04d}  {self.status.name:<11}  {self.priority.name:<6}  {self.assigned:<20}  {self.subject}"
 
 
-    def get_sync_record(self, expected_channel: int) -> synctime.SyncRecord | None:
+    def get_sync_record(self, expected_channel: int = 0) -> synctime.SyncRecord | None:
         # Parse custom_field into datetime
         # lookup field by name
         token = self.get_custom_field(SYNC_FIELD_NAME)
