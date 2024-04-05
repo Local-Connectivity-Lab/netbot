@@ -89,7 +89,7 @@ class NetBot(commands.Bot):
         self.sync_all_threads.start() # pylint: disable=no-member
 
         # start the expriation checker
-        self.check_expired_tickets.start() # pylint: disable=no-member
+        ### FIXME self.check_expired_tickets.start() # pylint: disable=no-member
         log.debug(f"Initialized with {self.redmine}")
 
 
@@ -335,7 +335,7 @@ class NetBot(commands.Bot):
     @commands.slash_command(name="notify", description="Force ticket notifications")
     async def force_notify(self, ctx: discord.ApplicationContext):
         log.debug(ctx)
-        await self.notify_expiring_tickets()
+        await self.check_expired_tickets()
 
 
     @tasks.loop(hours=24)
