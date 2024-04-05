@@ -9,7 +9,7 @@ import urllib.parse
 
 
 
-from model import SYNC_FIELD_NAME, TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult
+from model import TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult
 from session import RedmineSession, RedmineException
 import synctime
 
@@ -44,6 +44,19 @@ class TicketManager():
             for field in fields_response['custom_fields']:
                 fields[field['name']] = NamedId(id=field['id'], name=field['name'])
             return fields
+        else:
+            log.warning("No custom fields to load")
+
+
+    def load_trackers(self) -> dict[str,NamedId]:
+        # call redmine to get the ticket trackers
+        response = self.session.get("/trackers.json")
+        if response:
+            trackers = {}
+            for item in response['trackers']:
+                #print(f"##### {item}")
+                trackers[item['name']] = NamedId(id=item['id'], name=item['name'])
+            return trackers
         else:
             log.warning("No custom fields to load")
 
@@ -486,7 +499,7 @@ def main():
     #print(ticket_mgr.get(105, include_children=True).json_str())
     #print(json.dumps(ticket_mgr.load_custom_fields(), indent=4, default=vars))
 
-    #print(ticket_mgr.due())
+    print(ticket_mgr.due())
 
 # for testing the redmine
 if __name__ == '__main__':
