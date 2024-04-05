@@ -228,7 +228,7 @@ class TicketManager():
         fields = {
             "assigned_to_id": INTAKE_TEAM_ID,
             "status_id": "1", # New
-            "due_date": "", # empty? FOR NOW
+            #"due_date": "", # empty? FOR NOW
             "notes": f"Ticket automatically expired after {TICKET_MAX_AGE} days due to inactivity.",
         }
         self.update(ticket.id, fields)

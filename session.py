@@ -93,7 +93,7 @@ class RedmineSession():
         if r.ok:
             log.debug(f"PUT {resource}: {data}")
         else:
-            raise RedmineException(f"POST {resource} by {impersonate_id} failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
+            raise RedmineException(f"PUT {resource} by {impersonate_id} failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
 
 
     def post(self, resource: str, data:str, user_login: str|None = None, files: list|None = None) -> dict|None:
