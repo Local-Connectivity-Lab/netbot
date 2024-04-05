@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from discord.ext import commands, tasks
 
 from formatting import DiscordFormatter
-from model import TicketNote, Ticket
+from model import TicketNote, Ticket, NamedId
 import synctime
 import redmine
 
@@ -44,6 +44,7 @@ class NetBot(commands.Bot):
         self.ticket_locks = {}
 
         self.formatter = DiscordFormatter(client.url)
+        self.trackers: dict[str,NamedId] = {}
 
         self.redmine = client
         #guilds = os.getenv('DISCORD_GUILDS').split(', ')
@@ -60,9 +61,23 @@ class NetBot(commands.Bot):
         )
 
 
+    def initialize_tracker_mapping(self):
+        # load the trackers, indexed by tracker name
+        self.trackers = self.redmine.ticket_mgr.load_trackers()
+        # update to include each mapping in
+        for tracker_name, channel_name in _TRACKER_MAPPING.items():
+            if tracker_name in self.trackers:
+                self.trackers[channel_name] = self.trackers[tracker_name]
+            else:
+                log.debug(f"unmapped tracker: {tracker_name}")
+
+
     def run_bot(self):
         """start netbot"""
         log.info(f"starting {self}")
+
+        self.initialize_tracker_mapping()
+
         super().run(os.getenv('DISCORD_TOKEN'))
 
 
@@ -74,7 +89,7 @@ class NetBot(commands.Bot):
         self.sync_all_threads.start() # pylint: disable=no-member
 
         # start the expriation checker
-        self.check_expired_tickets.start() # pylint: disable=no-member
+        ### FIXME self.check_expired_tickets.start() # pylint: disable=no-member
         log.debug(f"Initialized with {self.redmine}")
 
 
@@ -84,7 +99,7 @@ class NetBot(commands.Bot):
             if isinstance(message.channel, discord.Thread):
                 # IS a thread, check the name
                 ticket_id = self.parse_thread_title(message.channel.name)
-                if ticket_id > 0:
+                if ticket_id:
                     user = self.redmine.user_mgr.find(message.author.name)
                     if user:
                         log.debug(f"known user commenting on ticket #{ticket_id}: redmine={user.login}, discord={message.author.name}")
@@ -222,6 +237,24 @@ class NetBot(commands.Bot):
             await context.respond(f"Error processing due to: {exception.__cause__}")
 
 
+    async def sync_thread(self, thread:discord.Thread):
+        """syncronize an existing ticket thread with redmine"""
+        # get the ticket id from the thread name
+        ticket_id = self.parse_thread_title(thread.name)
+
+        ticket = self.redmine.get_ticket(ticket_id, include="journals")
+        if ticket:
+            completed = await self.synchronize_ticket(ticket, thread)
+            if completed:
+                return ticket
+            else:
+                raise NetbotException(f"Ticket {ticket.id} is locked for syncronization.")
+        else:
+            log.debug(f"no ticket found for {thread.name}")
+
+        return None
+
+
     @tasks.loop(minutes=1.0) # FIXME to 5.0 minutes. set to 1 min for testing
     async def sync_all_threads(self):
         """
@@ -271,7 +304,7 @@ class NetBot(commands.Bot):
             channel_name = _TRACKER_MAPPING[str(ticket.tracker)]
             channel = self.get_channel_by_name(channel_name)
             if channel:
-                channel.send(self.formatter.format_expiring_alert(ticket))
+                channel.send(self.formatter.format_expiration_notification(ticket))
                 return
             else:
                 log.warning(f"Expiring ticket #{ticket.id} on unknown channel: {channel_name}")
@@ -299,7 +332,12 @@ class NetBot(commands.Bot):
             # notification to discord, or just note provided by expire?
             # - for now, add note to ticket with expire info, and allow sync.
             self.redmine.ticket_mgr.expire(ticket)
-        log.info(f"Expired {len(expired)} tickets.")
+
+
+    @commands.slash_command(name="notify", description="Force ticket notifications")
+    async def force_notify(self, ctx: discord.ApplicationContext):
+        log.debug(ctx)
+        await self.notify_expiring_tickets()
 
 
     @tasks.loop(hours=24)
@@ -312,6 +350,10 @@ class NetBot(commands.Bot):
         """
         await self.notify_expiring_tickets()
         self.expire_expired_tickets()
+
+
+    def lookup_tracker(self, tracker:str) -> NamedId:
+        return self.trackers.get(tracker, None)
 
 
 def main():
@@ -332,7 +374,7 @@ def main():
 
 def setup_logging():
     """set up logging for netbot"""
-    logging.basicConfig(level=logging.DEBUG,
+    logging.basicConfig(level=logging.INFO,
                         format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
     logging.getLogger("discord.http").setLevel(logging.WARNING)

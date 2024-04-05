@@ -84,8 +84,8 @@ class Client():
     def get_tickets_by(self, user) -> list[Ticket]:
         return self.ticket_mgr.get_tickets_by(user)
 
-    def get_ticket(self, ticket_id:int, include_journals:bool = False) -> Ticket:
-        return self.ticket_mgr.get(ticket_id, include_journals)
+    def get_ticket(self, ticket_id:int, **params) -> Ticket:
+        return self.ticket_mgr.get(ticket_id, **params)
 
     #GET /issues.xml?issue_id=1,2
     def get_tickets(self, ticket_ids) -> list[Ticket]:

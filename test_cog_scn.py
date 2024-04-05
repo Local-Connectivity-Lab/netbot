@@ -189,7 +189,7 @@ class TestSCNCog(test_utils.BotTestCase):
 
         try:
             # synchronize thread
-            await self.cog.sync_thread(thread)
+            await self.bot.sync_thread(thread)
             self.fail("No exception when one was expected")
         except Exception as ex:
             self.assertIn(f"Ticket {ticket.id}", str(ex))
