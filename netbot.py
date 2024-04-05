@@ -44,6 +44,7 @@ class NetBot(commands.Bot):
         self.ticket_locks = {}
 
         self.formatter = DiscordFormatter(client.url)
+        self.trackers: dict[str,NamedId] = {}
 
         self.redmine = client
         #guilds = os.getenv('DISCORD_GUILDS').split(', ')
@@ -303,7 +304,7 @@ class NetBot(commands.Bot):
             channel_name = _TRACKER_MAPPING[str(ticket.tracker)]
             channel = self.get_channel_by_name(channel_name)
             if channel:
-                channel.send(self.formatter.format_expiring_alert(ticket))
+                channel.send(self.formatter.format_expiration_notification(ticket))
                 return
             else:
                 log.warning(f"Expiring ticket #{ticket.id} on unknown channel: {channel_name}")
