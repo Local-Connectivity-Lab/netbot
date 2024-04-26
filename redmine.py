@@ -23,7 +23,6 @@ TIMEOUT = 10 # seconds
 SYNC_FIELD_NAME = "syncdata"
 DISCORD_ID_FIELD = "Discord ID"
 BLOCKED_TEAM_NAME = "blocked"
-SCN_PROJECT_ID = 1  # could lookup scn in projects
 STATUS_REJECT = 5 # could to status lookup, based on "reject"
 
 
@@ -36,10 +35,10 @@ class RedmineException(Exception):
 
 class Client():
     """redmine client"""
-    def __init__(self, session:RedmineSession):
+    def __init__(self, session:RedmineSession, default_project: int):
         self.url = session.url
         self.user_mgr:UserManager = UserManager(session)
-        self.ticket_mgr:TicketManager = TicketManager(session)
+        self.ticket_mgr:TicketManager = TicketManager(session, default_project=default_project)
 
         self.user_mgr.reindex() # build the cache when starting
 
@@ -54,7 +53,8 @@ class Client():
         if token is None:
             raise RedmineException("Unable to load REDMINE_TOKEN")
 
-        return cls(RedmineSession(url, token))
+        default_project = os.getenv("DEFAULT_PROJECT_ID", default="1")
+        return cls(RedmineSession(url, token), default_project)
 
 
     def create_ticket(self, user:User, message:Message) -> Ticket:

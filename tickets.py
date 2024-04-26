@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 ISSUES_RESOURCE="/issues.json"
 ISSUE_RESOURCE="/issues/"
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
-SCN_PROJECT_ID = 1  # could lookup scn in projects
+SCN_PROJECT_ID = "1"  # could lookup scn in projects
 INTAKE_TEAM = "ticket-intake"
 INTAKE_TEAM_ID = 19 # FIXME
 
@@ -31,9 +31,10 @@ TICKET_EXPIRE_NOTIFY = TICKET_MAX_AGE - 1 # 27 days, one day shorter than MAX_AG
 
 class TicketManager():
     """manage redmine tickets"""
-    def __init__(self, session: RedmineSession):
+    def __init__(self, session: RedmineSession, default_project):
         self.session: RedmineSession = session
         self.custom_fields = self.load_custom_fields()
+        self.default_project = default_project
 
 
     def load_custom_fields(self) -> dict[str,NamedId]:
@@ -67,15 +68,19 @@ class TicketManager():
         return None
 
 
-    def create(self, user: User, message: Message) -> Ticket:
+    def create(self, user: User, message: Message, project_id: int = None) -> Ticket:
         """create a redmine ticket"""
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
         # would need full param handling to pass that thru discord to get to this invocation
         # this would be resolved by a Ticket class to emcapsulate.
 
+        # check default project
+        if not project_id:
+            project_id = self.default_project
+
         data = {
             'issue': {
-                'project_id': SCN_PROJECT_ID, #FIXME hard-coded project ID MOVE project ID to API
+                'project_id': project_id,
                 'subject': message.subject,
                 'description': message.note,
                 # ticket-485: adding custom field for To//Cc headers.
@@ -490,7 +495,7 @@ class TicketManager():
 
 
 def main():
-    ticket_mgr = TicketManager(RedmineSession.fromenv())
+    ticket_mgr = TicketManager(RedmineSession.fromenv(), SCN_PROJECT_ID)
 
     #ticket_mgr.expire_expired_tickets()
     #for ticket in ticket_mgr.older_than(7): #ticket_mgr.expired_tickets():
@@ -499,6 +504,7 @@ def main():
     #print(json.dumps(ticket_mgr.load_custom_fields(), indent=4, default=vars))
 
     print(ticket_mgr.due())
+
 
 # for testing the redmine
 if __name__ == '__main__':

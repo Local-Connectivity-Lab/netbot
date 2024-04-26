@@ -16,6 +16,7 @@ from discord import ApplicationContext
 import model
 from users import UserManager
 from model import Message, User
+from tickets import SCN_PROJECT_ID
 import session
 from redmine import Client
 
@@ -110,7 +111,7 @@ class RedmineTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         sess = session.RedmineSession.fromenv()
-        cls.redmine = Client(sess)
+        cls.redmine = Client(sess, SCN_PROJECT_ID)
         cls.user_mgr = cls.redmine.user_mgr
         cls.tickets_mgr = cls.redmine.ticket_mgr
         cls.tag:str = tagstr()
@@ -149,7 +150,7 @@ class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
 
 
 def audit_expected_values():
-    redmine = Client(session.RedmineSession.fromenv())
+    redmine = Client(session.RedmineSession.fromenv(), SCN_PROJECT_ID)
 
     # audit checks...
     # 1. make sure admin use exists

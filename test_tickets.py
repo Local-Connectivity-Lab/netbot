@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 class TestTicketManager(unittest.TestCase):
     """Mocked testing of ticket manager"""
     def mock_mgr(self):
-        return TicketManager(test_utils.mock_session())
+        return TicketManager(test_utils.mock_session(), "1")
 
     @patch('tickets.TicketManager.load_custom_fields')
     @patch('session.RedmineSession.get')
