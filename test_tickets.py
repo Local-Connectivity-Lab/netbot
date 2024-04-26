@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from dotenv import load_dotenv
 
-from tickets import TicketManager
+from tickets import TicketManager, SCN_PROJECT_ID
 
 import test_utils
 
@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 class TestTicketManager(unittest.TestCase):
     """Mocked testing of ticket manager"""
     def mock_mgr(self):
-        return TicketManager(test_utils.mock_session(), "1")
+        return TicketManager(test_utils.mock_session(), SCN_PROJECT_ID)
 
     @patch('tickets.TicketManager.load_custom_fields')
     @patch('session.RedmineSession.get')

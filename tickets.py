@@ -232,7 +232,7 @@ class TicketManager():
         # Ideally, this would @ the owner and collaborators.
         fields = {
             "assigned_to_id": INTAKE_TEAM_ID,
-            "status_id": "1", # New
+            "status_id": "1", # New, TODO lookup using status lookup table.
             "notes": f"Ticket automatically expired after {TICKET_MAX_AGE} days due to inactivity.",
         }
         self.update(ticket.id, fields)
@@ -414,7 +414,7 @@ class TicketManager():
     def enable_discord_sync(self, ticket_id, user, note):
         fields = {
             "note": note, #f"Created Discord thread: {thread.name}: {thread.jump_url}",
-            "cf_1": "1",
+            "cf_1": "1", # TODO: lookup in self.get_field_id
         }
 
         self.update(ticket_id, fields, user.login)
@@ -452,7 +452,7 @@ class TicketManager():
     def unassign_ticket(self, ticket_id, user_id=None):
         fields = {
             "assigned_to_id": INTAKE_TEAM_ID,
-            "status_id": "1", # New
+            "status_id": "1", # New, TODO lookup in status table
         }
         self.update(ticket_id, fields, user_id)
 

@@ -12,7 +12,7 @@ import synctime
 from session import RedmineSession
 from model import Message, Ticket, User
 from users import UserManager
-from tickets import TicketManager
+from tickets import TicketManager, SCN_PROJECT_ID
 
 
 log = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class Client():
         if token is None:
             raise RedmineException("Unable to load REDMINE_TOKEN")
 
-        default_project = os.getenv("DEFAULT_PROJECT_ID", default="1")
+        default_project = os.getenv("DEFAULT_PROJECT_ID", default=SCN_PROJECT_ID)
         return cls(RedmineSession(url, token), default_project)
 
 
@@ -134,7 +134,7 @@ class Client():
     def enable_discord_sync(self, ticket_id, user, note):
         fields = {
             "note": note, #f"Created Discord thread: {thread.name}: {thread.jump_url}",
-            "cf_1": "1",
+            "cf_1": "1", # TODO: read from custom fields via
         }
 
         self.update_ticket(ticket_id, fields, user.login)
@@ -168,7 +168,8 @@ class Client():
         log.debug(f"Updating sync record in redmine: {record}")
         fields = {
             "custom_fields": [
-                { "id": 4, "value": record.token_str() } # cf_4, custom field syncdata, #TODO search for it
+                { "id": 4, "value": record.token_str() } # cf_4, custom field syncdata,
+                #TODO search for custom field ID with TicketManager.get_field_id
             ]
         }
         self.update_ticket(record.ticket_id, fields)
