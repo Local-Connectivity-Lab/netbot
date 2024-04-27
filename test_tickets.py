@@ -3,28 +3,22 @@
 
 import unittest
 import logging
+import json
 from unittest.mock import MagicMock, patch
 
 from dotenv import load_dotenv
 
-from tickets import TicketManager
 
 import test_utils
 
 
 log = logging.getLogger(__name__)
 
-class TestTicketManager(unittest.TestCase):
+class TestTicketManager(test_utils.MockRedmineTestCase):
     """Mocked testing of ticket manager"""
-    def mock_mgr(self):
-        return TicketManager(test_utils.mock_session())
 
-    @patch('tickets.TicketManager.load_custom_fields')
     @patch('session.RedmineSession.get')
-    def test_expired_tickets(self, mock_get:MagicMock, mock_cf:MagicMock):
-        # setup custom fields
-        mock_cf.return_value = test_utils.custom_fields() # TODO move to mgr setup
-
+    def test_expired_tickets(self, mock_get:MagicMock):
         # setup the mock tickets
         ticket = test_utils.mock_ticket()
         result = test_utils.mock_result([
@@ -33,11 +27,31 @@ class TestTicketManager(unittest.TestCase):
         ])
         mock_get.return_value = result.asdict()
 
-        expired = self.mock_mgr().expired_tickets()
+        expired = self.tickets_mgr.expired_tickets()
         self.assertGreater(len(expired), 0)
         expired_ids = [ticket.id for ticket in expired]
         self.assertIn(ticket.id, expired_ids)
         #FIXME mock_get.assert_called_once()
+
+
+    @patch('session.RedmineSession.post')
+    def test_default_project_id(self, mock_post:MagicMock):
+        test_proj_id = "42"
+
+        msg = self.create_message()
+        # note to future self: mock response to create should have content of crete request
+
+        # setup the mock tickets
+        ticket = test_utils.mock_ticket()
+        mock_post.return_value = { "issue": ticket.asdict() }
+
+        self.tickets_mgr.create(self.user, msg, test_proj_id)
+
+        resp_ticket = json.loads(mock_post.call_args[0][1])["issue"]
+        #print("###", type(resp_ticket), resp_ticket)
+
+        mock_post.assert_called_once()
+        self.assertEqual(test_proj_id, resp_ticket['project_id'])
 
 
 # The integration test suite is only run if the ENV settings are configured correctly

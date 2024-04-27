@@ -12,7 +12,7 @@ import synctime
 from session import RedmineSession
 from model import Message, Ticket, User
 from users import UserManager
-from tickets import TicketManager
+from tickets import TicketManager, SCN_PROJECT_ID
 
 
 log = logging.getLogger(__name__)
@@ -23,7 +23,6 @@ TIMEOUT = 10 # seconds
 SYNC_FIELD_NAME = "syncdata"
 DISCORD_ID_FIELD = "Discord ID"
 BLOCKED_TEAM_NAME = "blocked"
-SCN_PROJECT_ID = 1  # could lookup scn in projects
 STATUS_REJECT = 5 # could to status lookup, based on "reject"
 
 
@@ -36,12 +35,20 @@ class RedmineException(Exception):
 
 class Client():
     """redmine client"""
-    def __init__(self, session:RedmineSession):
+    def __init__(self, session:RedmineSession, user_mgr:UserManager, ticket_mgr:TicketManager):
         self.url = session.url
-        self.user_mgr:UserManager = UserManager(session)
-        self.ticket_mgr:TicketManager = TicketManager(session)
+        self.user_mgr = user_mgr
+        self.ticket_mgr = ticket_mgr
 
         self.user_mgr.reindex() # build the cache when starting
+
+
+    @classmethod
+    def from_session(cls, session:RedmineSession, default_project:int):
+        user_mgr = UserManager(session)
+        ticket_mgr = TicketManager(session, default_project=default_project)
+
+        return cls(session, user_mgr, ticket_mgr)
 
 
     @classmethod
@@ -54,7 +61,9 @@ class Client():
         if token is None:
             raise RedmineException("Unable to load REDMINE_TOKEN")
 
-        return cls(RedmineSession(url, token))
+        default_project = os.getenv("DEFAULT_PROJECT_ID", default=SCN_PROJECT_ID)
+
+        return cls.from_session(RedmineSession(url, token), default_project)
 
 
     def create_ticket(self, user:User, message:Message) -> Ticket:
@@ -134,7 +143,7 @@ class Client():
     def enable_discord_sync(self, ticket_id, user, note):
         fields = {
             "note": note, #f"Created Discord thread: {thread.name}: {thread.jump_url}",
-            "cf_1": "1",
+            "cf_1": "1", # TODO: read from custom fields via
         }
 
         self.update_ticket(ticket_id, fields, user.login)
@@ -168,7 +177,8 @@ class Client():
         log.debug(f"Updating sync record in redmine: {record}")
         fields = {
             "custom_fields": [
-                { "id": 4, "value": record.token_str() } # cf_4, custom field syncdata, #TODO search for it
+                { "id": 4, "value": record.token_str() } # cf_4, custom field syncdata,
+                #TODO search for custom field ID with TicketManager.get_field_id
             ]
         }
         self.update_ticket(record.ticket_id, fields)
