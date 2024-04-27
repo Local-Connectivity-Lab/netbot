@@ -200,6 +200,10 @@ class User():
     def __str__(self):
         return f"#{self.id} {self.full_name()} login={self.login} discord={self.discord_id}"
 
+    def set_field(self, fieldname:str, value):
+        setattr(self, fieldname, value)
+        log.debug(f"@{self.login}: {fieldname} <= {value}")
+
 
 @dataclass
 class UserResult:

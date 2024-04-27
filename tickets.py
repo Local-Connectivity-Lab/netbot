@@ -63,6 +63,10 @@ class TicketManager():
 
 
     def get_field_id(self, name:str) -> int | None:
+        if not self.custom_fields:
+            log.warning(f"Custom field '{name}' requested, none available")
+            return None
+
         if name in self.custom_fields:
             return self.custom_fields[name].id
         return None

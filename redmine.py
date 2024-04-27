@@ -35,12 +35,20 @@ class RedmineException(Exception):
 
 class Client():
     """redmine client"""
-    def __init__(self, session:RedmineSession, default_project: int):
+    def __init__(self, session:RedmineSession, user_mgr:UserManager, ticket_mgr:TicketManager):
         self.url = session.url
-        self.user_mgr:UserManager = UserManager(session)
-        self.ticket_mgr:TicketManager = TicketManager(session, default_project=default_project)
+        self.user_mgr = user_mgr
+        self.ticket_mgr = ticket_mgr
 
         self.user_mgr.reindex() # build the cache when starting
+
+
+    @classmethod
+    def from_session(cls, session:RedmineSession, default_project:int):
+        user_mgr = UserManager(session)
+        ticket_mgr = TicketManager(session, default_project=default_project)
+
+        return cls(session, user_mgr, ticket_mgr)
 
 
     @classmethod
@@ -54,7 +62,8 @@ class Client():
             raise RedmineException("Unable to load REDMINE_TOKEN")
 
         default_project = os.getenv("DEFAULT_PROJECT_ID", default=SCN_PROJECT_ID)
-        return cls(RedmineSession(url, token), default_project)
+
+        return cls.from_session(RedmineSession(url, token), default_project)
 
 
     def create_ticket(self, user:User, message:Message) -> Ticket:
