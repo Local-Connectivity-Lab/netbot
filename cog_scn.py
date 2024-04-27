@@ -8,7 +8,7 @@ from discord.commands import SlashCommandGroup
 from discord.ext import commands
 
 from model import Message
-from redmine import Client
+from redmine import Client, BLOCKED_TEAM_NAME
 
 
 log = logging.getLogger(__name__)
@@ -188,13 +188,20 @@ class SCNCog(commands.Cog):
                 await ctx.respond(f"Unknown team name: {teamname}") # error
         else:
             # all teams
-            teams = self.redmine.get_teams()
+            teams = self.redmine.user_mgr.cache.get_teams()
             buff = ""
-            for teamname in teams:
-                team = self.redmine.get_team(teamname)
-                #await self.print_team(ctx, team)
+            for team in teams:
                 buff += self.format_team(team)
             await ctx.respond(buff[:2000]) # truncate!
+
+
+    @scn.command(description="list blocked email")
+    async def blocked(self, ctx:discord.ApplicationContext):
+        team = self.redmine.get_team(BLOCKED_TEAM_NAME)
+        if team:
+            await ctx.respond(self.format_team(team))
+        else:
+            await ctx.respond(f"Expected team {BLOCKED_TEAM_NAME} not configured") # error
 
 
     # ticket 484 - http://10.10.0.218/issues/484

@@ -102,42 +102,34 @@ List the blocked users.
 
 Should be the same as `/scn teams blocked`.
 
+
 ## Ticket Commands
 
-The `/tickets` command is used to information about tickets in Redmine
+The `/ticket` command is used to information about tickets in Redmine
 
-### /tickets
-- My tickets
+### /ticket query me
+- The the list of tickets for *me* (you, the reader) to work on
 
-### /tickets team
-- Tickets assigned to team [team]
+### /ticket query [term]
+- *term* can be a user, a team or any term that will be used for a full text search for tickets (open and closed) that match the *term*.
 
-### /tickets user
-- Tickets assigned to a specific [user]
+### /ticket details [ticket-id]
+- Show ticket *ticket-id* with full details.
 
-### /tickets query-term
-- Full text search for all tickets (open and closed) that match the query-term
+### /ticket new [title]
+- Create a new ticket, with the associated title. This will also create a new Discord thread for the ticket. If the command is issued in an existing thread, that thread is used and synched with redmine.
 
-### /ticket 42
-- Show ticket info for ticket 42
+### /ticket thread [ticket-id]
+- Create a new discord thread from an existing ticket *ticket-id*, using the ticket title as the thread title. The thread is created in the channel it is invoked in, and all notes from the existing ticket are copied into the thread.
 
-### /ticket 42 details
-- Show ticket 42 with all notes (in a decent format)
+### /ticket assign [ticket-id]
+- Assign ticket *ticket-id* to yourself (the invoking user)
 
-### /ticket 42 assign
-- Assign ticket 42 to yourself (the invoking user)
-- `/ticket 42 assign @bob` would assign ticket 42 to Bob.
+### /ticket unassign [ticket-id]
+- Mark ticket *ticket-id* new and unassigned.
 
-### /ticket 42 unassign
-- Mark ticket 42 new and unassigned.
+### /ticket progress [ticket-id]
+-  Mark ticket *ticket-id* to in-progress and assign it to yourself.
 
-### /ticket 42 progress
--  Set ticket 42 it to in-progress.
-
-### /ticket 42 resolve
-- Mark the ticket resolved.
-
-### /new Title of a new ticket to be created
-- Create a new ticket with the supplied title.
-- FUTURE: Will popup a modal dialog to collect ...
-- OR just supply params with default values for tracker, etc.
+### /ticket resolve [ticket-id]
+- Mark ticket *ticket-id* resolved.

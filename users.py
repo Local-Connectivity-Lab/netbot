@@ -292,7 +292,7 @@ class UserManager():
 
             return teams
         else:
-            log.warning("No users from get_all_users")
+            log.warning("No teams from get_all_teams")
             return []
 
 
@@ -331,6 +331,7 @@ class UserManager():
     def get_team_by_name(self, name:str) -> Team:
         # need to get all team, which builds a dicts of names
         teams = self.get_all_teams(include_users=False)
+        log.debug(f"teams: {teams}")
         if name in teams:
             return self.get_team(teams[name].id)
 

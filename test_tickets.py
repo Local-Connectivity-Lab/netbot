@@ -48,7 +48,6 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
         self.tickets_mgr.create(self.user, msg, test_proj_id)
 
         resp_ticket = json.loads(mock_post.call_args[0][1])["issue"]
-        #print("###", type(resp_ticket), resp_ticket)
 
         mock_post.assert_called_once()
         self.assertEqual(test_proj_id, resp_ticket['project_id'])

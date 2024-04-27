@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 import synctime
 from session import RedmineSession
-from model import Message, Ticket, User
+from model import Message, Ticket, User, Team
 from users import UserManager
 from tickets import TicketManager, SCN_PROJECT_ID
 
@@ -170,8 +170,9 @@ class Client():
     def resolve_ticket(self, ticket_id, user_id=None):
         return self.ticket_mgr.resolve_ticket(ticket_id, user_id)
 
-    def get_team(self, teamname:str):
-        return self.user_mgr.get_team_by_name(teamname) # FIXME consistent naming
+    def get_team(self, teamname:str) -> Team:
+        #return self.user_mgr.get_team_by_name(teamname) # FIXME consistent naming
+        return self.user_mgr.cache.get_team_by_name(teamname)
 
     def update_sync_record(self, record:synctime.SyncRecord):
         log.debug(f"Updating sync record in redmine: {record}")
