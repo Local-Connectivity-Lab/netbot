@@ -6,7 +6,8 @@ import logging
 
 import discord
 
-from discord.commands import option
+from discord.commands import option, SlashCommandGroup
+
 from discord.ext import commands
 
 from model import Message, Ticket
@@ -29,6 +30,8 @@ class TicketsCog(commands.Cog):
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
 
+    ticket = SlashCommandGroup("ticket",  "ticket commands")
+
 
     # figure out what the term refers to
     # could be ticket#, team name, user name or search term
@@ -47,8 +50,9 @@ class TicketsCog(commands.Cog):
                 return self.redmine.search_tickets(term)
 
 
-    @commands.slash_command()     # guild_ids=[...] # Create a slash command for the supplied guilds.
-    async def tickets(self, ctx: discord.ApplicationContext, params: str = ""):
+    @ticket.command(description="Query tickets")
+    @option("term", description="Ticket query term, should includes ticket ID, ticket owner, team or any term used for a text match.")
+    async def query(self, ctx: discord.ApplicationContext, term: str):
         """List tickets for you, or filtered by parameter"""
         # different options: none, me (default), [group-name], intake, tracker name
         # buid index for trackers, groups
@@ -58,58 +62,85 @@ class TicketsCog(commands.Cog):
         user = self.redmine.user_mgr.find(ctx.user.name)
         log.debug(f"found user mapping for {ctx.user.name}: {user}")
 
-        args = params.split()
+        args = term.split()
 
-        if len(args) == 0 or args[0] == "me":
+        if args[0] == "me":
             await self.bot.formatter.print_tickets("My Tickets", self.redmine.my_tickets(user.login), ctx)
         elif len(args) == 1:
             query = args[0]
             results = self.resolve_query_term(query)
             await self.bot.formatter.print_tickets(f"Search for '{query}'", results, ctx)
 
-
-    @commands.slash_command()
-    async def ticket(self, ctx: discord.ApplicationContext, ticket_id:int, action:str="show"):
+    @ticket.command(description="Get ticket details")
+    @option("term", description="ticket ID")
+    async def details(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
-        try:
-            # lookup the user
-            user = self.redmine.user_mgr.find(ctx.user.name)
-            log.debug(f"found user mapping for {ctx.user.name}: {user}")
+        #log.debug(f"found user mapping for {ctx.user.name}: {user}")
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            await self.bot.formatter.print_ticket(ticket, ctx)
+        else:
+            await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 
-            match action:
-                case "show":
-                    ticket = self.redmine.get_ticket(ticket_id)
-                    if ticket:
-                        await self.bot.formatter.print_ticket(ticket, ctx)
-                    else:
-                        await ctx.respond(f"Ticket {ticket_id} not found.")
-                case "details":
-                    # FIXME
-                    ticket = self.redmine.get_ticket(ticket_id)
-                    if ticket:
-                        await self.bot.formatter.print_ticket(ticket, ctx)
-                    else:
-                        await ctx.respond(f"Ticket {ticket_id} not found.")
-                case "unassign":
-                    self.redmine.unassign_ticket(ticket_id, user.login)
-                    await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
-                case "resolve":
-                    self.redmine.resolve_ticket(ticket_id, user.login)
-                    await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
-                case "progress":
-                    self.redmine.progress_ticket(ticket_id, user.login)
-                    await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
-                #case "note":
-                #    msg = ???
-                #    self.redmine.append_message(ticket_id, user.login, msg)
-                case "assign":
-                    self.redmine.assign_ticket(ticket_id, user.login)
-                    await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
-                case _:
-                    await ctx.respond("unknown command: {action}")
-        except Exception as e:
-            log.exception(e)
-            await ctx.respond(f"Error {action} {ticket_id}: {e}")
+
+    @ticket.command(description="Unassign a ticket")
+    @option("ticket_id", description="ticket ID")
+    async def unassign(self, ctx: discord.ApplicationContext, ticket_id:int):
+        """Update status on a ticket, using: unassign, resolve, progress"""
+        # lookup the user
+        user = self.redmine.user_mgr.find(ctx.user.name)
+        #log.debug(f"found user mapping for {ctx.user.name}: {user}")
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            self.redmine.unassign_ticket(ticket_id, user.login)
+            await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
+        else:
+            await ctx.respond(f"Ticket {ticket_id} not found.") # print error
+
+
+    @ticket.command(description="Resolve a ticket")
+    @option("ticket_id", description="ticket ID")
+    async def resolve(self, ctx: discord.ApplicationContext, ticket_id:int):
+        """Update status on a ticket, using: unassign, resolve, progress"""
+        # lookup the user
+        user = self.redmine.user_mgr.find(ctx.user.name)
+        #log.debug(f"found user mapping for {ctx.user.name}: {user}")
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            self.redmine.resolve_ticket(ticket_id, user.login)
+            await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
+        else:
+            await ctx.respond(f"Ticket {ticket_id} not found.") # print error
+
+
+    @ticket.command(description="Mark a ticket in-progress")
+    @option("ticket_id", description="ticket ID")
+    async def progress(self, ctx: discord.ApplicationContext, ticket_id:int):
+        """Update status on a ticket, using: unassign, resolve, progress"""
+        # lookup the user
+        user = self.redmine.user_mgr.find(ctx.user.name)
+        #log.debug(f"found user mapping for {ctx.user.name}: {user}")
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            self.redmine.progress_ticket(ticket_id, user.login)
+            await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
+        else:
+            await ctx.respond(f"Ticket {ticket_id} not found.") # print error
+
+
+    @ticket.command(description="Assign a ticket")
+    @option("ticket_id", description="ticket ID")
+    async def assign(self, ctx: discord.ApplicationContext, ticket_id:int):
+        """Update status on a ticket, using: unassign, resolve, progress"""
+        # lookup the user
+        user = self.redmine.user_mgr.find(ctx.user.name)
+        #log.debug(f"found user mapping for {ctx.user.name}: {user}")
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            self.redmine.assign_ticket(ticket_id, user.login)
+            await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
+        else:
+            await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 
 
     async def create_thread(self, ticket:Ticket, ctx:discord.ApplicationContext):
@@ -122,7 +153,7 @@ class TicketsCog(commands.Cog):
         return thread
 
 
-    @commands.slash_command(name="new", description="Create a new ticket")
+    @ticket.command(name="new", description="Create a new ticket")
     @option("title", description="Title of the new SCN ticket")
     @option("add_thread", description="Create a Discord thread for the new ticket", default=False)
     async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str):
@@ -131,7 +162,6 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Unknown user: {ctx.user.name}")
             return
         channel_name = ctx.channel.name
-        # text templating
         text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
         message = Message(from_addr=user.mail, subject=title, to=ctx.channel.name)
         message.set_note(text)
@@ -152,15 +182,15 @@ class TicketsCog(commands.Cog):
             else:
                 log.debug(f"not tracker for {channel_name}")
             # create related discord thread
-            await self.thread_ticket(ctx, ticket.id)
+            await self.thread(ctx, ticket.id)
             #await self.bot.formatter.print_ticket(ticket, ctx)
         else:
             await ctx.respond(f"Error creating ticket with title={title}")
 
 
-    @commands.slash_command(name="thread", description="Create a Discord thread for the specified ticket")
+    @ticket.command(description="Thread a Redmine ticket in Discord")
     @option("ticket_id", description="ID of tick to create thread for")
-    async def thread_ticket(self, ctx: discord.ApplicationContext, ticket_id:int):
+    async def thread(self, ctx: discord.ApplicationContext, ticket_id:int):
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
             # create the thread...

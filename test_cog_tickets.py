@@ -55,21 +55,21 @@ class TestTicketsCog(test_utils.BotTestCase):
 
         # get the ticket using id
         ctx = self.build_context()
-        await self.cog.tickets(ctx, ticket_id)
+        await self.cog.query(ctx, ticket_id)
         response_str = ctx.respond.call_args.args[0]
         self.assertIn(ticket_id, response_str)
         self.assertIn(url, response_str)
 
         # get the ticket using tag
         ctx = self.build_context()
-        await self.cog.tickets(ctx, self.tag)
+        await self.cog.query(ctx, self.tag)
         response_str = ctx.respond.call_args.args[0]
         self.assertIn(ticket_id, response_str)
         self.assertIn(url, response_str)
 
         # assign the ticket
         ctx = self.build_context()
-        await self.cog.ticket(ctx, ticket_id, "assign")
+        await self.cog.assign(ctx, ticket_id)
         response_str = ctx.respond.call_args.args[0]
         self.assertIn(ticket_id, response_str)
         self.assertIn(url, response_str)
@@ -77,7 +77,7 @@ class TestTicketsCog(test_utils.BotTestCase):
 
         # "progress" the ticket, setting it in-progress and assigning it to "me"
         ctx = self.build_context()
-        await self.cog.ticket(ctx, ticket_id, "progress")
+        await self.cog.progress(ctx, ticket_id)
         response_str = ctx.respond.call_args.args[0]
         self.assertIn(ticket_id, response_str)
         self.assertIn(url, response_str)
@@ -85,7 +85,7 @@ class TestTicketsCog(test_utils.BotTestCase):
 
         # resolve the ticket
         ctx = self.build_context()
-        await self.cog.ticket(ctx, ticket_id, "resolve")
+        await self.cog.resolve(ctx, ticket_id)
         response_str = ctx.respond.call_args.args[0]
         self.assertIn(ticket_id, response_str)
         self.assertIn(url, response_str)
@@ -117,7 +117,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         #thread.history = unittest.mock.AsyncMock(name="history")
         #thread.history.flatten = unittest.mock.AsyncMock(name="flatten", return_value=[message])
 
-        await self.cog.thread_ticket(ctx, ticket.id)
+        await self.cog.thread(ctx, ticket.id)
 
         thread_response = str(ctx.channel.create_thread.call_args) # FIXME
         self.assertIn(str(ticket.id), thread_response)

@@ -55,7 +55,6 @@ class TicketManager():
         if response:
             trackers = {}
             for item in response['trackers']:
-                #print(f"##### {item}")
                 trackers[item['name']] = NamedId(id=item['id'], name=item['name'])
             return trackers
         else:

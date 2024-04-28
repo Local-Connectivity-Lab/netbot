@@ -141,8 +141,8 @@ class TestMessages(test_utils.RedmineTestCase):
 
         # search for the ticket
         tickets = self.redmine.match_subject(subject)
-        for check in tickets:
-            log.debug(f"### tickets: {check.subject}")
+        #for check in tickets:
+        #    log.debug(f"### tickets: {check.subject}")
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
         self.assertEqual(ticket.id, tickets[0].id)

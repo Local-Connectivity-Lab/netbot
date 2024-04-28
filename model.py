@@ -372,8 +372,6 @@ class Ticket():
         # Parse custom_field into datetime
         # lookup field by name
         token = self.get_custom_field(SYNC_FIELD_NAME)
-        #log.info(f"### found '{token}' for #{self.id}:{SYNC_FIELD_NAME}")
-        #log.info(f"### custom field: {self.custom_fields}")
         if token:
             record = synctime.SyncRecord.from_token(self.id, token)
             log.debug(f"created sync_rec from token: {record}")
