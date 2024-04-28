@@ -193,18 +193,30 @@ class TicketsCog(commands.Cog):
     async def thread(self, ctx: discord.ApplicationContext, ticket_id:int):
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
+            ticket_link = self.bot.formatter.format_link(ticket)
+
+            # check if sync data exists for a different channel
+            synced = ticket.get_sync_record()
+            if synced and synced.channel_id != ctx.channel_id:
+                thread = self.bot.get_channel(synced.channel_id)
+                if thread:
+                    await ctx.respond(f"Ticket {ticket_link} already synced with {thread.jump_url}")
+                    return # stop processing
+                else:
+                    log.info(f"Ticket {ticket_id} synced with unknown thread ID {synced.channel_id}. Recovering.")
+                    # delete the sync record
+                    self.redmine.ticket_mgr.remove_sync_record(synced)
+                    # fall thru to create thread and sync
+
             # create the thread...
             thread = await self.create_thread(ticket, ctx)
 
             # update the discord flag on tickets, add a note with url of thread; thread.jump_url
-            # TODO message templates
             note = f"Created Discord thread: {thread.name}: {thread.jump_url}"
             user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
-            log.debug(f">>> found {user} for {ctx.user.name}")
             self.redmine.enable_discord_sync(ticket.id, user, note)
 
             # ticket-614: add ticket link to thread response
-            ticket_link = self.bot.formatter.format_link(ticket)
             await ctx.respond(f"Created new thread {thread.jump_url} for ticket {ticket_link}")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")

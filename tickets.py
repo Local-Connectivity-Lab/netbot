@@ -9,7 +9,7 @@ import urllib.parse
 
 
 
-from model import TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult
+from model import TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult, SYNC_FIELD_NAME
 from session import RedmineSession, RedmineException
 import synctime
 
@@ -468,10 +468,25 @@ class TicketManager():
         log.debug(f"Updating sync record in redmine: {record}")
         fields = {
             "custom_fields": [
-                { "id": 4, "value": record.token_str() } # cf_4, custom field syncdata, #TODO search for it
+                { "id": 4, "value": record.token_str() } # cf_4, custom field syncdata, #TODO see below
             ]
         }
         self.update(record.ticket_id, fields)
+
+
+    def remove_sync_record(self, record:synctime.SyncRecord):
+        field = self.custom_fields[SYNC_FIELD_NAME]
+        if field:
+            log.debug(f"Removing sync record in redmine: {record}")
+            fields = {
+                "custom_fields": [
+                    { "id": field.id, "value": "" }
+                ]
+            }
+            self.update(record.ticket_id, fields)
+            log.debug(f"Removed {SYNC_FIELD_NAME} from ticket {record.ticket_id}")
+        else:
+            log.error(f"Missing expected custom field: {SYNC_FIELD_NAME}")
 
 
     def get_updated_field(self, ticket) -> dt.datetime:
