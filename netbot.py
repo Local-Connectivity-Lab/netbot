@@ -176,12 +176,12 @@ class NetBot(commands.Bot):
             else:
                 # create lock flag
                 self.ticket_locks[ticket.id] = True
-                log.debug(f"thread lock set, id: {ticket.id}, thread: {thread}")
+                log.debug(f"LOCK thread - id: {ticket.id}, thread: {thread}")
 
         try:
             # start of the process, will become "last update"
             sync_start = synctime.now()
-            sync_rec = ticket.get_sync_record(expected_channel=thread.id)
+            sync_rec = ticket.validate_sync_record(expected_channel=thread.id)
 
             if sync_rec:
                 log.debug(f"sync record: {sync_rec}")
@@ -216,7 +216,7 @@ class NetBot(commands.Bot):
         finally:
             # unset the sync lock
             del self.ticket_locks[ticket.id]
-
+            log.debug(f"UNLOCK thread - id: {ticket.id}, thread: {thread}")
 
     def get_channel_by_name(self, channel_name: str):
         for channel in self.get_all_channels():
@@ -246,6 +246,25 @@ class NetBot(commands.Bot):
         ticket = self.redmine.get_ticket(ticket_id, include_journals=True)
         if ticket:
             completed = await self.synchronize_ticket(ticket, thread)
+            # note: synchronize_ticket returns True only when successfully completing a sync
+            # it can fail due to: lock, missing or mismatched sync record, network, remote service.
+            # all these are ignored due to the lock.... not the best option.
+            # need to think deeper about the pre-condition and desired outcome:
+            # - What are the possible states and what causes them?
+            # - Can all unexpected states be recovered?
+            # - If not, what are the edge conditions and what data is needed to recover?
+            # - (the answer is usually: this data conflict with old values. align to new values or old?)
+            # reasonable outcomes are:
+            # - temporary failure, will try again: self-resolves due to job-nature (lock, network, http)
+            # - user input error: flag error in response, expect re-entry with valid input. OPPORTUNITY: "did you mean?"
+            # - missing sync, reasonable recovery: create new.
+            # - missmatch sync implies human by-hand changes in thread names/locations or bad code.
+            #     as "bad code" is not a "reasonable" outcome, it should be fixed, so the only outcomes are:
+            # - troubleshoot if it's a bug or
+            # - note out-of-sync unexpected results: thread-name or whatever.
+            # In this situation, "locked" is not unexpected (per se) but channel-mismatch is.
+            # Implies a "user-error" exception to report back to the user specific conditions.
+            # NetbotException is general, NetbotUserException
             if completed:
                 return ticket
             else:
@@ -273,12 +292,10 @@ class NetBot(commands.Bot):
                     if ticket:
                         # successful sync
                         log.debug(f"SYNC complete for ticket #{ticket.id} to {thread.name}")
-                    #else:
-                        #log.debug(f"no ticket found for {thread.name}")
                 except NetbotException as ex:
                     # ticket is locked.
                     # skip gracefully
-                    log.debug(f"Ticket locked, sync in progress: {thread}: {ex}")
+                    log.debug(str(ex))
                 except Exception:
                     log.exception(f"Error syncing {thread}")
 
@@ -291,7 +308,7 @@ class NetBot(commands.Bot):
         """
 
         # first, check the syncdata.
-        sync = ticket.get_sync_record()
+        sync = ticket.validate_sync_record()
         if sync and sync.channel_id > 0:
             notification = self.bot.formatter.format_expiration_notification(ticket)
             thread: discord.Thread = self.bot.get_channel(sync.channel_id)

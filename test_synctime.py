@@ -24,7 +24,7 @@ class TestTime(test_utils.RedmineTestCase):
         ticket = self.create_test_ticket()
 
         test_channel = 4321
-        sync_rec = ticket.get_sync_record(expected_channel=test_channel)
+        sync_rec = ticket.validate_sync_record(expected_channel=test_channel)
         self.assertIsNotNone(sync_rec)
         self.assertEqual(sync_rec.ticket_id, ticket.id)
         self.assertEqual(sync_rec.channel_id, test_channel)
@@ -35,7 +35,7 @@ class TestTime(test_utils.RedmineTestCase):
 
         # refetch ticket
         ticket2 = self.redmine.get_ticket(ticket.id)
-        sync_rec2 = ticket2.get_sync_record(expected_channel=1111) # NOT the test_channel
+        sync_rec2 = ticket2.validate_sync_record(expected_channel=1111) # NOT the test_channel
         log.info(f"ticket2 updated={ticket2.updated_on}, {synctime.age_str(ticket2.updated_on)} ago, channel: {sync_rec.channel_id}")
 
         self.assertIsNone(sync_rec2)
