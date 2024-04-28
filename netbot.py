@@ -171,50 +171,51 @@ class NetBot(commands.Bot):
         # get the self lock before checking the lock collection
         async with self.lock:
             if ticket.id in self.ticket_locks:
-                log.debug(f"ticket #{ticket.id} locked, skipping")
+                log.info(f"ticket #{ticket.id} locked, skipping")
                 return False # locked
             else:
                 # create lock flag
                 self.ticket_locks[ticket.id] = True
                 log.debug(f"thread lock set, id: {ticket.id}, thread: {thread}")
 
-        # start of the process, will become "last update"
-        sync_start = synctime.now()
-        sync_rec = ticket.get_sync_record(expected_channel=thread.id)
+        try:
+            # start of the process, will become "last update"
+            sync_start = synctime.now()
+            sync_rec = ticket.get_sync_record(expected_channel=thread.id)
 
-        if sync_rec:
-            log.debug(f"sync record: {sync_rec}")
+            if sync_rec:
+                log.debug(f"sync record: {sync_rec}")
 
-            # get the new notes from the redmine ticket
-            redmine_notes = self.gather_redmine_notes(ticket, sync_rec)
-            for note in redmine_notes:
-                # Write the note to the discord thread
-                dirty_flag = True
-                await thread.send(self.formatter.format_discord_note(note))
-            log.debug(f"synced {len(redmine_notes)} notes from #{ticket.id} --> {thread}")
+                # get the new notes from the redmine ticket
+                redmine_notes = self.gather_redmine_notes(ticket, sync_rec)
+                for note in redmine_notes:
+                    # Write the note to the discord thread
+                    dirty_flag = True
+                    await thread.send(self.formatter.format_discord_note(note))
+                log.debug(f"synced {len(redmine_notes)} notes from #{ticket.id} --> {thread}")
 
-            # get the new notes from discord
-            discord_notes = await self.gather_discord_notes(thread, sync_rec)
-            for message in discord_notes:
-                dirty_flag = True
-                self.append_redmine_note(ticket, message)
+                # get the new notes from discord
+                discord_notes = await self.gather_discord_notes(thread, sync_rec)
+                for message in discord_notes:
+                    dirty_flag = True
+                    self.append_redmine_note(ticket, message)
 
-            log.debug(f"synced {len(discord_notes)} notes from {thread} -> #{ticket.id}")
+                log.debug(f"synced {len(discord_notes)} notes from {thread} -> #{ticket.id}")
 
-            # update the SYNC timestamp
-            # only update if something has changed
-            if dirty_flag:
-                sync_rec.last_sync = sync_start
-                self.redmine.update_sync_record(sync_rec)
+                # update the SYNC timestamp
+                # only update if something has changed
+                if dirty_flag:
+                    sync_rec.last_sync = sync_start
+                    self.redmine.update_sync_record(sync_rec)
 
+                log.info(f"DONE sync {ticket.id} <-> {thread.name}, took {synctime.age_str(sync_start)}")
+                return True # processed as expected
+            else:
+                log.info(f"empty sync_rec for channel={thread.id}, assuming mismatch and skipping")
+                return False # not found
+        finally:
             # unset the sync lock
             del self.ticket_locks[ticket.id]
-
-            log.info(f"DONE sync {ticket.id} <-> {thread.name}, took {synctime.age_str(sync_start)}")
-            return True # processed as expected
-        else:
-            log.debug(f"empty sync_rec for channel={thread.id}, assuming mismatch and skipping")
-            return False # not found
 
 
     def get_channel_by_name(self, channel_name: str):
