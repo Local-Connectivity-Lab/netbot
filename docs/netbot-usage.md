@@ -153,11 +153,21 @@ Will create a new ticket with the title "Upgrade the server to the v1.62 LTS", a
 ### `/ticket thread [ticket-id]` - Create a Discord thread for a ticket
 
 Create a new discord thread from an existing ticket *ticket-id*, using the ticket title as the thread title. The thread is created in the channel it is invoked in, and all notes from the existing ticket are copied into the thread.
-
 ```
 /ticket thread 787
 ```
 will create a new thread for ticket 787 in the current Discord channel.
+
+If a Discord thread has already been created for that ticket, a note with a link to that thread will be displayed.
+
+If an existing *ticket thread* has been deleted, it can be recreated in any channel with the same command.
+
+To move a *ticket thread* to a new channel:
+1. Delete the existing *ticket thread* using the Discord UI. NOTE: The relevant comments are already synced to Redmine.
+2. Create the *ticket thread* in the new channel with (you guessed it): `/thread ticket [id]`
+
+`/ticket thread` is designed to be forgiving: If no *ticket thread* exists or syncdata is old, incomplete or invalid, a new valid *ticket thread* will be created and synchroized. Otherwise, an existing *ticket thread* is associated with that ticket ID and a link to it will be displayed.
+
 
 ### `/ticket assign [ticket-id]` - Assign a ticket
 
