@@ -105,31 +105,92 @@ Should be the same as `/scn teams blocked`.
 
 ## Ticket Commands
 
-The `/ticket` command is used to information about tickets in Redmine
+The `/ticket` slash command is used to information about tickets in Redmine. A number of commands are provided:
+* query
+* details
+* new
+* thread
+* assign
+* unassign
+* progress
+* resolve
 
-### /ticket query me
-- The the list of tickets for *me* (you, the reader) to work on
+### `/ticket query me` - Query my tickets
 
-### /ticket query [term]
-- *term* can be a user, a team or any term that will be used for a full text search for tickets (open and closed) that match the *term*.
+The the list of tickets for *me* (you, the reader) to work on.
 
-### /ticket details [ticket-id]
-- Show ticket *ticket-id* with full details.
+```
+/ticket query me
+```
 
-### /ticket new [title]
-- Create a new ticket, with the associated title. This will also create a new Discord thread for the ticket. If the command is issued in an existing thread, that thread is used and synched with redmine.
+### `/ticket query [term]` - Query tickets about *term*
 
-### /ticket thread [ticket-id]
-- Create a new discord thread from an existing ticket *ticket-id*, using the ticket title as the thread title. The thread is created in the channel it is invoked in, and all notes from the existing ticket are copied into the thread.
+*term* can be a user, a team or any term that will be used for a full text search for tickets (open and closed) that match the *term*.
 
-### /ticket assign [ticket-id]
-- Assign ticket *ticket-id* to yourself (the invoking user)
+```
+/ticket query test
+```
+will return any tickets that reference the term "test".
 
-### /ticket unassign [ticket-id]
-- Mark ticket *ticket-id* new and unassigned.
+### `/ticket details [ticket-id]` - Show details about a specific ticket
 
-### /ticket progress [ticket-id]
--  Mark ticket *ticket-id* to in-progress and assign it to yourself.
+Show ticket *ticket-id* with full details.
 
-### /ticket resolve [ticket-id]
-- Mark ticket *ticket-id* resolved.
+```
+/ticket details 787
+```
+will display all the ticket information for ticket ID 787
+
+### `/ticket new [title]` - Create a new ticket
+
+Create a new ticket, with the associated title. This will also create a new Discord thread for the ticket. If the command is issued in an existing thread, that thread is used and synched with redmine.
+
+```
+/ticket new Upgrade the server to the v1.62 LTS
+```
+Will create a new ticket with the title "Upgrade the server to the v1.62 LTS", and a thread for the new ticket in Discord.
+
+### `/ticket thread [ticket-id]` - Create a Discord thread for a ticket
+
+Create a new discord thread from an existing ticket *ticket-id*, using the ticket title as the thread title. The thread is created in the channel it is invoked in, and all notes from the existing ticket are copied into the thread.
+
+```
+/ticket thread 787
+```
+will create a new thread for ticket 787 in the current Discord channel.
+
+### `/ticket assign [ticket-id]` - Assign a ticket
+
+Assign ticket *ticket-id* to yourself (the invoking user).
+
+```
+/ticket assign 787
+```
+will assign ticket 787 to you.
+
+### `/ticket unassign [ticket-id]` - Unassign a ticket
+
+Mark ticket *ticket-id* new and unassigned, so it can be assigned for someone else to work on.
+
+```
+/ticket unassign 787
+```
+will unassign (you) from ticker 787 and set it's status to "new" and it's owner to "intake".
+
+### `/ticket progress [ticket-id]` - Set a ticket to in-progress
+
+Mark ticket *ticket-id* to in-progress and assign it to yourself.
+
+```
+/ticket progress 787
+```
+will set the status of ticket 787 to in-progress and assign it to you.
+
+### `/ticket resolve [ticket-id]` - Resolve a ticket
+
+Mark ticket *ticket-id* resolved.
+
+```
+/ticket thread 787
+```
+will mark ticket 787 resolved. Well done!
