@@ -127,6 +127,30 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.redmine.remove_ticket(ticket.id)
 
 
+    async def test_resolve_query_term(self):
+        ticket = self.create_test_ticket()
+
+        # expected results:
+        # 1. ticket ID
+        result_1 = self.cog.resolve_query_term(ticket.id)
+        self.assertEqual(ticket.id, result_1[0].id)
+
+        # 2. ticket team
+        result_2 = self.cog.resolve_query_term("ticket-intake")
+        self.assertEqual(ticket.id, result_2[0].id)
+
+        # 3. ticket user
+        result_3 = self.cog.resolve_query_term(self.user.login)
+        self.assertEqual(0, len(result_3)) # NOTHING ASSIGNED TO NEW TEST USER
+
+        # 4. ticket query term
+        result_4 = self.cog.resolve_query_term(self.tag)
+        self.assertEqual(ticket.id, result_4[0].id)
+
+        # delete the ticket
+        self.redmine.remove_ticket(ticket.id)
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)

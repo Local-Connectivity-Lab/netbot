@@ -190,7 +190,8 @@ class User():
 
         return None
 
-    def full_name(self) -> str:
+    @property
+    def name(self) -> str:
         if self.firstname is None or len(self.firstname) < 2:
             return self.lastname
         if self.lastname is None or len(self.lastname) < 2:
@@ -198,7 +199,7 @@ class User():
         return self.firstname + " " + self.lastname
 
     def __str__(self):
-        return f"#{self.id} {self.full_name()} login={self.login} discord={self.discord_id}"
+        return f"#{self.id} {self.name} login={self.login} discord={self.discord_id}"
 
     def set_field(self, fieldname:str, value):
         setattr(self, fieldname, value)
