@@ -61,7 +61,7 @@ class TestNetbot(test_utils.BotTestCase):
 
         # assert method send called on mock thread, with the correct values
         self.assertIn(self.tag, thread.send.call_args.args[0])
-        self.assertIn(self.user.full_name(), thread.send.call_args.args[0])
+        self.assertIn(self.user.name, thread.send.call_args.args[0])
         self.assertIn(body, thread.send.call_args.args[0])
 
         # get notes from redmine, assert tags in most recent

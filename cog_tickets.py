@@ -42,12 +42,21 @@ class TicketsCog(commands.Cog):
             ticket = self.redmine.get_ticket(int_id)
             return [ticket]
         except ValueError:
-            # not a numeric id, check team
-            if self.redmine.user_mgr.is_user_or_group(term):
-                return self.redmine.tickets_for_team(term)
-            else:
-                # assume a search term
-                return self.redmine.search_tickets(term)
+            # ignore
+            pass
+
+        # not a numeric id, check for known user or group
+        user_team = self.redmine.user_mgr.find(term)
+        if user_team:
+            log.debug(f"{term} -> {user_team}")
+            result = self.redmine.ticket_mgr.tickets_for_team(user_team)
+            if result:
+                return result
+            # note: fall thru for empty result from team query.
+
+        # assume a search term
+        log.debug(f"QUERY {term}")
+        return self.redmine.search_tickets(term)
 
 
     @ticket.command(description="Query tickets")
@@ -70,6 +79,7 @@ class TicketsCog(commands.Cog):
             query = args[0]
             results = self.resolve_query_term(query)
             await self.bot.formatter.print_tickets(f"Search for '{query}'", results, ctx)
+
 
     @ticket.command(description="Get ticket details")
     @option("term", description="ticket ID")

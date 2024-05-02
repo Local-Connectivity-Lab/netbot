@@ -360,8 +360,6 @@ class TicketManager():
 
 
     def tickets_for_team(self, team:Team) -> list[Ticket]:
-        # validate team?
-        #team = self.user_mgr.get_by_name(team_str) # find_user is dsigned to be broad
         response = self.session.get(f"/issues.json?assigned_to_id={team.id}&status_id=open&sort={DEFAULT_SORT}&limit=100")
 
         if not response:
@@ -371,7 +369,7 @@ class TicketManager():
         if result.total_count > 0:
             return result.issues
         else:
-            log.info("No open ticket for me.")
+            log.info(f"No open ticket for {team}: {result}")
             return None
 
 
@@ -383,6 +381,7 @@ class TicketManager():
 
         response = self.session.get(query)
         if not response:
+            log.debug(f"SEARCH FAILED for {query}, zero results")
             return None
 
         # the response has only IDs....

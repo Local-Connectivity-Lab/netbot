@@ -128,9 +128,6 @@ class Client():
     def my_tickets(self, user=None) -> list[Ticket]:
         return self.ticket_mgr.my_tickets(user)
 
-    def tickets_for_team(self, team_str:str) -> list[Ticket]:
-        return self.ticket_mgr.tickets_for_team(team_str)
-
     def search_tickets(self, term) -> list[Ticket]:
         return self.ticket_mgr.search(term)
 
@@ -171,7 +168,6 @@ class Client():
         return self.ticket_mgr.resolve_ticket(ticket_id, user_id)
 
     def get_team(self, teamname:str) -> Team:
-        #return self.user_mgr.get_team_by_name(teamname) # FIXME consistent naming
         return self.user_mgr.cache.get_team_by_name(teamname)
 
     def update_sync_record(self, record:synctime.SyncRecord):
