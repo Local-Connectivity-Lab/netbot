@@ -53,20 +53,42 @@ class DiscordFormatter():
             msg = msg[:MAX_MESSAGE_LEN]
         await ctx.respond(msg)
 
+    def build_legend(self, tickets:list[Ticket]) -> dict[str,str]:
+        # builds an icon-based legend from the status and
+        # priorities of a list of tickets
+
+        legend = {}
+
+        # TODO: Ordering?
+        for ticket in tickets:
+            # track which symbols are used for status and priority
+            if ticket.status.name not in legend:
+                legend[ticket.status.name] = EMOJI[ticket.status.name]
+            if ticket.priority.name not in legend:
+                legend[ticket.priority.name] = EMOJI[ticket.priority.name]
+
+        return legend
 
     def format_tickets(self, title:str, tickets:list[Ticket], max_len=MAX_MESSAGE_LEN) -> str:
         if tickets is None:
             return "No tickets found."
 
+        legend = self.build_legend(tickets)
+        legend_row = "`  "
+        for name, icon in legend.items():
+            legend_row += icon + name + " "
+        legend_row = legend_row[:-1] + '`' # remove the last space
+
         section = "**" + title + "**\n"
         for ticket in tickets:
             ticket_line = self.format_ticket_row(ticket)
-            if len(section) + len(ticket_line) + 1 < max_len:
+            if len(section) + len(ticket_line) + len(legend_row) + 1 < max_len:
                 # make sure the lenght is less that the max
                 section += ticket_line + "\n" # append each ticket
             else:
                 break # max_len hit
 
+        section += legend_row # add the legend
         return section.strip()
 
 

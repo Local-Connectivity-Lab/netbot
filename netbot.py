@@ -171,51 +171,52 @@ class NetBot(commands.Bot):
         # get the self lock before checking the lock collection
         async with self.lock:
             if ticket.id in self.ticket_locks:
-                log.debug(f"ticket #{ticket.id} locked, skipping")
+                log.info(f"ticket #{ticket.id} locked, skipping")
                 return False # locked
             else:
                 # create lock flag
                 self.ticket_locks[ticket.id] = True
-                log.debug(f"thread lock set, id: {ticket.id}, thread: {thread}")
+                log.debug(f"LOCK thread - id: {ticket.id}, thread: {thread}")
 
-        # start of the process, will become "last update"
-        sync_start = synctime.now()
-        sync_rec = ticket.get_sync_record(expected_channel=thread.id)
+        try:
+            # start of the process, will become "last update"
+            sync_start = synctime.now()
+            sync_rec = ticket.validate_sync_record(expected_channel=thread.id)
 
-        if sync_rec:
-            log.debug(f"sync record: {sync_rec}")
+            if sync_rec:
+                log.debug(f"sync record: {sync_rec}")
 
-            # get the new notes from the redmine ticket
-            redmine_notes = self.gather_redmine_notes(ticket, sync_rec)
-            for note in redmine_notes:
-                # Write the note to the discord thread
-                dirty_flag = True
-                await thread.send(self.formatter.format_discord_note(note))
-            log.debug(f"synced {len(redmine_notes)} notes from #{ticket.id} --> {thread}")
+                # get the new notes from the redmine ticket
+                redmine_notes = self.gather_redmine_notes(ticket, sync_rec)
+                for note in redmine_notes:
+                    # Write the note to the discord thread
+                    dirty_flag = True
+                    await thread.send(self.formatter.format_discord_note(note))
+                log.debug(f"synced {len(redmine_notes)} notes from #{ticket.id} --> {thread}")
 
-            # get the new notes from discord
-            discord_notes = await self.gather_discord_notes(thread, sync_rec)
-            for message in discord_notes:
-                dirty_flag = True
-                self.append_redmine_note(ticket, message)
+                # get the new notes from discord
+                discord_notes = await self.gather_discord_notes(thread, sync_rec)
+                for message in discord_notes:
+                    dirty_flag = True
+                    self.append_redmine_note(ticket, message)
 
-            log.debug(f"synced {len(discord_notes)} notes from {thread} -> #{ticket.id}")
+                log.debug(f"synced {len(discord_notes)} notes from {thread} -> #{ticket.id}")
 
-            # update the SYNC timestamp
-            # only update if something has changed
-            if dirty_flag:
-                sync_rec.last_sync = sync_start
-                self.redmine.update_sync_record(sync_rec)
+                # update the SYNC timestamp
+                # only update if something has changed
+                if dirty_flag:
+                    sync_rec.last_sync = sync_start
+                    self.redmine.update_sync_record(sync_rec)
 
+                log.info(f"DONE sync {ticket.id} <-> {thread.name}, took {synctime.age_str(sync_start)}")
+                return True # processed as expected
+            else:
+                log.info(f"empty sync_rec for channel={thread.id}, assuming mismatch and skipping")
+                return False # not found
+        finally:
             # unset the sync lock
             del self.ticket_locks[ticket.id]
-
-            log.info(f"DONE sync {ticket.id} <-> {thread.name}, took {synctime.age_str(sync_start)}")
-            return True # processed as expected
-        else:
-            log.debug(f"empty sync_rec for channel={thread.id}, assuming mismatch and skipping")
-            return False # not found
-
+            log.debug(f"UNLOCK thread - id: {ticket.id}, thread: {thread}")
 
     def get_channel_by_name(self, channel_name: str):
         for channel in self.get_all_channels():
@@ -245,6 +246,25 @@ class NetBot(commands.Bot):
         ticket = self.redmine.get_ticket(ticket_id, include="journals")
         if ticket:
             completed = await self.synchronize_ticket(ticket, thread)
+            # note: synchronize_ticket returns True only when successfully completing a sync
+            # it can fail due to: lock, missing or mismatched sync record, network, remote service.
+            # all these are ignored due to the lock.... not the best option.
+            # need to think deeper about the pre-condition and desired outcome:
+            # - What are the possible states and what causes them?
+            # - Can all unexpected states be recovered?
+            # - If not, what are the edge conditions and what data is needed to recover?
+            # - (the answer is usually: this data conflict with old values. align to new values or old?)
+            # reasonable outcomes are:
+            # - temporary failure, will try again: self-resolves due to job-nature (lock, network, http)
+            # - user input error: flag error in response, expect re-entry with valid input. OPPORTUNITY: "did you mean?"
+            # - missing sync, reasonable recovery: create new.
+            # - missmatch sync implies human by-hand changes in thread names/locations or bad code.
+            #     as "bad code" is not a "reasonable" outcome, it should be fixed, so the only outcomes are:
+            # - troubleshoot if it's a bug or
+            # - note out-of-sync unexpected results: thread-name or whatever.
+            # In this situation, "locked" is not unexpected (per se) but channel-mismatch is.
+            # Implies a "user-error" exception to report back to the user specific conditions.
+            # NetbotException is general, NetbotUserException
             if completed:
                 return ticket
             else:
@@ -272,12 +292,10 @@ class NetBot(commands.Bot):
                     if ticket:
                         # successful sync
                         log.debug(f"SYNC complete for ticket #{ticket.id} to {thread.name}")
-                    #else:
-                        #log.debug(f"no ticket found for {thread.name}")
                 except NetbotException as ex:
                     # ticket is locked.
                     # skip gracefully
-                    log.debug(f"Ticket locked, sync in progress: {thread}: {ex}")
+                    log.debug(str(ex))
                 except Exception:
                     log.exception(f"Error syncing {thread}")
 
@@ -290,7 +308,7 @@ class NetBot(commands.Bot):
         """
 
         # first, check the syncdata.
-        sync = ticket.get_sync_record()
+        sync = ticket.validate_sync_record()
         if sync and sync.channel_id > 0:
             notification = self.bot.formatter.format_expiration_notification(ticket)
             thread: discord.Thread = self.bot.get_channel(sync.channel_id)
@@ -374,7 +392,7 @@ def main():
 
 def setup_logging():
     """set up logging for netbot"""
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
                         format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
     logging.getLogger("discord.http").setLevel(logging.WARNING)

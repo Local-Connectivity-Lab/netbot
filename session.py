@@ -75,7 +75,7 @@ class RedmineSession():
             if r.ok:
                 return r.json()
             else:
-                log.info(f"GET {r.reason}/{r.status_code} url={r.request.url}, reqid={r.headers['X-Request-Id']}")
+                log.info(f"GET {r.reason}/{r.status_code} url={r.request.url}, reqid={r.headers.get('X-Request-Id','')}")
         except (TimeoutError, ConnectTimeoutError, ConnectTimeout, ConnectionError):
             # ticket-509: Handle timeout gracefully
             log.warning(f"TIMEOUT ({TIMEOUT}s) during {query_str}")

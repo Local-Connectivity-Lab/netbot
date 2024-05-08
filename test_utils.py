@@ -15,7 +15,8 @@ import discord
 from discord import ApplicationContext
 import model
 from users import UserManager
-from model import Message, User
+from model import Message, User, NamedId
+from tickets import SCN_PROJECT_ID, TicketManager
 import session
 from redmine import Client
 
@@ -82,12 +83,31 @@ def mock_ticket(**kwargs) -> model.Ticket:
         return ticket
 
 
+def mock_user(tag: str) -> model.User:
+    return model.User(
+        id=5,
+        login=f'test-{tag}',
+        mail=f'{tag}@example.org',
+        custom_fields=[ {"id": 2, "name":'Discord ID', "value":f'discord-{tag}'} ],
+        admin=False,
+        firstname='Test',
+        lastname=tag,
+        created_on='2020-07-29T00:37:38Z',
+        updated_on='2020-02-21T02:14:12Z',
+        last_login_on='2020-03-31T01:56:05Z',
+        passwd_changed_on='2020-09-24T18:41:08Z',
+        twofa_scheme=None,
+        api_key='',
+        status=''
+    )
+
+
 def mock_result(tickets: list[model.Ticket]) -> model.TicketsResult:
     return model.TicketsResult(len(tickets), 0, 25, tickets)
 
 
 def mock_session() -> session.RedmineSession:
-    return session.RedmineSession("","")
+    return session.RedmineSession("http://example.com", "TeStInG-TOK-3N")
 
 
 def custom_fields() -> dict:
@@ -104,13 +124,74 @@ def remove_test_users(user_mgr:UserManager):
 # TODO delete test tickets and "Search for subject match in email threading" ticket. TAG with test too?
 
 
+class MockUserManager(UserManager):
+    """mock"""
+    def get_all(self) -> list[User]:
+        return []
+
+    def get_all_teams(self, include_users: bool = True) -> dict[str, model.Team]:
+        return {}
+
+
+class MockTicketManager(TicketManager):
+    """mock"""
+    def __init__(self, sess: session.RedmineSession):
+        super().__init__(sess, default_project=SCN_PROJECT_ID )
+
+
+    def load_custom_fields(self) -> dict[str,NamedId]:
+        """ override load_custom_fields to load expected custom fields. """
+        result = {}
+        with open('test/custom-fields.json', "r", encoding="utf-8") as fields_file:
+            fields = json.load(fields_file)
+            for name, value in fields.items():
+                result[name] = NamedId(**value)
+
+        log.debug(f"loading custom fields for test: {result}")
+        return result
+
+
+def create_mock_redmine():
+    sess = mock_session()
+    user_mgr = MockUserManager(sess)
+    ticket_mgr = MockTicketManager(sess)
+    return Client(sess, user_mgr, ticket_mgr)
+
+
+class MockRedmineTestCase(unittest.TestCase):
+    """Abstract base class for mocked redmine testing"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.redmine = create_mock_redmine()
+        cls.user_mgr = cls.redmine.user_mgr
+        cls.tickets_mgr = cls.redmine.ticket_mgr
+        cls.tag:str = tagstr()
+
+        cls.user:User = mock_user(cls.tag)
+        cls.user_mgr.cache.cache_user(cls.user)
+        log.info(f"SETUP created mock user: {cls.user}")
+
+
+    def create_message(self) -> model.Message:
+        subject = f"TEST {self.tag} {unittest.TestCase.id(self)}"
+        text = f"This is a ticket for {unittest.TestCase.id(self)} with {self.tag}."
+        message = Message(self.user.mail, subject, f"to-{self.tag}@example.com", f"cc-{self.tag}@example.com")
+        message.set_note(text)
+        return message
+
+
+    def create_ticket(self) -> model.Ticket:
+        return self.redmine.create_ticket(self.user, self.create_message())
+
+
 class RedmineTestCase(unittest.TestCase):
     """Abstract base class for testing redmine features"""
 
     @classmethod
     def setUpClass(cls):
         sess = session.RedmineSession.fromenv()
-        cls.redmine = Client(sess)
+        cls.redmine = Client.from_session(sess, SCN_PROJECT_ID)
         cls.user_mgr = cls.redmine.user_mgr
         cls.tickets_mgr = cls.redmine.ticket_mgr
         cls.tag:str = tagstr()
@@ -149,7 +230,7 @@ class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
 
 
 def audit_expected_values():
-    redmine = Client(session.RedmineSession.fromenv())
+    redmine = Client.from_session(session.RedmineSession.fromenv(), SCN_PROJECT_ID)
 
     # audit checks...
     # 1. make sure admin use exists
@@ -176,6 +257,12 @@ if __name__ == '__main__':
     # construct the client and run the email check
     #client = session.RedmineSession.fromenv()
     #users = UserManager(client)
+
+    #user = users.get_by_name("philion")
+
+    #with open('test/test-user.json', 'w') as f:
+    #    json.dump(user, f)
+
     #remove_test_users(users)
 
-    audit_expected_values()
+    #audit_expected_values()

@@ -9,7 +9,7 @@ import urllib.parse
 
 
 
-from model import TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult
+from model import TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult, SYNC_FIELD_NAME
 from session import RedmineSession, RedmineException
 import synctime
 
@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 ISSUES_RESOURCE="/issues.json"
 ISSUE_RESOURCE="/issues/"
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
-SCN_PROJECT_ID = 1  # could lookup scn in projects
+SCN_PROJECT_ID = "1"  # could lookup scn in projects
 INTAKE_TEAM = "ticket-intake"
 INTAKE_TEAM_ID = 19 # FIXME
 
@@ -31,9 +31,10 @@ TICKET_EXPIRE_NOTIFY = TICKET_MAX_AGE - 1 # 27 days, one day shorter than MAX_AG
 
 class TicketManager():
     """manage redmine tickets"""
-    def __init__(self, session: RedmineSession):
+    def __init__(self, session: RedmineSession, default_project):
         self.session: RedmineSession = session
         self.custom_fields = self.load_custom_fields()
+        self.default_project = default_project
 
 
     def load_custom_fields(self) -> dict[str,NamedId]:
@@ -54,7 +55,6 @@ class TicketManager():
         if response:
             trackers = {}
             for item in response['trackers']:
-                #print(f"##### {item}")
                 trackers[item['name']] = NamedId(id=item['id'], name=item['name'])
             return trackers
         else:
@@ -62,20 +62,28 @@ class TicketManager():
 
 
     def get_field_id(self, name:str) -> int | None:
+        if not self.custom_fields:
+            log.warning(f"Custom field '{name}' requested, none available")
+            return None
+
         if name in self.custom_fields:
             return self.custom_fields[name].id
         return None
 
 
-    def create(self, user: User, message: Message) -> Ticket:
+    def create(self, user: User, message: Message, project_id: int = None) -> Ticket:
         """create a redmine ticket"""
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
         # would need full param handling to pass that thru discord to get to this invocation
         # this would be resolved by a Ticket class to emcapsulate.
 
+        # check default project
+        if not project_id:
+            project_id = self.default_project
+
         data = {
             'issue': {
-                'project_id': SCN_PROJECT_ID, #FIXME hard-coded project ID MOVE project ID to API
+                'project_id': project_id,
                 'subject': message.subject,
                 'description': message.note,
                 # ticket-485: adding custom field for To//Cc headers.
@@ -218,7 +226,7 @@ class TicketManager():
         # Ideally, this would @ the owner and collaborators.
         fields = {
             "assigned_to_id": INTAKE_TEAM_ID,
-            "status_id": "1", # New
+            "status_id": "1", # New, TODO lookup using status lookup table.
             "notes": f"Ticket automatically expired after {TICKET_MAX_AGE} days due to inactivity.",
         }
         self.update(ticket.id, fields)
@@ -343,8 +351,6 @@ class TicketManager():
 
 
     def tickets_for_team(self, team:Team) -> list[Ticket]:
-        # validate team?
-        #team = self.user_mgr.get_by_name(team_str) # find_user is dsigned to be broad
         response = self.session.get(f"/issues.json?assigned_to_id={team.id}&status_id=open&sort={DEFAULT_SORT}&limit=100")
 
         if not response:
@@ -354,7 +360,7 @@ class TicketManager():
         if result.total_count > 0:
             return result.issues
         else:
-            log.info("No open ticket for me.")
+            log.info(f"No open ticket for {team}: {result}")
             return None
 
 
@@ -366,6 +372,7 @@ class TicketManager():
 
         response = self.session.get(query)
         if not response:
+            log.debug(f"SEARCH FAILED for {query}, zero results")
             return None
 
         # the response has only IDs....
@@ -400,7 +407,7 @@ class TicketManager():
     def enable_discord_sync(self, ticket_id, user, note):
         fields = {
             "note": note, #f"Created Discord thread: {thread.name}: {thread.jump_url}",
-            "cf_1": "1",
+            "cf_1": "1", # TODO: lookup in self.get_field_id
         }
 
         self.update(ticket_id, fields, user.login)
@@ -438,7 +445,7 @@ class TicketManager():
     def unassign_ticket(self, ticket_id, user_id=None):
         fields = {
             "assigned_to_id": INTAKE_TEAM_ID,
-            "status_id": "1", # New
+            "status_id": "1", # New, TODO lookup in status table
         }
         self.update(ticket_id, fields, user_id)
 
@@ -451,10 +458,25 @@ class TicketManager():
         log.debug(f"Updating sync record in redmine: {record}")
         fields = {
             "custom_fields": [
-                { "id": 4, "value": record.token_str() } # cf_4, custom field syncdata, #TODO search for it
+                { "id": 4, "value": record.token_str() } # cf_4, custom field syncdata, #TODO see below
             ]
         }
         self.update(record.ticket_id, fields)
+
+
+    def remove_sync_record(self, record:synctime.SyncRecord):
+        field = self.custom_fields[SYNC_FIELD_NAME]
+        if field:
+            log.debug(f"Removing sync record in redmine: {record}")
+            fields = {
+                "custom_fields": [
+                    { "id": field.id, "value": "" }
+                ]
+            }
+            self.update(record.ticket_id, fields)
+            log.debug(f"Removed {SYNC_FIELD_NAME} from ticket {record.ticket_id}")
+        else:
+            log.error(f"Missing expected custom field: {SYNC_FIELD_NAME}")
 
 
     def get_updated_field(self, ticket) -> dt.datetime:
@@ -481,7 +503,7 @@ class TicketManager():
 
 
 def main():
-    ticket_mgr = TicketManager(RedmineSession.fromenv())
+    ticket_mgr = TicketManager(RedmineSession.fromenv(), SCN_PROJECT_ID)
 
     #ticket_mgr.expire_expired_tickets()
     #for ticket in ticket_mgr.older_than(7): #ticket_mgr.expired_tickets():
@@ -490,6 +512,7 @@ def main():
     #print(json.dumps(ticket_mgr.load_custom_fields(), indent=4, default=vars))
 
     print(ticket_mgr.due())
+
 
 # for testing the redmine
 if __name__ == '__main__':

@@ -190,7 +190,8 @@ class User():
 
         return None
 
-    def full_name(self) -> str:
+    @property
+    def name(self) -> str:
         if self.firstname is None or len(self.firstname) < 2:
             return self.lastname
         if self.lastname is None or len(self.lastname) < 2:
@@ -198,7 +199,11 @@ class User():
         return self.firstname + " " + self.lastname
 
     def __str__(self):
-        return f"#{self.id} {self.full_name()} login={self.login} discord={self.discord_id}"
+        return f"#{self.id} {self.name} login={self.login} discord={self.discord_id}"
+
+    def set_field(self, fieldname:str, value):
+        setattr(self, fieldname, value)
+        log.debug(f"@{self.login}: {fieldname} <= {value}")
 
 
 @dataclass
@@ -364,36 +369,38 @@ class Ticket():
         return f"#{self.id:04d}  {self.status.name:<11}  {self.priority.name:<6}  {self.assigned:<20}  {self.subject}"
 
 
-    def get_sync_record(self, expected_channel: int = 0) -> synctime.SyncRecord | None:
+    def get_sync_record(self) -> synctime.SyncRecord | None:
         # Parse custom_field into datetime
         # lookup field by name
         token = self.get_custom_field(SYNC_FIELD_NAME)
-        #log.info(f"### found '{token}' for #{self.id}:{SYNC_FIELD_NAME}")
-        #log.info(f"### custom field: {self.custom_fields}")
         if token:
             record = synctime.SyncRecord.from_token(self.id, token)
             log.debug(f"created sync_rec from token: {record}")
-            if record:
-                # check channel
-                if record.channel_id == 0:
-                    # no valid channel set in sync data, assume lagacy
-                    record.channel_id = expected_channel
-                    # update the record in redmine after adding the channel info
-                    # self.update_sync_record(record) REALLY needed? should be handled when token created
-                    return record
-                elif record.channel_id != expected_channel:
-                    log.debug(f"channel mismatch: rec={record.channel_id} =/= {expected_channel}, token={token}")
-                    return None
-                else:
-                    return record
+            return record
+
+
+    def validate_sync_record(self, expected_channel: int = 0) -> synctime.SyncRecord | None:
+        # Parse custom_field into datetime
+        # lookup field by name
+        record = self.get_sync_record()
+        if record:
+            # check channel
+            if record.channel_id == 0:
+                # no valid channel set in sync data, assume lagacy
+                record.channel_id = expected_channel
+                # update the record in redmine after adding the channel info
+                # self.update_sync_record(record) REALLY needed? should be handled when token created
+                return record
+            elif record.channel_id != expected_channel:
+                log.debug(f"channel mismatch: rec={record.channel_id} =/= {expected_channel}")
+                return None
+            else:
+                return record
         else:
             # no token implies not-yet-initialized
             record = synctime.SyncRecord(self.id, expected_channel, synctime.epoch_datetime())
-            # apply the new sync record back to redmine
-            # self.update_sync_record(record) same REALLY as above ^^^^
             log.debug(f"created new sync record, none found: {record}")
             return record
-        return None
 
 
     def get_notes(self, since:dt.datetime|None=None) -> list[TicketNote]:

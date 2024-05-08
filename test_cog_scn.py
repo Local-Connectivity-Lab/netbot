@@ -83,7 +83,7 @@ class TestSCNCog(test_utils.BotTestCase):
         # confirm in team via cog teams response
         ctx = self.build_context()
         await self.cog.teams(ctx, test_team_name)
-        self.assertIn(self.user.full_name(), str(ctx.respond.call_args))
+        self.assertIn(self.user.name, str(ctx.respond.call_args))
 
         # leave team users
         ctx = self.build_context()
@@ -97,7 +97,7 @@ class TestSCNCog(test_utils.BotTestCase):
         # confirm not in team via cog teams response
         ctx = self.build_context()
         await self.cog.teams(ctx, test_team_name)
-        self.assertNotIn(self.user.full_name(), str(ctx.respond.call_args))
+        self.assertNotIn(self.user.name, str(ctx.respond.call_args))
 
 
     async def test_thread_sync(self):
