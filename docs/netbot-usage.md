@@ -3,7 +3,7 @@
 Netbot provides a series of slash-commands to support tickets and users in Redmine.
 
 The commands are grouped:
-* `/tickets` provides ticket management and queries
+* `/ticket` provides ticket management and queries
 * `/scn` provides commands to manages users and organization in Redmine
 
 ## Use Cases
