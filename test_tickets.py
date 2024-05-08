@@ -84,6 +84,22 @@ class TestIntegrationTicketManager(test_utils.RedmineTestCase):
                 self.assertIsNone(check3)
 
 
+    def test_ticket_unassign(self):
+        ticket = self.create_test_ticket()
+
+        # unassign the ticket
+        self.tickets_mgr.unassign_ticket(ticket.id)
+
+        check = self.tickets_mgr.get(ticket.id)
+        self.assertEqual("New", check.status.name)
+        self.assertEqual("", check.assigned)
+
+        # delete ticket with redmine api, assert
+        self.redmine.remove_ticket(int(ticket.id))
+        # check that the ticket has been removed
+        self.assertIsNone(self.redmine.get_ticket(int(ticket.id)))
+
+
 
 
 

@@ -444,7 +444,7 @@ class TicketManager():
 
     def unassign_ticket(self, ticket_id, user_id=None):
         fields = {
-            "assigned_to_id": INTAKE_TEAM_ID,
+            "assigned_to_id": "",
             "status_id": "1", # New, TODO lookup in status table
         }
         self.update(ticket_id, fields, user_id)

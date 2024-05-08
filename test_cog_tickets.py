@@ -96,6 +96,20 @@ class TestTicketsCog(test_utils.BotTestCase):
         # check that the ticket has been removed
         self.assertIsNone(self.redmine.get_ticket(int(ticket_id)))
 
+    async def test_ticket_unassign(self):
+        ticket = self.create_test_ticket()
+
+        # unassign the ticket
+        ctx = self.build_context()
+        await self.cog.unassign(ctx, ticket.id)
+        response_str = ctx.respond.call_args.args[0]
+        self.assertIn(str(ticket.id), response_str)
+
+        # delete ticket with redmine api, assert
+        self.redmine.remove_ticket(int(ticket.id))
+        # check that the ticket has been removed
+        self.assertIsNone(self.redmine.get_ticket(int(ticket.id)))
+
     # create thread/sync
     async def test_thread_sync(self):
         # create a ticket and add a note
