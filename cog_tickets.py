@@ -93,6 +93,24 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 
 
+
+    @ticket.command(description="Collaborate on a ticket")
+    @option("ticket_id", description="ticket ID")
+    async def collaborate(self, ctx: discord.ApplicationContext, ticket_id:int):
+        """Add yourself as a collaborator on a ticket"""
+        # lookup the user
+        user = self.redmine.user_mgr.find(ctx.user.name)
+        if not user:
+            await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add [redmine-user]` to create the mapping.")
+            return
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            self.redmine.ticket_mgr.collaborate(ticket_id, user)
+            await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
+        else:
+            await ctx.respond(f"Ticket {ticket_id} not found.") # print error
+
+
     @ticket.command(description="Unassign a ticket")
     @option("ticket_id", description="ticket ID")
     async def unassign(self, ctx: discord.ApplicationContext, ticket_id:int):

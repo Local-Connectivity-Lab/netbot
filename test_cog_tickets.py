@@ -107,7 +107,20 @@ class TestTicketsCog(test_utils.BotTestCase):
 
         # delete ticket with redmine api, assert
         self.redmine.remove_ticket(int(ticket.id))
-        # check that the ticket has been removed
+        self.assertIsNone(self.redmine.get_ticket(int(ticket.id)))
+
+
+    async def test_ticket_collaborate(self):
+        ticket = self.create_test_ticket()
+
+        # add a collaborator
+        ctx = self.build_context()
+        await self.cog.collaborate(ctx, ticket.id)
+        response_str = ctx.respond.call_args.args[0]
+        self.assertIn(str(ticket.id), response_str)
+
+        # delete ticket with redmine api, assert
+        self.redmine.remove_ticket(ticket.id)
         self.assertIsNone(self.redmine.get_ticket(int(ticket.id)))
 
     # create thread/sync

@@ -102,11 +102,11 @@ class RedmineSession():
                               files=files,
                               timeout=TIMEOUT,
                               headers=self.get_headers(user_login))
-        if r.status_code == 201:
-            #log.debug(f"POST {resource}: {data} - {vars(r)}")
-            return r.json()
-        elif r.status_code == 204:
+
+        if r.status_code == 204:
             return None
+        elif r.ok:
+            return r.json()
         else:
             raise RedmineException(f"POST failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
 

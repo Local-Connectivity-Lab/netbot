@@ -426,6 +426,20 @@ class TicketManager():
         self.update(ticket_id, fields, user_id)
 
 
+    def collaborate(self, ticket_id, user:User, user_id:str=None):
+        # assign watcher, see
+        # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Adding-a-watcher
+        fields = {
+            "user_id": user.id,
+        }
+
+        if user_id is None:
+            # use the user-id to self-assign
+            user_id = user.login
+
+        self.session.post(f"{ISSUE_RESOURCE}{ticket_id}/watchers.json" , json.dumps(fields))
+
+
     def progress_ticket(self, ticket_id, user_id=None):
         fields = {
             "assigned_to_id": "me",
