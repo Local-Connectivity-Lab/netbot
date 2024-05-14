@@ -374,6 +374,34 @@ class NetBot(commands.Bot):
         return self.trackers.get(tracker, None)
 
 
+    def find_ticket_thread(self, ticket_id:int) -> discord.Thread|None:
+        """Search thru thread titles looking for a matching ticket ID"""
+        # search thru all threads for:
+        title_prefix = "Thread #" + ticket_id
+        for guild in self.guilds:
+            for thread in guild.threads:
+                if thread.name.startswith(title_prefix):
+                    return thread
+
+        return None # not found
+
+
+    def extract_ids_from_ticket(self, ticket: Ticket) -> list[str]:
+        """Extract the Discord IDs from users interested in a ticket, owner and collaborators"""
+         # owner and watchers
+        interested: list[NamedId] = []
+        if ticket.assigned_to is not None:
+            interested.append(ticket.assigned_to)
+        interested.extend(ticket.watchers)
+
+        discord_ids: list[str] = []
+        for named in interested:
+            user = self.redmine.user_mgr.cache.get(named.id)
+            discord_ids.append(user.discord_id)
+
+        return []
+
+
 def main():
     """netbot main function"""
     log.info(f"loading .env for {__name__}")

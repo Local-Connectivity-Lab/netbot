@@ -10,7 +10,7 @@ from discord.commands import option, SlashCommandGroup
 
 from discord.ext import commands
 
-from model import Message, Ticket
+from model import Message, Ticket, NamedId
 from redmine import Client
 
 
@@ -183,7 +183,6 @@ class TicketsCog(commands.Cog):
 
     @ticket.command(name="new", description="Create a new ticket")
     @option("title", description="Title of the new SCN ticket")
-    @option("add_thread", description="Create a Discord thread for the new ticket", default=False)
     async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str):
         user = self.redmine.user_mgr.find(ctx.user.name)
         if user is None:
@@ -215,15 +214,29 @@ class TicketsCog(commands.Cog):
         else:
             await ctx.respond(f"Error creating ticket with title={title}")
 
+
     @commands.slash_command(name="alert", description="Alert collaborators on a ticket")
     @option("ticket_id", description="ID of ticket to alert")
-    async def alert_ticket(self, ctx: discord.ApplicationContext, ticket_id:int):
-        ticket = self.redmine.get_ticket(ticket_id)
+    async def alert_ticket(self, ctx: discord.ApplicationContext, ticket_id:int=None):
+        if not ticket_id:
+            # check thread for ticket id
+            ticket_id = self.bot.parse_thread_title(ctx.channel.name)
+
+        ticket = self.redmine.get_ticket(ticket_id, include="watchers") # inclde the option watchers/collaborators field
         if ticket:
-            # FIXME
-            pass
+            # * notify owner and collaborators of *notable* (not all) status changes of a ticket
+            # * user @reference for notify
+            # * notification placed in ticket-thread
+
+            # owner and watchers
+            discord_ids = self.bot.extract_ids_from_ticket(ticket)
+
+            thread:discord.Thread = self.bot.find_ticket_thread(ticket.id)
+            msg = f"Ticket {ticket.id} is about will expire soon."
+            await thread.send(self.bot.formatter.format_ticket_alert(ticket.id, discord_ids, msg))
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") ## TODO format error message
+
 
     @ticket.command(description="Thread a Redmine ticket in Discord")
     @option("ticket_id", description="ID of tick to create thread for")
