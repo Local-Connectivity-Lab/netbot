@@ -200,7 +200,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.assertIn("/scn add", ctx.respond.call_args.args[0])
 
 
-async def test_create_invalid_discord_user(self):
+    async def test_create_invalid_discord_user(self):
         ctx = self.build_context()
         test_name = "not-the-test-user" # invalid discord user
         ctx.user.name = test_name
