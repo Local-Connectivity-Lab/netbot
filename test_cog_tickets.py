@@ -9,6 +9,7 @@ import discord
 from dotenv import load_dotenv
 
 from netbot import NetBot
+from cog_tickets import TicketsCog
 import test_utils
 
 
@@ -24,9 +25,9 @@ class TestTicketsCog(test_utils.BotTestCase):
 
     def setUp(self):
         super().setUp()
-        self.bot = NetBot(self.redmine)
+        self.bot: NetBot = NetBot(self.redmine)
         self.bot.load_extension("cog_tickets")
-        self.cog = self.bot.cogs["TicketsCog"] # Note class name, note filename.
+        self.cog: TicketsCog = self.bot.cogs["TicketsCog"]
 
 
     def parse_markdown_link(self, text:str) -> tuple[str, str]:
@@ -154,7 +155,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.redmine.remove_ticket(ticket.id)
 
 
-    async def test_resolve_query_term(self):
+    async def test_query_term(self):
         ticket = self.create_test_ticket()
 
         # expected results:
@@ -176,6 +177,64 @@ class TestTicketsCog(test_utils.BotTestCase):
 
         # delete the ticket
         self.redmine.remove_ticket(ticket.id)
+
+
+    async def test_resolve_invalid_discord_user(self):
+        ticket = self.create_test_ticket()
+
+        ctx = self.build_context()
+        test_name = "not-the-test-user" # invalid discord user
+        ctx.user.name = test_name
+
+        await self.cog.resolve(ctx, ticket.id)
+        self.assertIn(test_name, ctx.respond.call_args.args[0])
+        self.assertIn("/scn add", ctx.respond.call_args.args[0])
+
+
+    async def test_unassign_invalid_discord_user(self):
+        ticket = self.create_test_ticket()
+
+        ctx = self.build_context()
+        test_name = "not-the-test-user" # invalid discord user
+        ctx.user.name = test_name
+
+        await self.cog.unassign(ctx, ticket.id)
+        self.assertIn(test_name, ctx.respond.call_args.args[0])
+        self.assertIn("/scn add", ctx.respond.call_args.args[0])
+
+
+    async def test_progress_invalid_discord_user(self):
+        ticket = self.create_test_ticket()
+
+        ctx = self.build_context()
+        test_name = "not-the-test-user" # invalid discord user
+        ctx.user.name = test_name
+
+        await self.cog.progress(ctx, ticket.id)
+        self.assertIn(test_name, ctx.respond.call_args.args[0])
+        self.assertIn("/scn add", ctx.respond.call_args.args[0])
+
+
+    async def test_assign_invalid_discord_user(self):
+        ticket = self.create_test_ticket()
+
+        ctx = self.build_context()
+        test_name = "not-the-test-user" # invalid discord user
+        ctx.user.name = test_name
+
+        await self.cog.assign(ctx, ticket.id)
+        self.assertIn(test_name, ctx.respond.call_args.args[0])
+        self.assertIn("/scn add", ctx.respond.call_args.args[0])
+
+
+async def test_create_invalid_discord_user(self):
+        ctx = self.build_context()
+        test_name = "not-the-test-user" # invalid discord user
+        ctx.user.name = test_name
+
+        await self.cog.create_new_ticket(ctx, "test title")
+        self.assertIn(test_name, ctx.respond.call_args.args[0])
+        self.assertIn("/scn add", ctx.respond.call_args.args[0])
 
 
 if __name__ == '__main__':

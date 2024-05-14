@@ -420,7 +420,7 @@ def main():
 
 def setup_logging():
     """set up logging for netbot"""
-    logging.basicConfig(level=logging.DEBUG,
+    logging.basicConfig(level=logging.INFO,
                         format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
     logging.getLogger("discord.http").setLevel(logging.WARNING)
