@@ -29,7 +29,6 @@ class TicketsCog(commands.Cog):
         self.redmine: Client = bot.redmine
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
-
     ticket = SlashCommandGroup("ticket",  "ticket commands")
 
 
@@ -99,7 +98,9 @@ class TicketsCog(commands.Cog):
         """Update status on a ticket, using: unassign, resolve, progress"""
         # lookup the user
         user = self.redmine.user_mgr.find(ctx.user.name)
-        #log.debug(f"found user mapping for {ctx.user.name}: {user}")
+        if not user:
+            await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add` to create the mapping.") # error
+            return
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
             self.redmine.unassign_ticket(ticket_id, user.login)
@@ -114,7 +115,9 @@ class TicketsCog(commands.Cog):
         """Update status on a ticket, using: unassign, resolve, progress"""
         # lookup the user
         user = self.redmine.user_mgr.find(ctx.user.name)
-        #log.debug(f"found user mapping for {ctx.user.name}: {user}")
+        if not user:
+            await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add` to create the mapping.") # error
+            return
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
             self.redmine.resolve_ticket(ticket_id, user.login)
@@ -129,7 +132,10 @@ class TicketsCog(commands.Cog):
         """Update status on a ticket, using: unassign, resolve, progress"""
         # lookup the user
         user = self.redmine.user_mgr.find(ctx.user.name)
-        #log.debug(f"found user mapping for {ctx.user.name}: {user}")
+        if not user:
+            await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add` to create the mapping.") # error
+            return
+
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
             self.redmine.progress_ticket(ticket_id, user.login)
@@ -144,7 +150,10 @@ class TicketsCog(commands.Cog):
         """Update status on a ticket, using: unassign, resolve, progress"""
         # lookup the user
         user = self.redmine.user_mgr.find(ctx.user.name)
-        #log.debug(f"found user mapping for {ctx.user.name}: {user}")
+        if not user:
+            await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add` to create the mapping.") # error
+            return
+
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
             self.redmine.assign_ticket(ticket_id, user.login)
@@ -168,9 +177,10 @@ class TicketsCog(commands.Cog):
     @option("add_thread", description="Create a Discord thread for the new ticket", default=False)
     async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str):
         user = self.redmine.user_mgr.find(ctx.user.name)
-        if user is None:
-            await ctx.respond(f"Unknown user: {ctx.user.name}")
+        if not user:
+            await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add` to create the mapping.") # error
             return
+
         channel_name = ctx.channel.name
         text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
         message = Message(from_addr=user.mail, subject=title, to=ctx.channel.name)
