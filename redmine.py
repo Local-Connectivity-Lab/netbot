@@ -67,6 +67,8 @@ class Client():
 
 
     def create_ticket(self, user:User, message:Message) -> Ticket:
+        # NOTE to self re "projects": TicketManager.create supports a project ID
+        # Need to find a way to pass it in.
         ticket = self.ticket_mgr.create(user, message)
         # check user status, reject the ticket if blocked
         if self.user_mgr.is_blocked(user):

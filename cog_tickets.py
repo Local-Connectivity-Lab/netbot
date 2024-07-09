@@ -10,8 +10,9 @@ from discord.commands import option, SlashCommandGroup
 
 from discord.ext import commands
 
-from model import Message, Ticket, NamedId
+from model import Message, Ticket
 from redmine import Client
+from netbot import NetBot
 
 
 log = logging.getLogger(__name__)
@@ -24,8 +25,8 @@ def setup(bot):
 
 class TicketsCog(commands.Cog):
     """encapsulate Discord ticket functions"""
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, bot:NetBot):
+        self.bot:NetBot = bot
         self.redmine: Client = bot.redmine
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
@@ -225,7 +226,7 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Error creating ticket with title={title}")
 
 
-    @commands.slash_command(name="alert", description="Alert collaborators on a ticket")
+    @ticket.command(name="alert", description="Alert collaborators on a ticket")
     @option("ticket_id", description="ID of ticket to alert")
     async def alert_ticket(self, ctx: discord.ApplicationContext, ticket_id:int=None):
         if not ticket_id:
@@ -240,10 +241,13 @@ class TicketsCog(commands.Cog):
 
             # owner and watchers
             discord_ids = self.bot.extract_ids_from_ticket(ticket)
-
-            thread:discord.Thread = self.bot.find_ticket_thread(ticket.id)
+            thread = self.bot.find_ticket_thread(ticket.id)
+            if not thread:
+                await ctx.respond(f"ERROR: No thread for ticket ID: {ticket_id}, assign a fall-back") ## TODO
+                return
             msg = f"Ticket {ticket.id} is about will expire soon."
             await thread.send(self.bot.formatter.format_ticket_alert(ticket.id, discord_ids, msg))
+            await ctx.respond("Alert sent.")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") ## TODO format error message
 

@@ -377,7 +377,7 @@ class NetBot(commands.Bot):
     def find_ticket_thread(self, ticket_id:int) -> discord.Thread|None:
         """Search thru thread titles looking for a matching ticket ID"""
         # search thru all threads for:
-        title_prefix = "Thread #" + ticket_id
+        title_prefix = f"Thread #{ticket_id}"
         for guild in self.guilds:
             for thread in guild.threads:
                 if thread.name.startswith(title_prefix):
@@ -387,7 +387,8 @@ class NetBot(commands.Bot):
 
 
     def extract_ids_from_ticket(self, ticket: Ticket) -> list[str]:
-        """Extract the Discord IDs from users interested in a ticket, owner and collaborators"""
+        """Extract the Discord IDs from users interested in a ticket,
+           using owner and collaborators"""
          # owner and watchers
         interested: list[NamedId] = []
         if ticket.assigned_to is not None:
@@ -396,8 +397,11 @@ class NetBot(commands.Bot):
 
         discord_ids: list[str] = []
         for named in interested:
-            user = self.redmine.user_mgr.cache.get(named.id)
-            discord_ids.append(user.discord_id)
+            user = self.redmine.user_mgr.get(named.id)
+            if user:
+                discord_ids.append(user.discord_id)
+            else:
+                log.info(f"ERROR: user ID {named} not found")
 
         return []
 
@@ -420,7 +424,7 @@ def main():
 
 def setup_logging():
     """set up logging for netbot"""
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
                         format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
     logging.getLogger("discord.http").setLevel(logging.WARNING)
