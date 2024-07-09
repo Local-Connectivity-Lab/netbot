@@ -243,7 +243,7 @@ class NetBot(commands.Bot):
         # get the ticket id from the thread name
         ticket_id = self.parse_thread_title(thread.name)
 
-        ticket = self.redmine.get_ticket(ticket_id, include_journals=True)
+        ticket = self.redmine.get_ticket(ticket_id, include="journals")
         if ticket:
             completed = await self.synchronize_ticket(ticket, thread)
             # note: synchronize_ticket returns True only when successfully completing a sync
@@ -339,12 +339,14 @@ class NetBot(commands.Bot):
         ticket-597
         """
         # get list of tickets that will expire (based on rules in ticket_mgr)
-        for ticket in self.redmine.ticket_mgr.expiring_tickets():
+        expiring = self.redmine.ticket_mgr.expiring_tickets()
+        for ticket in expiring:
             await self.expiration_notification(ticket)
 
 
     def expire_expired_tickets(self):
-        for ticket in self.redmine.ticket_mgr.expired_tickets():
+        expired = self.redmine.ticket_mgr.expired_tickets()
+        for ticket in expired:
             # notification to discord, or just note provided by expire?
             # - for now, add note to ticket with expire info, and allow sync.
             self.redmine.ticket_mgr.expire(ticket)
@@ -353,7 +355,7 @@ class NetBot(commands.Bot):
     @commands.slash_command(name="notify", description="Force ticket notifications")
     async def force_notify(self, ctx: discord.ApplicationContext):
         log.debug(ctx)
-        await self.check_expired_tickets()
+        await self.notify_expiring_tickets()
 
 
     @tasks.loop(hours=24)
@@ -370,6 +372,38 @@ class NetBot(commands.Bot):
 
     def lookup_tracker(self, tracker:str) -> NamedId:
         return self.trackers.get(tracker, None)
+
+
+    def find_ticket_thread(self, ticket_id:int) -> discord.Thread|None:
+        """Search thru thread titles looking for a matching ticket ID"""
+        # search thru all threads for:
+        title_prefix = f"Thread #{ticket_id}"
+        for guild in self.guilds:
+            for thread in guild.threads:
+                if thread.name.startswith(title_prefix):
+                    return thread
+
+        return None # not found
+
+
+    def extract_ids_from_ticket(self, ticket: Ticket) -> list[str]:
+        """Extract the Discord IDs from users interested in a ticket,
+           using owner and collaborators"""
+         # owner and watchers
+        interested: list[NamedId] = []
+        if ticket.assigned_to is not None:
+            interested.append(ticket.assigned_to)
+        interested.extend(ticket.watchers)
+
+        discord_ids: list[str] = []
+        for named in interested:
+            user = self.redmine.user_mgr.get(named.id)
+            if user:
+                discord_ids.append(user.discord_id)
+            else:
+                log.info(f"ERROR: user ID {named} not found")
+
+        return []
 
 
 def main():
@@ -390,7 +424,7 @@ def main():
 
 def setup_logging():
     """set up logging for netbot"""
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
                         format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
     logging.getLogger("discord.http").setLevel(logging.WARNING)

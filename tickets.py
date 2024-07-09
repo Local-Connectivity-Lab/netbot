@@ -176,29 +176,20 @@ class TicketManager():
             log.debug(f"Unknown user: {user}")
             return None
 
-
-    def get(self, ticket_id:int, include_journals:bool = False, include_children:bool = False) -> Ticket|None:
+    def get(self, ticket_id:int, **params) -> Ticket|None:
         """get a ticket by ID"""
         if ticket_id is None or ticket_id == 0:
             #log.debug(f"Invalid ticket number: {ticket_id}")
             return None
 
-        query = f"/issues/{ticket_id}.json?"
+        query = f"/issues/{ticket_id}.json?{urllib.parse.urlencode(params)}"
+        log.debug(f"getting #{ticket_id} with {query}")
 
-        #params = {'var1': 'some data', 'var2': 1337}
-        params = {}
-
-        if include_journals:
-            params['include'] = "journals" # as per https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
-
-        if include_children:
-            params['include'] = "children"
-
-        response = self.session.get(query + urllib.parse.urlencode(params))
+        response = self.session.get(query)
         if response:
             return Ticket(**response['issue'])
         else:
-            log.debug(f"Unknown ticket number: {ticket_id}")
+            log.debug(f"Unknown ticket number: {ticket_id}, params:{params}")
             return None
 
 
@@ -408,7 +399,7 @@ class TicketManager():
 
     def get_notes_since(self, ticket_id:int, timestamp:dt.datetime=None) -> list[TicketNote]:
         # get the ticket, with journals
-        ticket = self.get(ticket_id, include_journals=True)
+        ticket = self.get(ticket_id, include="journals")
         log.debug(f"got ticket {ticket_id} with {len(ticket.journals)} notes")
         return ticket.get_notes(since=timestamp)
 
@@ -435,6 +426,20 @@ class TicketManager():
         self.update(ticket_id, fields, user_id)
 
 
+    def collaborate(self, ticket_id, user:User, user_id:str=None):
+        # assign watcher, see
+        # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Adding-a-watcher
+        fields = {
+            "user_id": user.id,
+        }
+
+        if user_id is None:
+            # use the user-id to self-assign
+            user_id = user.login
+
+        self.session.post(f"{ISSUE_RESOURCE}{ticket_id}/watchers.json" , json.dumps(fields))
+
+
     def progress_ticket(self, ticket_id, user_id=None):
         fields = {
             "assigned_to_id": "me",
@@ -453,7 +458,7 @@ class TicketManager():
 
     def unassign_ticket(self, ticket_id, user_id=None):
         fields = {
-            "assigned_to_id": INTAKE_TEAM_ID,
+            "assigned_to_id": "",
             "status_id": "1", # New, TODO lookup in status table
         }
         self.update(ticket_id, fields, user_id)

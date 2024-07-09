@@ -225,7 +225,7 @@ class SCNCog(commands.Cog):
 
     @scn.command(description="unblock specific a email address")
     async def unblock(self, ctx:discord.ApplicationContext, username:str):
-        log.debug(f"unblocking {username}")
+        log.debug(f"### unblocking {username}")
         user = self.redmine.user_mgr.find(username)
         if user:
             self.redmine.user_mgr.unblock(user)
@@ -234,7 +234,14 @@ class SCNCog(commands.Cog):
             log.debug("trying to unblock unknown user '{username}', ignoring")
             await ctx.respond(f"Unknown user: {username}")
 
-## FIXME move to DiscordFormatter
+
+    @scn.command(name="force-notify", description="Force ticket notifications")
+    async def force_notify(self, ctx: discord.ApplicationContext):
+        log.debug(ctx)
+        await self.bot.notify_expiring_tickets()
+
+
+    ## FIXME move to DiscordFormatter
 
     async def print_team(self, ctx, team):
         msg = f"> **{team.name}**\n"

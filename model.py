@@ -105,7 +105,7 @@ class NamedId():
 
     def __str__(self) -> str:
         if self.name:
-            return self.name
+            return self.name + ":" + str(self.id)
         else:
             return str(self.id)
 
@@ -253,6 +253,7 @@ class Ticket():
     custom_fields: list[CustomField]|None = None
     journals: list[TicketNote]|None = None
     children: list |None = None
+    watchers: list[NamedId]|None = None
 
 
     def __post_init__(self):
@@ -280,6 +281,9 @@ class Ticket():
             self.journals = [TicketNote(**note) for note in self.journals]
         if self.category and isinstance(self.category, dict):
             self.category = NamedId(**self.category)
+
+        if self.watchers:
+            self.watchers = [NamedId(**named) for named in self.watchers]
 
 
     def __eq__(self, other):

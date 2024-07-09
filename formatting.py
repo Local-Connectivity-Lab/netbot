@@ -160,19 +160,24 @@ class DiscordFormatter():
         return details
 
 
-    def format_expiration_notification(self, ticket:Ticket):
+    def format_expiration_notification(self, ticket:Ticket, discord_ids: list[str]):
         # format an alert.
         # https://discord.com/developers/docs/interactions/message-components#action-rows
         # action row with what options?
         # :warning:
         # ⚠️
         # [icon] **Alert** [Ticket x](link) will expire in x hours, as xyz.
-        return f"ALERT: Expiring ticket: {ticket}" #FIXME
-        # return self.format_alert(message)
+        ids_str = ["@" + id for id in discord_ids]
+        return f"ALERT: Expiring ticket: {self.format_link(ticket)} {' '.join(ids_str)}"
+
+
+    def format_ticket_alert(self, ticket: Ticket, discord_ids: list[str], msg: str):
+        ids_str = ["@" + id for id in discord_ids]
+        return f"ALERT #{self.format_link(ticket)} {' '.join(ids_str)}: {msg}"
 
 
 def main():
-    ticket_manager = TicketManager(RedmineSession.fromenvfile())
+    ticket_manager = TicketManager(RedmineSession.fromenvfile(), "1")
 
     # construct the formatter
     formatter = DiscordFormatter(ticket_manager.session.url)

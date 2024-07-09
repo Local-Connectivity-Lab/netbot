@@ -65,7 +65,7 @@ class TestNetbot(test_utils.BotTestCase):
         self.assertIn(body, thread.send.call_args.args[0])
 
         # get notes from redmine, assert tags in most recent
-        check_ticket = self.redmine.get_ticket(ticket.id, include_journals=True) # get the notes
+        check_ticket = self.redmine.get_ticket(ticket.id, include="journals") # get the notes
         self.assertIsNotNone(check_ticket)
         #log.info(f"### ticket: {ticket}")
         #self.assertIn(body, ticket.journals[-1].notes) NOT until thread history is working

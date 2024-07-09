@@ -12,6 +12,7 @@ from discord.ext import commands
 
 from model import Message, Ticket
 from redmine import Client
+from netbot import NetBot
 
 
 log = logging.getLogger(__name__)
@@ -24,8 +25,8 @@ def setup(bot):
 
 class TicketsCog(commands.Cog):
     """encapsulate Discord ticket functions"""
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, bot:NetBot):
+        self.bot:NetBot = bot
         self.redmine: Client = bot.redmine
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
@@ -88,6 +89,24 @@ class TicketsCog(commands.Cog):
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
             await self.bot.formatter.print_ticket(ticket, ctx)
+        else:
+            await ctx.respond(f"Ticket {ticket_id} not found.") # print error
+
+
+
+    @ticket.command(description="Collaborate on a ticket")
+    @option("ticket_id", description="ticket ID")
+    async def collaborate(self, ctx: discord.ApplicationContext, ticket_id:int):
+        """Add yourself as a collaborator on a ticket"""
+        # lookup the user
+        user = self.redmine.user_mgr.find(ctx.user.name)
+        if not user:
+            await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add [redmine-user]` to create the mapping.")
+            return
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            self.redmine.ticket_mgr.collaborate(ticket_id, user)
+            await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 
@@ -174,7 +193,6 @@ class TicketsCog(commands.Cog):
 
     @ticket.command(name="new", description="Create a new ticket")
     @option("title", description="Title of the new SCN ticket")
-    @option("add_thread", description="Create a Discord thread for the new ticket", default=False)
     async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str):
         user = self.redmine.user_mgr.find(ctx.user.name)
         if not user:
@@ -206,6 +224,32 @@ class TicketsCog(commands.Cog):
             #await self.bot.formatter.print_ticket(ticket, ctx)
         else:
             await ctx.respond(f"Error creating ticket with title={title}")
+
+
+    @ticket.command(name="alert", description="Alert collaborators on a ticket")
+    @option("ticket_id", description="ID of ticket to alert")
+    async def alert_ticket(self, ctx: discord.ApplicationContext, ticket_id:int=None):
+        if not ticket_id:
+            # check thread for ticket id
+            ticket_id = self.bot.parse_thread_title(ctx.channel.name)
+
+        ticket = self.redmine.get_ticket(ticket_id, include="watchers") # inclde the option watchers/collaborators field
+        if ticket:
+            # * notify owner and collaborators of *notable* (not all) status changes of a ticket
+            # * user @reference for notify
+            # * notification placed in ticket-thread
+
+            # owner and watchers
+            discord_ids = self.bot.extract_ids_from_ticket(ticket)
+            thread = self.bot.find_ticket_thread(ticket.id)
+            if not thread:
+                await ctx.respond(f"ERROR: No thread for ticket ID: {ticket_id}, assign a fall-back") ## TODO
+                return
+            msg = f"Ticket {ticket.id} is about will expire soon."
+            await thread.send(self.bot.formatter.format_ticket_alert(ticket.id, discord_ids, msg))
+            await ctx.respond("Alert sent.")
+        else:
+            await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") ## TODO format error message
 
 
     @ticket.command(description="Thread a Redmine ticket in Discord")

@@ -67,6 +67,8 @@ class Client():
 
 
     def create_ticket(self, user:User, message:Message) -> Ticket:
+        # NOTE to self re "projects": TicketManager.create supports a project ID
+        # Need to find a way to pass it in.
         ticket = self.ticket_mgr.create(user, message)
         # check user status, reject the ticket if blocked
         if self.user_mgr.is_blocked(user):
@@ -93,8 +95,8 @@ class Client():
     def get_tickets_by(self, user) -> list[Ticket]:
         return self.ticket_mgr.get_tickets_by(user)
 
-    def get_ticket(self, ticket_id:int, include_journals:bool = False) -> Ticket:
-        return self.ticket_mgr.get(ticket_id, include_journals)
+    def get_ticket(self, ticket_id:int, **params) -> Ticket:
+        return self.ticket_mgr.get(ticket_id, **params)
 
     #GET /issues.xml?issue_id=1,2
     def get_tickets(self, ticket_ids) -> list[Ticket]:
