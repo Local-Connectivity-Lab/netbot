@@ -99,6 +99,11 @@ class TestSCNCog(test_utils.BotTestCase):
         await self.cog.teams(ctx, test_team_name)
         self.assertNotIn(self.user.name, str(ctx.respond.call_args))
 
+        # ticket-1036: confirm teams "blocked", "users" and "test-team" is not included
+        ctx = self.build_context()
+        await self.cog.teams(ctx)
+        for ignored_team in ["blocked", "users"]:
+            self.assertNotIn(ignored_team, str(ctx.respond.call_args))
 
     async def test_thread_sync(self):
         ticket = self.create_test_ticket()
