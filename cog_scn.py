@@ -254,7 +254,11 @@ class SCNCog(commands.Cog):
         await ctx.channel.send(msg)
 
 
-    def format_team(self, team):
+    def format_team(self, team) -> str:
         # single line format: teamname: member1, member2
-        if team:
+        skip_teams = ["blocked", "users"]
+
+        if team and team.name not in skip_teams:
             return f"**{team.name}**: {', '.join([user.name for user in team.users])}\n"
+        else:
+            return ""
