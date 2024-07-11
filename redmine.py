@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 import synctime
 from session import RedmineSession
-from model import Message, Ticket, User, Team
+from model import Message, Ticket, User, Team, NamedId
 from users import UserManager
 from tickets import TicketManager, SCN_PROJECT_ID
 
@@ -37,6 +37,7 @@ class Client():
     """redmine client"""
     def __init__(self, session:RedmineSession, user_mgr:UserManager, ticket_mgr:TicketManager):
         self.url = session.url
+        self.session = session
         self.user_mgr = user_mgr
         self.ticket_mgr = ticket_mgr
 
@@ -75,6 +76,21 @@ class Client():
             log.debug(f"Rejecting ticket #{ticket.id} based on blocked user {user.login}")
             ticket = self.ticket_mgr.reject_ticket(ticket.id)
         return ticket
+
+
+    def get_priorities(self) -> list[NamedId]:
+        """get all active priorities"""
+        resp = self.session.get("/enumerations/issue_priorities.json?sort")
+        # TODO reverse the list!
+        priorities = resp['issue_priorities'] # get specific dictionary in response
+        return priorities
+        #return [NamedId(priority['id'], priority['name']) for priority in priorities]
+
+
+    def get_trackers(self) -> list[NamedId]:
+        """get all trackers"""
+        resp = self.session.get("/trackers.json")
+        return resp['trackers'] # get specific dictionary in response
 
 
     def update_ticket(self, ticket_id:int, fields:dict, user_login:str|None=None):

@@ -56,6 +56,99 @@ class NewUserModal(discord.ui.Modal):
             await interaction.response.send_message(embeds=[embed])
 
 
+class PrioritySelect(discord.ui.Select):
+    def __init__(self, bot_: discord.Bot):
+        # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
+        # Alternatively you can use Interaction.client, so you don't need to pass the bot instance.
+        self.bot = bot_
+
+        # Get the possible priorities
+        options = []
+        for priority in self.bot.redmine.get_priorities():
+            options.append(discord.SelectOption(label=priority['name'], default=priority['is_default']))
+
+        # The placeholder is what will be shown when no option is selected.
+        # The min and max values indicate we can only pick one of the three options.
+        # The options parameter, contents shown above, define the dropdown options.
+        super().__init__(
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        # Use the interaction object to send a response message containing
+        # the user's favourite colour or choice. The self object refers to the
+        # Select object, and the values attribute gets a list of the user's
+        # selected options. We only want the first one.
+        log.info(f"{interaction.user} {interaction.data}")
+        await interaction.response.send_message(
+            f"PrioritySelect.callback() - selected priority {self.values[0]}"
+        )
+
+class TrackerSelect(discord.ui.Select):
+    def __init__(self, bot_: discord.Bot):
+        # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
+        # Alternatively you can use Interaction.client, so you don't need to pass the bot instance.
+        self.bot = bot_
+
+        # Get the possible trackers
+        options = []
+        for tracker in self.bot.redmine.get_trackers():
+            options.append(discord.SelectOption(label=tracker['name']))
+
+        # The placeholder is what will be shown when no option is selected.
+        # The min and max values indicate we can only pick one of the three options.
+        # The options parameter, contents shown above, define the dropdown options.
+        super().__init__(
+            placeholder="Select tracker...",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        # Use the interaction object to send a response message containing
+        # the user's favourite colour or choice. The self object refers to the
+        # Select object, and the values attribute gets a list of the user's
+        # selected options. We only want the first one.
+        log.info(f"{interaction.user} {interaction.data}")
+        await interaction.response.send_message(
+            f"TrackerSelect.callback() - selected tracker {self.values[0]}"
+        )
+
+class IntakeView(discord.ui.View):
+    # to build, need:
+    # - list of trackers
+    # - list or priorities
+    # - ticket subject
+    # - from email
+    # build intake view
+    # 1. Assign: (popup with potential assignments)
+    # 2. Priority: (popup with priorities)
+    # 3. (Reject) Subject
+    # 4. (Block) email-addr
+    def __init__(self, bot_: discord.Bot) -> None:
+        self.bot = bot_
+        super().__init__()
+
+        # Adds the dropdown to our View object
+        self.add_item(PrioritySelect(self.bot))
+        #self.add_item(discord.ui.InputText(label="Subject", row=1))
+        self.add_item(TrackerSelect(self.bot))
+
+
+        self.add_item(discord.ui.Button(label="Assign", row=4))
+        self.add_item(discord.ui.Button(label="Reject ticket subject", row=4))
+        self.add_item(discord.ui.Button(label="Block email@address.com", row=4))
+
+    async def select_callback(self, select, interaction): # the function called when the user is done selecting options
+        await interaction.response.send_message(f"IntakeView.select_callback() selected: {select.values[0]}")
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"IntakeView.allback() {interaction.data}")
+
+
 class SCNCog(commands.Cog):
     """Cog to mange SCN-related functions"""
     def __init__(self, bot):
@@ -193,6 +286,15 @@ class SCNCog(commands.Cog):
             for team in teams:
                 buff += self.format_team(team)
             await ctx.respond(buff[:2000]) # truncate!
+
+    @scn.command()
+    async def intake(self, ctx:discord.ApplicationContext):
+        """perform intake"""
+        # check team? admin?, provide reasonable error msg.
+
+
+
+        await ctx.respond("INTAKE #{ticket.id}", view=IntakeView(self.bot))
 
 
     @scn.command(description="list blocked email")
