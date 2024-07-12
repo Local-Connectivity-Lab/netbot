@@ -182,7 +182,6 @@ class SCNCog(commands.Cog):
         if teamname:
             team = self.redmine.get_team(teamname)
             if team:
-                #await self.print_team(ctx, team)
                 await ctx.respond(self.format_team(team))
             else:
                 await ctx.respond(f"Unknown team name: {teamname}") # error
@@ -194,6 +193,15 @@ class SCNCog(commands.Cog):
                 buff += self.format_team(team)
             await ctx.respond(buff[:2000]) # truncate!
 
+
+    @scn.command(description="list all open epics")
+    async def epics(self, ctx:discord.ApplicationContext):
+        """List all the epics, grouped by tracker"""
+        # get the epics.
+        epics = self.redmine.ticket_mgr.get_epics()
+        # format the epics and respond
+        msg = self.bot.formatter.format_epics(epics)
+        await ctx.respond(msg)
 
     @scn.command(description="list blocked email")
     async def blocked(self, ctx:discord.ApplicationContext):
