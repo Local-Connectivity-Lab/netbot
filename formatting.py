@@ -28,6 +28,7 @@ EMOJI = {
     'High': '🔼',
     'Urgent': '⚠️',
     'Immediate': '❗',
+    'EPIC': '🎇',
 }
 
 class DiscordFormatter():
@@ -174,6 +175,20 @@ class DiscordFormatter():
     def format_ticket_alert(self, ticket: Ticket, discord_ids: list[str], msg: str):
         ids_str = ["@" + id for id in discord_ids]
         return f"ALERT #{self.format_link(ticket)} {' '.join(ids_str)}: {msg}"
+
+
+    def format_epic(self, name: str, epic: list[Ticket]) -> str:
+        buff = f"**{name}**\n"
+        for ticket in epic:
+            buff += self.format_ticket_row(ticket)
+        return buff
+
+
+    def format_epics(self, epics: dict[str,list[Ticket]]) -> str:
+        buff = ""
+        for name, epic in epics.items():
+            buff += self.format_epic(name, epic) + '\n'
+        return buff[:MAX_MESSAGE_LEN] # truncate!
 
 
 def main():
