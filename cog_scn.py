@@ -75,7 +75,6 @@ class SCNCog(commands.Cog):
             discord_name = member.name
 
         user = self.redmine.user_mgr.find(discord_name)
-
         if user:
             await ctx.respond(f"Discord user: {discord_name} is already configured as redmine user: {user.login}")
         else:
@@ -85,7 +84,7 @@ class SCNCog(commands.Cog):
                 await ctx.respond(f"Discord user: {discord_name} has been paired with redmine user: {redmine_login}")
             else:
                 # no user exists for that login
-                modal = NewUserModal(self.redmine, title="Create new user in Redmine")
+                modal = NewUserModal(self.redmine, title="Create new user")
                 await ctx.send_modal(modal)
             # reindex users after changes
             self.redmine.user_mgr.reindex_users()

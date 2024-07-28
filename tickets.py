@@ -363,7 +363,7 @@ class TicketManager():
         jresp = self.session.get(f"/issues.json?assigned_to_id=me&status_id=open&sort={DEFAULT_SORT}&limit=100", user)
 
         if not jresp:
-            return None
+            return []
 
         #log.debug(f"### json: {jresp}")
         response = TicketsResult(**jresp)
@@ -371,21 +371,21 @@ class TicketManager():
             return response.issues
         else:
             log.info("No open ticket for me.")
-            return None
+            return []
 
 
-    def tickets_for_team(self, team:Team) -> list[Ticket]:
+    def tickets_for_team(self, team:Team|User) -> list[Ticket]:
         response = self.session.get(f"/issues.json?assigned_to_id={team.id}&status_id=open&sort={DEFAULT_SORT}&limit=100")
 
         if not response:
-            return None
+            return []
 
         result = TicketsResult(**response)
         if result.total_count > 0:
             return result.issues
         else:
             log.info(f"No open ticket for {team}: {result}")
-            return None
+            return []
 
 
     def search(self, term) -> list[Ticket]:

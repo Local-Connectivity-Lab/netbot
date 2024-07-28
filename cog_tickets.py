@@ -233,7 +233,7 @@ class TicketsCog(commands.Cog):
 
     @ticket.command(name="alert", description="Alert collaborators on a ticket")
     @option("ticket_id", description="ID of ticket to alert")
-    async def alert_ticket(self, ctx: discord.ApplicationContext, ticket_id:int=None):
+    async def alert_ticket(self, ctx: discord.ApplicationContext, ticket_id:int=0):
         if not ticket_id:
             # check thread for ticket id
             ticket_id = self.bot.parse_thread_title(ctx.channel.name)

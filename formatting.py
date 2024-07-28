@@ -172,7 +172,7 @@ class DiscordFormatter():
         return f"ALERT: Expiring ticket: {self.format_link(ticket)} {' '.join(ids_str)}"
 
 
-    def format_ticket_alert(self, ticket: Ticket, discord_ids: list[str], msg: str):
+    def format_ticket_alert(self, ticket: Ticket, discord_ids: list[str], msg: str) -> str:
         ids_str = ["@" + id for id in discord_ids]
         return f"ALERT #{self.format_link(ticket)} {' '.join(ids_str)}: {msg}"
 
