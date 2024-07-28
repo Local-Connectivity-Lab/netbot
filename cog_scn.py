@@ -47,7 +47,7 @@ class NewUserModal(discord.ui.Modal):
         embed.add_field(name="Last", value=last)
         embed.add_field(name="Email", value=email)
 
-        user = self.redmine.create_user(email, first, last)
+        user = self.redmine.user_mgr.create(email, first, last)
 
         if user is None:
             log.error(f"Unable to create user from {first}, {last}, {email}, {interaction.user.name}")
@@ -68,7 +68,7 @@ class SCNCog(commands.Cog):
 
     @scn.command()
     async def add(self, ctx:discord.ApplicationContext, redmine_login:str, member:discord.Member=None):
-        """add Discord user information to redmine"""
+        """add a Discord user to the Redmine ticketing integration"""
         discord_name = ctx.user.name # by default, assume current user
         if member:
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")

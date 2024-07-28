@@ -191,7 +191,7 @@ class UserManager():
                 return None
 
 
-    def create(self, email:str, first:str, last:str):
+    def create(self, email:str, first:str, last:str) -> User:
         """create a new redmine user"""
         # TODO: Generate JSON from User object
         data = {

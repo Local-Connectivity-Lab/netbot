@@ -69,10 +69,15 @@ class TicketsCog(commands.Cog):
 
         # lookup the user
         user = self.redmine.user_mgr.find(ctx.user.name)
+        if not user:
+            log.info(f"Unknown user name: {ctx.user.name}")
+            # TODO make this a standard error.
+            await ctx.respond(f"Discord member **{ctx.user.name}** is not provisioned in redmine. Use `/scn add [redmine-user]` to provision.")
+            return
+
         log.debug(f"found user mapping for {ctx.user.name}: {user}")
 
         args = term.split()
-
         if args[0] == "me":
             await self.bot.formatter.print_tickets("My Tickets", self.redmine.my_tickets(user.login), ctx)
         elif len(args) == 1:
