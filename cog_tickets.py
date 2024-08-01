@@ -9,6 +9,8 @@ import discord
 from discord.commands import option, SlashCommandGroup
 
 from discord.ext import commands
+from discord.enums import InputTextStyle
+from discord.ui.item import Item, V
 
 from model import Message, Ticket
 from redmine import Client
@@ -21,6 +23,13 @@ log = logging.getLogger(__name__)
 def setup(bot):
     bot.add_cog(TicketsCog(bot))
     log.info("initialized tickets cog")
+
+
+async def get_trackers(ctx: discord.AutocompleteContext):
+    """Returns a list of trackers that begin with the characters entered so far."""
+    trackers = ctx.bot.redmine.get_trackers() # this is expected to be cached
+    # .lower() is used to make the autocomplete match case-insensitive
+    return [tracker['name'] for tracker in trackers if tracker['name'].lower().startswith(ctx.value.lower())]
 
 
 class PrioritySelect(discord.ui.Select):
@@ -87,7 +96,8 @@ class TrackerSelect(discord.ui.Select):
             f"TrackerSelect.callback() - selected tracker {self.values[0]}"
         )
 
-class SubjectEdit(discord.ui.InputText):
+
+class SubjectEdit(discord.ui.InputText, Item[V]):
     """Popup menu to select ticket tracker"""
     def __init__(self, bot_: discord.Bot, ticket: Ticket):
         # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
@@ -104,7 +114,7 @@ class SubjectEdit(discord.ui.InputText):
         # The min and max values indicate we can only pick one of the three options.
         # The options parameter, contents shown above, define the dropdown options.
         super().__init__(
-            placeholder=ticket.subject,
+            placeholder=self.ticket.subject,
             label="Subject"
         )
 
@@ -117,6 +127,36 @@ class SubjectEdit(discord.ui.InputText):
         await interaction.response.send_message(
             f"SubjectEdit.callback() - selected tracker {self.value}"
         )
+
+
+class EditSubjectAndDescModal(discord.ui.Modal):
+    """modal dialog to edit the ticket subject and description"""
+    def __init__(self, redmine: Client, ticket: Ticket, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.redmine = redmine
+        self.ticket = ticket
+        self.add_item(discord.ui.InputText(label="Subject"))
+        self.add_item(discord.ui.InputText(label="Description", style=InputTextStyle.paragraph))
+
+
+    async def callback(self, interaction: discord.Interaction):
+        subject = self.children[0].value
+        description = self.children[1].value
+
+        log.debug(f"callback: {subject}, {description}")
+
+        embed = discord.Embed(title="Updated ticket")
+        embed.add_field(name="Subject", value=subject)
+        embed.add_field(name="Description", value=description)
+
+        #user = self.redmine.user_mgr.create(email, first, last)
+        # TODO Update subject and description in redmine
+
+        #if user is None:
+        #    log.error(f"Unable to create user from {first}, {last}, {email}, {interaction.user.name}")
+        #else:
+        #    self.redmine.user_mgr.create_discord_mapping(user, interaction.user.name)
+        await interaction.response.send_message(embeds=[embed])
 
 
 class EditView(discord.ui.View):
@@ -137,12 +177,12 @@ class EditView(discord.ui.View):
 
         # Adds the dropdown to our View object
         self.add_item(PrioritySelect(self.bot))
-        self.add_item(SubjectEdit(self.bot, ticket))
+        #self.add_item(SubjectEdit(self.bot, ticket))
         self.add_item(TrackerSelect(self.bot))
 
-        self.add_item(discord.ui.Button(label="Assign", row=4))
-        self.add_item(discord.ui.Button(label="Reject ticket subject", row=4))
-        self.add_item(discord.ui.Button(label="Block email@address.com", row=4))
+        self.add_item(discord.ui.Button(label="Done", row=4))
+        self.add_item(discord.ui.Button(label="Edit Subject & Description", row=4))
+        #self.add_item(discord.ui.Button(label="Block email@address.com", row=4))
 
     async def select_callback(self, select, interaction): # the function called when the user is done selecting options
         await interaction.response.send_message(f"EditView.select_callback() selected: {select.values[0]}")
@@ -423,5 +463,29 @@ class TicketsCog(commands.Cog):
 
             # ticket-614: add ticket link to thread response
             await ctx.respond(f"Created new thread {thread.jump_url} for ticket {ticket_link}")
+        else:
+            await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
+
+
+    @ticket.command(name="track", description="Update the tracker of a ticket")
+    @option("ticket_id", description="ID of ticket to update")
+    @option("tracker", description="Track to assign to ticket", autocomplete=get_trackers)
+    async def tracker(self, ctx: discord.ApplicationContext, ticket_id:int, tracker:str):
+        user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            ticket_link = self.bot.formatter.format_link(ticket)
+
+            # look up the tracker string
+            tracker_rec = self.bot.lookup_tracker(tracker)
+
+            log.info(f"### tracker: {tracker_rec}")
+
+            fields = {
+                "tracker_id": tracker_rec.id,
+            }
+            updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
+
+            await ctx.respond(f"Updated {ticket_link} to tracker => {updated.tracker.name}")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
