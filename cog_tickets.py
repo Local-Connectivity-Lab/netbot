@@ -25,11 +25,18 @@ def setup(bot):
     log.info("initialized tickets cog")
 
 
-async def get_trackers(ctx: discord.AutocompleteContext):
+def get_trackers(ctx: discord.AutocompleteContext):
     """Returns a list of trackers that begin with the characters entered so far."""
     trackers = ctx.bot.redmine.get_trackers() # this is expected to be cached
     # .lower() is used to make the autocomplete match case-insensitive
     return [tracker['name'] for tracker in trackers if tracker['name'].lower().startswith(ctx.value.lower())]
+
+
+def get_priorities(ctx: discord.AutocompleteContext):
+    """Returns a list of trackers that begin with the characters entered so far."""
+    priorities = ctx.bot.redmine.get_priorities() # this is expected to be cached
+    # .lower() is used to make the autocomplete match case-insensitive
+    return [priority['name'] for priority in priorities if priority['name'].lower().startswith(ctx.value.lower())]
 
 
 class PrioritySelect(discord.ui.Select):
@@ -467,7 +474,7 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
 
 
-    @ticket.command(name="track", description="Update the tracker of a ticket")
+    @ticket.command(name="tracker", description="Update the tracker of a ticket")
     @option("ticket_id", description="ID of ticket to update")
     @option("tracker", description="Track to assign to ticket", autocomplete=get_trackers)
     async def tracker(self, ctx: discord.ApplicationContext, ticket_id:int, tracker:str):
@@ -487,5 +494,28 @@ class TicketsCog(commands.Cog):
             updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
 
             await ctx.respond(f"Updated {ticket_link} to tracker => {updated.tracker.name}")
+        else:
+            await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
+
+    @ticket.command(name="priority", description="Update the tracker of a ticket")
+    @option("ticket_id", description="ID of ticket to update")
+    @option("priority", description="Priority to assign to ticket", autocomplete=get_priorities)
+    async def priority(self, ctx: discord.ApplicationContext, ticket_id:int, priority:str):
+        user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            ticket_link = self.bot.formatter.format_link(ticket)
+
+            # look up the tracker string
+            priority = self.bot.lookup_priority(priority)
+
+            log.info(f"### priority: {priority}")
+
+            fields = {
+                "priority_id": priority.id,
+            }
+            updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
+
+            await ctx.respond(f"Updated {ticket_link} to priority => {updated.priority.name}")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")

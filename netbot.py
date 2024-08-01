@@ -45,6 +45,7 @@ class NetBot(commands.Bot):
 
         self.formatter = DiscordFormatter(client.url)
         self.trackers: dict[str,NamedId] = {}
+        self.priorities: dict[str,NamedId] = {}
 
         self.redmine = client
         #guilds = os.getenv('DISCORD_GUILDS').split(', ')
@@ -62,8 +63,12 @@ class NetBot(commands.Bot):
 
 
     def initialize_tracker_mapping(self):
+        # load the priorities, indexed by name
+        self.priorities = self.redmine.ticket_mgr.load_priorities()
+
         # load the trackers, indexed by tracker name
         self.trackers = self.redmine.ticket_mgr.load_trackers()
+
         # update to include each mapping in
         for tracker_name, channel_name in _TRACKER_MAPPING.items():
             if tracker_name in self.trackers:
@@ -322,7 +327,7 @@ class NetBot(commands.Bot):
             channel_name = _TRACKER_MAPPING[str(ticket.tracker)]
             channel = self.get_channel_by_name(channel_name)
             if channel:
-                channel.send(self.formatter.format_expiration_notification(ticket))
+                channel.send(self.formatter.format_expiration_notification(ticket, []))
                 return
             else:
                 log.warning(f"Expiring ticket #{ticket.id} on unknown channel: {channel_name}")
@@ -331,7 +336,7 @@ class NetBot(commands.Bot):
         log.warning(f"Unable to find channel for ticket {ticket}, tracker={ticket.tracker}, defaulting to admin")
         channel = self.get_channel_by_name("admin-team")
         if channel:
-            await channel.send(self.formatter.format_expiration_notification(ticket))
+            await channel.send(self.formatter.format_expiration_notification(ticket, []))
 
 
     async def notify_expiring_tickets(self):
@@ -372,6 +377,10 @@ class NetBot(commands.Bot):
 
     def lookup_tracker(self, tracker:str) -> NamedId:
         return self.trackers.get(tracker, None)
+
+
+    def lookup_priority(self, priority:str) -> NamedId:
+        return self.priorities.get(priority, None)
 
 
     def find_ticket_thread(self, ticket_id:int) -> discord.Thread|None:
