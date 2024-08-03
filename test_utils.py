@@ -60,7 +60,7 @@ def create_test_user(user_mgr:UserManager, tag:str):
     email = first + "@example.com"
 
     # create new redmine user, using redmine api
-    user = user_mgr.create(email, first, last)
+    user = user_mgr.create(email, first, last, None)
 
     # create temp discord mapping with redmine api, assert
     # create_discord_mapping will cache the new user

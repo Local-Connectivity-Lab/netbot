@@ -191,7 +191,7 @@ class UserManager():
                 return None
 
 
-    def create(self, email:str, first:str, last:str) -> User:
+    def create(self, email:str, first:str, last:str, user_login:str|None) -> User:
         """create a new redmine user"""
         # TODO: Generate JSON from User object
         data = {
@@ -204,7 +204,7 @@ class UserManager():
         }
         # on create, assign watcher: sender?
 
-        r = self.session.post(USER_RESOURCE, json.dumps(data))
+        r = self.session.post(USER_RESOURCE, json.dumps(data), user_login)
 
         # check status
         if r:

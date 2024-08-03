@@ -42,18 +42,26 @@ class NewUserModal(discord.ui.Modal):
 
         log.debug(f"new user callback: email={email}, first={first}, last={last}")
 
+        admin_user = self.redmine.user_mgr.find(interaction.user.name)
+        if not admin_user:
+            log.error(f"Unknown Discord user **{interaction.user.name}**")
+            await interaction.response.send_message(f"Unknown Discord user **{interaction.user.name}**")
+            return
+
+        # create the new user with the ID of the redmine user to assure they have access.
+        user = self.redmine.user_mgr.create(email, first, last, user_login=admin_user.login)
+        if user is None:
+            log.error(f"Unable to create user from {first}, {last}, {email}, {interaction.user.name}")
+            await interaction.response.send_message(f"Unable to create user for {email}")
+            return
+
+        self.redmine.user_mgr.create_discord_mapping(user, interaction.user.name)
         embed = discord.Embed(title="Created User")
         embed.add_field(name="First", value=first)
         embed.add_field(name="Last", value=last)
         embed.add_field(name="Email", value=email)
+        await interaction.response.send_message(embeds=[embed])
 
-        user = self.redmine.user_mgr.create(email, first, last)
-
-        if user is None:
-            log.error(f"Unable to create user from {first}, {last}, {email}, {interaction.user.name}")
-        else:
-            self.redmine.user_mgr.create_discord_mapping(user, interaction.user.name)
-            await interaction.response.send_message(embeds=[embed])
 
 # FIXME Not yet implemented
 class IntakeView(discord.ui.View):
@@ -98,6 +106,19 @@ class SCNCog(commands.Cog):
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
 
     scn = SlashCommandGroup("scn",  "SCN admin commands")
+
+
+    def is_admin(self, user: discord.Member) -> bool:
+        """Check if the given Discord memeber is in a authorized role"""
+        # search user for "auth" role
+        for role in user.roles:
+            log.debug(f"### ROLE {role}")
+            if "auth" == role.name: ## FIXME
+                return True
+
+        # auth role not found
+        return False
+
 
     @scn.command()
     async def add(self, ctx:discord.ApplicationContext, redmine_login:str, member:discord.Member=None):
