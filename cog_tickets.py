@@ -497,6 +497,7 @@ class TicketsCog(commands.Cog):
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
 
+
     @ticket.command(name="priority", description="Update the tracker of a ticket")
     @option("ticket_id", description="ID of ticket to update")
     @option("priority", description="Priority to assign to ticket", autocomplete=get_priorities)
@@ -509,8 +510,6 @@ class TicketsCog(commands.Cog):
             # look up the tracker string
             priority = self.bot.lookup_priority(priority)
 
-            log.info(f"### priority: {priority}")
-
             fields = {
                 "priority_id": priority.id,
             }
@@ -519,3 +518,27 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Updated {ticket_link} to priority => {updated.priority.name}")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
+
+
+    @ticket.command(name="subject", description="Update the subject of a ticket")
+    @option("ticket_id", description="ID of ticket to update")
+    @option("subject", description="Updated subject")
+    async def subject(self, ctx: discord.ApplicationContext, ticket_id:int, subject:str):
+        user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
+        if not user:
+            await ctx.respond(f"ERROR: Discord user without redmine config: {ctx.user.name}. Create with `/scn add`")
+            return
+
+        ticket = self.redmine.get_ticket(ticket_id)
+        if not ticket:
+            await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
+            return
+
+        ticket_link = self.bot.formatter.format_link(ticket)
+
+        fields = {
+            "subject": subject,
+        }
+        updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
+
+        await ctx.respond(f"Updated {ticket_link} with new subject => {updated.subject}") #TODO return ticket summary.
