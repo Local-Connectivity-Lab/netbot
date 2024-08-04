@@ -42,14 +42,14 @@ class NewUserModal(discord.ui.Modal):
 
         log.debug(f"new user callback: email={email}, first={first}, last={last}")
 
-        admin_user = self.redmine.user_mgr.find(interaction.user.name)
-        if not admin_user:
-            log.error(f"Unknown Discord user **{interaction.user.name}**")
-            await interaction.response.send_message(f"Unknown Discord user **{interaction.user.name}**")
+        # create the new user with the ID of the redmine user to assure they have access.
+        admin = self.redmine.user_mgr.find_discord_user(interaction.user.name)
+        if admin is None:
+            log.error(f"Unknown user: {interaction.user.name}, no redminw mapping")
+            await interaction.response.send_message(f"Unknown user: {interaction.user.name}, does not have permissions to create users.")
             return
 
-        # create the new user with the ID of the redmine user to assure they have access.
-        user = self.redmine.user_mgr.create(email, first, last, user_login=admin_user.login)
+        user = self.redmine.user_mgr.create(email, first, last, user_login=admin.login)
         if user is None:
             log.error(f"Unable to create user from {first}, {last}, {email}, {interaction.user.name}")
             await interaction.response.send_message(f"Unable to create user for {email}")
@@ -133,10 +133,16 @@ class SCNCog(commands.Cog):
             await ctx.respond(f"Discord user: {discord_name} is already configured as redmine user: {user.login}")
         else:
             user = self.redmine.user_mgr.find(redmine_login)
-            if user:
+            if user and self.is_admin(ctx.user):
                 self.redmine.user_mgr.create_discord_mapping(user, discord_name)
                 await ctx.respond(f"Discord user: {discord_name} has been paired with redmine user: {redmine_login}")
             else:
+                admin = self.redmine.user_mgr.find(ctx.user.name)
+                # TODO: This is only checking exists. Add "admin" check: redmine.user_mgr.is_admin(user.login)
+                if not admin:
+                    log.error(f"Unknown Discord user {ctx.user.name}")
+                    await ctx.response.send_message(f"Unknown Discord user {ctx.user.name}. You must be an admin to add new users to Redmine.")
+                    return
                 # no user exists for that login
                 modal = NewUserModal(self.redmine, title="Create new user")
                 await ctx.send_modal(modal)
