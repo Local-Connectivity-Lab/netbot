@@ -137,8 +137,8 @@ class UserManager():
             user_result = UserResult(**jresp)
             user_buffer = user_result.users
 
-            for user in user_buffer:
-                log.info(f">>> {user.status}, {user.login}, {user.discord_id}")
+            #for user in user_buffer:
+            #    log.info(f"{user.status}, {user.login}, {user.discord_id}")
 
             if user_result.total_count > user_result.limit:
                 offset = user_result.limit

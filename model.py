@@ -420,7 +420,6 @@ class Ticket():
 
     def get_field(self, fieldname:str):
         val = getattr(self, fieldname)
-        #log.debug(f">>> {fieldname} = {val}, type={type(val)}")
         return val
 
 

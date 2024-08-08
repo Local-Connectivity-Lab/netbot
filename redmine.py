@@ -80,11 +80,11 @@ class Client():
 
     def get_priorities(self) -> list[NamedId]:
         """get all active priorities"""
-        resp = self.session.get("/enumerations/issue_priorities.json?sort")
-        # TODO reverse the list!
+        resp = self.session.get("/enumerations/issue_priorities.json")
         priorities = resp['issue_priorities'] # get specific dictionary in response
-        return priorities
-        #return [NamedId(priority['id'], priority['name']) for priority in priorities]
+        priorities = [NamedId(priority['id'], priority['name']) for priority in priorities]
+        # reverse the list, so higest is first
+        return  reversed(priorities)
 
 
     def get_trackers(self) -> list[NamedId]:
@@ -108,11 +108,14 @@ class Client():
     def upload_attachments(self, user:User, attachments):
         self.ticket_mgr.upload_attachments(user, attachments)
 
+
     def get_tickets_by(self, user) -> list[Ticket]:
         return self.ticket_mgr.get_tickets_by(user)
 
+
     def get_ticket(self, ticket_id:int, **params) -> Ticket:
         return self.ticket_mgr.get(ticket_id, **params)
+
 
     #GET /issues.xml?issue_id=1,2
     def get_tickets(self, ticket_ids) -> list[Ticket]:
@@ -226,5 +229,9 @@ if __name__ == '__main__':
 
     # construct the client and run the email check
     client = Client.fromenv()
-    tickets = client.find_tickets()
-    client.format_report(tickets)
+
+    for p in client.get_priorities():
+        print(p)
+
+    #tickets = client.find_tickets()
+    #client.format_report(tickets)

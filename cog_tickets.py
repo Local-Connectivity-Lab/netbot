@@ -36,7 +36,7 @@ def get_priorities(ctx: discord.AutocompleteContext):
     """Returns a list of trackers that begin with the characters entered so far."""
     priorities = ctx.bot.redmine.get_priorities() # this is expected to be cached
     # .lower() is used to make the autocomplete match case-insensitive
-    return [priority['name'] for priority in priorities if priority['name'].lower().startswith(ctx.value.lower())]
+    return [priority.name for priority in priorities if priority.name.lower().startswith(ctx.value.lower())]
 
 
 class PrioritySelect(discord.ui.Select):
@@ -485,7 +485,6 @@ class TicketsCog(commands.Cog):
 
             # look up the tracker string
             tracker_rec = self.bot.lookup_tracker(tracker)
-
             fields = {
                 "tracker_id": tracker_rec.id,
             }
