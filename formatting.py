@@ -6,7 +6,7 @@ import logging
 
 import discord
 
-from model import Ticket
+from model import Ticket, User
 from tickets import TicketManager
 from session import RedmineSession
 import synctime
@@ -53,6 +53,20 @@ class DiscordFormatter():
             log.warning("message over {MAX_MESSAGE_LEN} chars. truncing.")
             msg = msg[:MAX_MESSAGE_LEN]
         await ctx.respond(msg)
+
+
+    def format_registered_users(self, users: list[User]) -> str:
+        msg = ""
+        for user in users:
+            msg = msg + f"{user.discord_id} -> {user.login} {user.name}, {user.mail}\n"
+        msg = msg.strip()
+
+        if len(msg) > MAX_MESSAGE_LEN:
+            log.warning("message over {MAX_MESSAGE_LEN} chars. truncing.")
+            msg = msg[:MAX_MESSAGE_LEN]
+
+        return msg
+
 
     def build_legend(self, tickets:list[Ticket]) -> dict[str,str]:
         # builds an icon-based legend from the status and
@@ -114,7 +128,6 @@ class DiscordFormatter():
     def format_discord_note(self, note) -> str:
         """Format a note for Discord"""
         age = synctime.age_str(note.created_on)
-        log.info(f"### {note} {age} {note.user}")
         return f"> **{note.user}** *{age} ago*\n> {note.notes}"[:MAX_MESSAGE_LEN]
 
 
@@ -172,7 +185,7 @@ class DiscordFormatter():
         return f"ALERT: Expiring ticket: {self.format_link(ticket)} {' '.join(ids_str)}"
 
 
-    def format_ticket_alert(self, ticket: Ticket, discord_ids: list[str], msg: str):
+    def format_ticket_alert(self, ticket: Ticket, discord_ids: list[str], msg: str) -> str:
         ids_str = ["@" + id for id in discord_ids]
         return f"ALERT #{self.format_link(ticket)} {' '.join(ids_str)}: {msg}"
 

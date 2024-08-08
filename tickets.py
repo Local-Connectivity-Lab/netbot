@@ -61,6 +61,19 @@ class TicketManager():
         else:
             log.warning("No custom fields to load")
 
+    def load_priorities(self) -> dict[str,NamedId]:
+        # call redmine to get the ticket priorities
+        response = self.session.get("/enumerations/issue_priorities.json?sort")
+        if response:
+            priorities = {}
+            for item in response['issue_priorities']:
+                priorities[item['name']] = NamedId(id=item['id'], name=item['name'])
+            return priorities
+        else:
+            log.warning("No priorities to load")
+
+        # TODO reverse the list!
+
 
     def get_field_id(self, name:str) -> int | None:
         if not self.custom_fields:
@@ -363,29 +376,28 @@ class TicketManager():
         jresp = self.session.get(f"/issues.json?assigned_to_id=me&status_id=open&sort={DEFAULT_SORT}&limit=100", user)
 
         if not jresp:
-            return None
+            return []
 
-        #log.debug(f"### json: {jresp}")
         response = TicketsResult(**jresp)
         if response.total_count > 0:
             return response.issues
         else:
             log.info("No open ticket for me.")
-            return None
+            return []
 
 
-    def tickets_for_team(self, team:Team) -> list[Ticket]:
+    def tickets_for_team(self, team:Team|User) -> list[Ticket]:
         response = self.session.get(f"/issues.json?assigned_to_id={team.id}&status_id=open&sort={DEFAULT_SORT}&limit=100")
 
         if not response:
-            return None
+            return []
 
         result = TicketsResult(**response)
         if result.total_count > 0:
             return result.issues
         else:
             log.info(f"No open ticket for {team}: {result}")
-            return None
+            return []
 
 
     def search(self, term) -> list[Ticket]:

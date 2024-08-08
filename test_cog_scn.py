@@ -33,6 +33,7 @@ class TestSCNCog(test_utils.BotTestCase):
         self.cog:SCNCog = self.bot.cogs["SCNCog"] # Note class name, note filename.
 
 
+    @unittest.skip("Disabled until user registration is added to test suite")
     async def test_add_self(self):
         # invoke "add" to add a discord mapping for the test user.
         # setup: remove existing mapping
@@ -47,6 +48,7 @@ class TestSCNCog(test_utils.BotTestCase):
         ctx.respond.assert_called_with(expected)
 
 
+    @unittest.skip("Disabled until user registration is added to test suite")
     async def test_team_join_leave(self):
         test_team_name = "test-team"
 

@@ -9,6 +9,8 @@ import discord
 from discord.commands import option, SlashCommandGroup
 
 from discord.ext import commands
+from discord.enums import InputTextStyle
+from discord.ui.item import Item, V
 
 from model import Message, Ticket
 from redmine import Client
@@ -21,6 +23,179 @@ log = logging.getLogger(__name__)
 def setup(bot):
     bot.add_cog(TicketsCog(bot))
     log.info("initialized tickets cog")
+
+
+def get_trackers(ctx: discord.AutocompleteContext):
+    """Returns a list of trackers that begin with the characters entered so far."""
+    trackers = ctx.bot.redmine.get_trackers() # this is expected to be cached
+    # .lower() is used to make the autocomplete match case-insensitive
+    return [tracker['name'] for tracker in trackers if tracker['name'].lower().startswith(ctx.value.lower())]
+
+
+def get_priorities(ctx: discord.AutocompleteContext):
+    """Returns a list of trackers that begin with the characters entered so far."""
+    priorities = ctx.bot.redmine.get_priorities() # this is expected to be cached
+    # .lower() is used to make the autocomplete match case-insensitive
+    return [priority.name for priority in priorities if priority.name.lower().startswith(ctx.value.lower())]
+
+
+class PrioritySelect(discord.ui.Select):
+    """Popup menu to select ticket priority"""
+    def __init__(self, bot_: discord.Bot):
+        # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
+        # Alternatively you can use Interaction.client, so you don't need to pass the bot instance.
+        self.bot = bot_
+
+        # Get the possible priorities
+        options = []
+        for priority in self.bot.redmine.get_priorities():
+            options.append(discord.SelectOption(label=priority['name'], default=priority['is_default']))
+
+        # The placeholder is what will be shown when no option is selected.
+        # The min and max values indicate we can only pick one of the three options.
+        # The options parameter, contents shown above, define the dropdown options.
+        super().__init__(
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        # Use the interaction object to send a response message containing
+        # the user's favourite colour or choice. The self object refers to the
+        # Select object, and the values attribute gets a list of the user's
+        # selected options. We only want the first one.
+        log.info(f"{interaction.user} {interaction.data}")
+        await interaction.response.send_message(
+            f"PrioritySelect.callback() - selected priority {self.values[0]}"
+        )
+
+
+class TrackerSelect(discord.ui.Select):
+    """Popup menu to select ticket tracker"""
+    def __init__(self, bot_: discord.Bot):
+        # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
+        # Alternatively you can use Interaction.client, so you don't need to pass the bot instance.
+        self.bot = bot_
+
+        # Get the possible trackers
+        options = []
+        for tracker in self.bot.redmine.get_trackers():
+            options.append(discord.SelectOption(label=tracker['name']))
+
+        # The placeholder is what will be shown when no option is selected.
+        # The min and max values indicate we can only pick one of the three options.
+        # The options parameter, contents shown above, define the dropdown options.
+        super().__init__(
+            placeholder="Select tracker...",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        # Use the interaction object to send a response message containing
+        # the user's favourite colour or choice. The self object refers to the
+        # Select object, and the values attribute gets a list of the user's
+        # selected options. We only want the first one.
+        log.info(f"{interaction.user} {interaction.data}")
+        await interaction.response.send_message(
+            f"TrackerSelect.callback() - selected tracker {self.values[0]}"
+        )
+
+
+class SubjectEdit(discord.ui.InputText, Item[V]):
+    """Popup menu to select ticket tracker"""
+    def __init__(self, bot_: discord.Bot, ticket: Ticket):
+        # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
+        # Alternatively you can use Interaction.client, so you don't need to pass the bot instance.
+        self.bot = bot_
+        self.ticket = ticket
+
+        # Get the possible trackers
+        options = []
+        for tracker in self.bot.redmine.get_trackers():
+            options.append(discord.SelectOption(label=tracker['name']))
+
+        # The placeholder is what will be shown when no option is selected.
+        # The min and max values indicate we can only pick one of the three options.
+        # The options parameter, contents shown above, define the dropdown options.
+        super().__init__(
+            placeholder=self.ticket.subject,
+            label="Subject"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        # Use the interaction object to send a response message containing
+        # the user's favourite colour or choice. The self object refers to the
+        # Select object, and the values attribute gets a list of the user's
+        # selected options. We only want the first one.
+        log.info(f"{interaction.user} {interaction.data}")
+        await interaction.response.send_message(
+            f"SubjectEdit.callback() - selected tracker {self.value}"
+        )
+
+
+class EditSubjectAndDescModal(discord.ui.Modal):
+    """modal dialog to edit the ticket subject and description"""
+    def __init__(self, redmine: Client, ticket: Ticket, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.redmine = redmine
+        self.ticket = ticket
+        self.add_item(discord.ui.InputText(label="Subject"))
+        self.add_item(discord.ui.InputText(label="Description", style=InputTextStyle.paragraph))
+
+
+    async def callback(self, interaction: discord.Interaction):
+        subject = self.children[0].value
+        description = self.children[1].value
+
+        log.debug(f"callback: {subject}, {description}")
+
+        embed = discord.Embed(title="Updated ticket")
+        embed.add_field(name="Subject", value=subject)
+        embed.add_field(name="Description", value=description)
+
+        #user = self.redmine.user_mgr.create(email, first, last)
+        # TODO Update subject and description in redmine
+
+        #if user is None:
+        #    log.error(f"Unable to create user from {first}, {last}, {email}, {interaction.user.name}")
+        #else:
+        #    self.redmine.user_mgr.create_discord_mapping(user, interaction.user.name)
+        await interaction.response.send_message(embeds=[embed])
+
+
+class EditView(discord.ui.View):
+    """View to allow ticket editing"""
+    # to build, need:
+    # - list of trackers
+    # - list or priorities
+    # - ticket subject
+    # - from email
+    # build intake view
+    # 1. Assign: (popup with potential assignments)
+    # 2. Priority: (popup with priorities)
+    # 3. (Reject) Subject
+    # 4. (Block) email-addr
+    def __init__(self, bot_: discord.Bot, ticket: Ticket) -> None:
+        self.bot = bot_
+        super().__init__()
+
+        # Adds the dropdown to our View object
+        self.add_item(PrioritySelect(self.bot))
+        #self.add_item(SubjectEdit(self.bot, ticket))
+        self.add_item(TrackerSelect(self.bot))
+
+        self.add_item(discord.ui.Button(label="Done", row=4))
+        self.add_item(discord.ui.Button(label="Edit Subject & Description", row=4))
+        #self.add_item(discord.ui.Button(label="Block email@address.com", row=4))
+
+    async def select_callback(self, select, interaction): # the function called when the user is done selecting options
+        await interaction.response.send_message(f"EditView.select_callback() selected: {select.values[0]}")
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"EditView.callback() {interaction.data}")
 
 
 class TicketsCog(commands.Cog):
@@ -69,10 +244,15 @@ class TicketsCog(commands.Cog):
 
         # lookup the user
         user = self.redmine.user_mgr.find(ctx.user.name)
+        if not user:
+            log.info(f"Unknown user name: {ctx.user.name}")
+            # TODO make this a standard error.
+            await ctx.respond(f"Discord member **{ctx.user.name}** is not provisioned in redmine. Use `/scn add [redmine-user]` to provision.")
+            return
+
         log.debug(f"found user mapping for {ctx.user.name}: {user}")
 
         args = term.split()
-
         if args[0] == "me":
             await self.bot.formatter.print_tickets("My Tickets", self.redmine.my_tickets(user.login), ctx)
         elif len(args) == 1:
@@ -166,7 +346,6 @@ class TicketsCog(commands.Cog):
     @ticket.command(description="Assign a ticket")
     @option("ticket_id", description="ticket ID")
     async def assign(self, ctx: discord.ApplicationContext, ticket_id:int):
-        """Update status on a ticket, using: unassign, resolve, progress"""
         # lookup the user
         user = self.redmine.user_mgr.find(ctx.user.name)
         if not user:
@@ -179,6 +358,15 @@ class TicketsCog(commands.Cog):
             await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
+
+
+    @ticket.command(name="edit", description="Edit a ticket")
+    @option("ticket_id", description="ticket ID")
+    async def edit(self, ctx:discord.ApplicationContext, ticket_id: int):
+        """Edit the fields of a ticket"""
+        # check team? admin?, provide reasonable error msg.
+        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        await ctx.respond(f"EDIT #{ticket.id}", view=EditView(self.bot, ticket))
 
 
     async def create_thread(self, ticket:Ticket, ctx:discord.ApplicationContext):
@@ -228,7 +416,7 @@ class TicketsCog(commands.Cog):
 
     @ticket.command(name="alert", description="Alert collaborators on a ticket")
     @option("ticket_id", description="ID of ticket to alert")
-    async def alert_ticket(self, ctx: discord.ApplicationContext, ticket_id:int=None):
+    async def alert_ticket(self, ctx: discord.ApplicationContext, ticket_id:int=0):
         if not ticket_id:
             # check thread for ticket id
             ticket_id = self.bot.parse_thread_title(ctx.channel.name)
@@ -284,3 +472,70 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Created new thread {thread.jump_url} for ticket {ticket_link}")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
+
+
+    @ticket.command(name="tracker", description="Update the tracker of a ticket")
+    @option("ticket_id", description="ID of ticket to update")
+    @option("tracker", description="Track to assign to ticket", autocomplete=get_trackers)
+    async def tracker(self, ctx: discord.ApplicationContext, ticket_id:int, tracker:str):
+        user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            ticket_link = self.bot.formatter.format_link(ticket)
+
+            # look up the tracker string
+            tracker_rec = self.bot.lookup_tracker(tracker)
+            fields = {
+                "tracker_id": tracker_rec.id,
+            }
+            updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
+
+            await ctx.respond(f"Updated {ticket_link} to tracker => {updated.tracker.name}")
+        else:
+            await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
+
+
+    @ticket.command(name="priority", description="Update the tracker of a ticket")
+    @option("ticket_id", description="ID of ticket to update")
+    @option("priority", description="Priority to assign to ticket", autocomplete=get_priorities)
+    async def priority(self, ctx: discord.ApplicationContext, ticket_id:int, priority:str):
+        user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
+        ticket = self.redmine.get_ticket(ticket_id)
+        if ticket:
+            ticket_link = self.bot.formatter.format_link(ticket)
+
+            # look up the tracker string
+            priority = self.bot.lookup_priority(priority)
+
+            fields = {
+                "priority_id": priority.id,
+            }
+            updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
+
+            await ctx.respond(f"Updated {ticket_link} to priority => {updated.priority.name}")
+        else:
+            await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
+
+
+    @ticket.command(name="subject", description="Update the subject of a ticket")
+    @option("ticket_id", description="ID of ticket to update")
+    @option("subject", description="Updated subject")
+    async def subject(self, ctx: discord.ApplicationContext, ticket_id:int, subject:str):
+        user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
+        if not user:
+            await ctx.respond(f"ERROR: Discord user without redmine config: {ctx.user.name}. Create with `/scn add`")
+            return
+
+        ticket = self.redmine.get_ticket(ticket_id)
+        if not ticket:
+            await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
+            return
+
+        ticket_link = self.bot.formatter.format_link(ticket)
+
+        fields = {
+            "subject": subject,
+        }
+        updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
+
+        await ctx.respond(f"Updated {ticket_link} with new subject => {updated.subject}") #TODO return ticket summary.

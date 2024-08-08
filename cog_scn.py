@@ -7,7 +7,7 @@ import discord
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
 
-from model import Message
+from model import Message, User
 from redmine import Client, BLOCKED_TEAM_NAME
 
 
@@ -28,32 +28,118 @@ def setup(bot):
 
 class NewUserModal(discord.ui.Modal):
     """modal dialog to collect new user info"""
-    def __init__(self, redmine: Client, *args, **kwargs) -> None:
+    def __init__(self, redmine: Client, login: str, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.redmine = redmine
+        self.login = login
         self.add_item(discord.ui.InputText(label="First Name"))
         self.add_item(discord.ui.InputText(label="Last Name"))
         self.add_item(discord.ui.InputText(label="Email"))
+
 
     async def callback(self, interaction: discord.Interaction):
         email = self.children[2].value
         first = self.children[0].value
         last = self.children[1].value
 
-        log.debug(f"new user callback: email={email}, first={first}, last={last}")
+        log.debug(f"register user callback: email={email}, first={first}, last={last}")
 
-        embed = discord.Embed(title="Created User")
-        embed.add_field(name="First", value=first)
-        embed.add_field(name="Last", value=last)
-        embed.add_field(name="Email", value=email)
-
-        user = self.redmine.create_user(email, first, last)
-
+        user = self.redmine.user_mgr.register(self.login, email, first, last)
         if user is None:
-            log.error(f"Unable to create user from {first}, {last}, {email}, {interaction.user.name}")
+            log.error(f"Unable to create user for {self.login}, {first} {last}, {email}")
+            await interaction.response.send_message(f"Unable to create user for {self.login}")
+            return
+
+        # create the mapping so it the discord user can be found
+        self.redmine.user_mgr.create_discord_mapping(user, interaction.user.name)
+        log.debug(f"mapped discord new user: {interaction.user.name} -> {user.login}")
+
+        embed = discord.Embed(title="Registered User")
+        embed.add_field(name="Login", value=self.login)
+        embed.add_field(name="Name", value=f"{first} {last}")
+        embed.add_field(name="Email", value=email)
+        await interaction.response.send_message(embeds=[embed])
+
+
+class ApproveButton(discord.ui.Button):
+    """Discord button to approve specific users"""
+    def __init__(self, bot_: discord.Bot, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.bot = bot_
+
+
+    # TODO Move to user_mgr?
+    def find_registered_user(self, discord_name:str) -> User:
+        """Search registered users for a matching discord ID"""
+        for user in self.bot.redmine.user_mgr.get_registered():
+            if user.discord_id == discord_name:
+                return user
+        return None
+
+
+    async def callback(self, interaction: discord.Interaction):
+        name = self.label
+
+        user = self.find_registered_user(name)
+        if user:
+            self.bot.redmine.user_mgr.approve(user)
+            # assign default groups?
+            await interaction.response.send_message(f"Approved registered user: @{name} {user.login} {user.name}")
         else:
-            self.redmine.user_mgr.create_discord_mapping(user, interaction.user.name)
-            await interaction.response.send_message(embeds=[embed])
+            await interaction.response.send_message(f"User not found: {name}")
+
+
+class ApproveUserView(discord.ui.View):
+    """Approve registered users with Discord controls"""
+    def __init__(self, bot_: discord.Bot, users: list[User]) -> None:
+        self.bot = bot_
+        super().__init__()
+
+        # Add buttons by rows
+        for user in users:
+            self.add_item(ApproveButton(self.bot, label=user.discord_id))
+
+
+    async def button_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await interaction.response.send_message(f"ApproveUserView: {button} {interaction}")
+
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"ApproveUserView: {interaction}")
+
+
+# FIXME Not yet implemented
+class IntakeView(discord.ui.View):
+    """Perform intake"""
+    # to build, need:
+    # - list of trackers
+    # - list or priorities
+    # - ticket subject
+    # - from email
+    # build intake view
+    # 1. Assign: (popup with potential assignments)
+    # 2. Priority: (popup with priorities)
+    # 3. (Reject) Subject
+    # 4. (Block) email-addr
+    def __init__(self, bot_: discord.Bot) -> None:
+        self.bot = bot_
+        super().__init__()
+
+        # Adds the dropdown to our View object
+        #self.add_item(PrioritySelect(self.bot))
+        #self.add_item(discord.ui.InputText(label="Subject", row=1))
+        #self.add_item(TrackerSelect(self.bot))
+
+
+        self.add_item(discord.ui.Button(label="Assign", row=4))
+        self.add_item(discord.ui.Button(label="Reject ticket subject", row=4))
+        self.add_item(discord.ui.Button(label="Block email@address.com", row=4))
+
+    async def select_callback(self, select, interaction): # the function called when the user is done selecting options
+        await interaction.response.send_message(f"IntakeView.select_callback() selected: {select.values[0]}")
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"IntakeView.allback() {interaction.data}")
 
 
 class SCNCog(commands.Cog):
@@ -66,27 +152,39 @@ class SCNCog(commands.Cog):
 
     scn = SlashCommandGroup("scn",  "SCN admin commands")
 
+
+    def is_admin(self, user: discord.Member) -> bool:
+        """Check if the given Discord memeber is in a authorized role"""
+        # search user for "auth" role
+        for role in user.roles:
+            if "auth" == role.name: ## FIXME
+                return True
+
+        # auth role not found
+        return False
+
+
     @scn.command()
     async def add(self, ctx:discord.ApplicationContext, redmine_login:str, member:discord.Member=None):
-        """add Discord user information to redmine"""
+        """add a Discord user to the Redmine ticketing integration"""
         discord_name = ctx.user.name # by default, assume current user
         if member:
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
             discord_name = member.name
 
         user = self.redmine.user_mgr.find(discord_name)
-
         if user:
             await ctx.respond(f"Discord user: {discord_name} is already configured as redmine user: {user.login}")
         else:
             user = self.redmine.user_mgr.find(redmine_login)
-            if user:
+            if user and self.is_admin(ctx.user):
                 self.redmine.user_mgr.create_discord_mapping(user, discord_name)
                 await ctx.respond(f"Discord user: {discord_name} has been paired with redmine user: {redmine_login}")
             else:
-                # no user exists for that login
-                modal = NewUserModal(self.redmine, title="Create new user in Redmine")
+                # case: unknown redmine_login -> new user request: register new user
+                modal = NewUserModal(self.redmine, redmine_login, title="Register new user")
                 await ctx.send_modal(modal)
+
             # reindex users after changes
             self.redmine.user_mgr.reindex_users()
 
@@ -194,6 +292,13 @@ class SCNCog(commands.Cog):
             await ctx.respond(buff[:2000]) # truncate!
 
 
+    #@scn.command()
+    #async def intake(self, ctx:discord.ApplicationContext):
+    #    """perform intake"""
+    #    # check team? admin?, provide reasonable error msg.
+    #    await ctx.respond("INTAKE #{ticket.id}", view=IntakeView(self.bot))
+
+
     @scn.command(description="list all open epics")
     async def epics(self, ctx:discord.ApplicationContext):
         """List all the epics, grouped by tracker"""
@@ -233,7 +338,7 @@ class SCNCog(commands.Cog):
 
     @scn.command(description="unblock specific a email address")
     async def unblock(self, ctx:discord.ApplicationContext, username:str):
-        log.debug(f"### unblocking {username}")
+        log.debug(f"Unblocking {username}")
         user = self.redmine.user_mgr.find(username)
         if user:
             self.redmine.user_mgr.unblock(user)
@@ -247,6 +352,20 @@ class SCNCog(commands.Cog):
     async def force_notify(self, ctx: discord.ApplicationContext):
         log.debug(ctx)
         await self.bot.notify_expiring_tickets()
+
+
+    @scn.command(description="List and approve registered new users")
+    async def approve(self, ctx:discord.ApplicationContext):
+        if self.is_admin(ctx.user):
+            # get the registered users
+            users = self.bot.redmine.user_mgr.get_registered()
+            if len(users) > 0:
+                await ctx.respond("Approve Registered Users", view=ApproveUserView(self.bot, users))
+            else:
+                await ctx.respond("No pending registered users.")
+
+        else:
+            await ctx.respond("Must be authorized admin to approve Redmine users.")
 
 
     ## FIXME move to DiscordFormatter

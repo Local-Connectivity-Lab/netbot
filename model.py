@@ -176,7 +176,7 @@ class User():
     passwd_changed_on: dt.datetime
     twofa_scheme: str
     api_key: str = ""
-    status: int = ""
+    status: int = 0
     custom_fields: list[CustomField]
 
     def __post_init__(self):
@@ -420,7 +420,6 @@ class Ticket():
 
     def get_field(self, fieldname:str):
         val = getattr(self, fieldname)
-        #log.debug(f">>> {fieldname} = {val}, type={type(val)}")
         return val
 
 

@@ -68,7 +68,6 @@ class TestMessages(test_utils.RedmineTestCase):
         # rewriting that this afternoon, this tests the fix for the actual bug (ignoring DOCTYPE)
         with open("test/message-doctype.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
-            #log.info(f"### message: {message}")
             self.assertFalse(message.note.startswith("<!doctype html>"))
 
 
@@ -142,7 +141,6 @@ class TestMessages(test_utils.RedmineTestCase):
         # search for the ticket
         tickets = self.redmine.match_subject(subject)
         #for check in tickets:
-        #    log.debug(f"### tickets: {check.subject}")
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
         self.assertEqual(ticket.id, tickets[0].id)
