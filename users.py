@@ -132,14 +132,18 @@ class UserManager():
         self.cache = UserCache()
 
     def get_all(self) -> list[User]:
-        jresp = self.session.get(f"{USER_RESOURCE}?limit=100")
+        jresp = self.session.get(f"{USER_RESOURCE}?status=1,2&limit=100")
         if jresp:
             user_result = UserResult(**jresp)
             user_buffer = user_result.users
+
+            for user in user_buffer:
+                log.info(f">>> {user.status}, {user.login}, {user.discord_id}")
+
             if user_result.total_count > user_result.limit:
                 offset = user_result.limit
                 while offset < user_result.total_count:
-                    next_req = f"{USER_RESOURCE}?offset={offset}&limit={user_result.limit}"
+                    next_req = f"{USER_RESOURCE}?status=1,2&offset={offset}&limit={user_result.limit}"
                     log.debug(f"next request: {next_req}")
                     next_resp = self.session.get(next_req)
                     next_result = UserResult(**next_resp)
@@ -151,6 +155,14 @@ class UserManager():
             log.warning("No users from get_all_users")
             return []
 
+    def get_registered(self) -> list[User]:
+        resp = self.session.get(f"{USER_RESOURCE}?status=2") # NOTE: 2 is the "registered" status
+        if resp:
+            user_result = UserResult(**resp)
+            return user_result.users
+        else:
+            log.debug("no pending registered users")
+            return []
 
     def update(self, user:User, fields:dict) -> User:
         """update a user record in redmine"""
@@ -215,6 +227,45 @@ class UserManager():
             return user
         else:
             raise RedmineException(f"create_user {email} failed", r.headers['X-Request-Id'])
+
+
+    def register(self, login:str, email:str, first:str, last:str) -> User:
+        """register a new redmine user"""
+        data = {
+            'user': {
+                'login': login,
+                'firstname': first,
+                'lastname': last,
+                'mail': email,
+                'status': 2, # registered
+            }
+        }
+
+        r = self.session.post(USER_RESOURCE, json.dumps(data))
+
+        # check status
+        if r:
+            user = User(**r['user'])
+
+            log.info(f"registered user: {user.id} {user.login} {user.mail}")
+
+            return user
+        else:
+            raise RedmineException(f"register {email} failed", r.headers['X-Request-Id'])
+
+
+    def approve(self, user:User) -> User:
+        """Update the approved flag to approve the user"""
+        fields = {
+            "status": 1, # approved status
+        }
+        # set the flag
+        updated = self.update(user, fields)
+
+        # cache the user
+        self.cache.cache_user(updated)
+
+        return updated
 
 
     def find(self, name: str) -> User:
@@ -408,8 +459,6 @@ class UserManager():
         if not r:
             log.warning(f"Error removing {user.login} from {teamname}")
 
-
-#### ---- indexing stuff
 
     # python method sync?
     def reindex_users(self):

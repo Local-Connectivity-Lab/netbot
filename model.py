@@ -176,7 +176,7 @@ class User():
     passwd_changed_on: dt.datetime
     twofa_scheme: str
     api_key: str = ""
-    status: int = ""
+    status: int = 0
     custom_fields: list[CustomField]
 
     def __post_init__(self):

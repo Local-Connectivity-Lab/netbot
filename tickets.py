@@ -378,7 +378,6 @@ class TicketManager():
         if not jresp:
             return []
 
-        #log.debug(f"### json: {jresp}")
         response = TicketsResult(**jresp)
         if response.total_count > 0:
             return response.issues

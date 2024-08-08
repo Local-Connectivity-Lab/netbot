@@ -486,8 +486,6 @@ class TicketsCog(commands.Cog):
             # look up the tracker string
             tracker_rec = self.bot.lookup_tracker(tracker)
 
-            log.info(f"### tracker: {tracker_rec}")
-
             fields = {
                 "tracker_id": tracker_rec.id,
             }
