@@ -19,6 +19,7 @@ from model import Message, User, NamedId
 from tickets import SCN_PROJECT_ID, TicketManager
 import session
 from redmine import Client
+from netbot import NetBot
 
 log = logging.getLogger(__name__)
 
@@ -221,6 +222,7 @@ class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
 
     def build_context(self) -> ApplicationContext:
         ctx = mock.AsyncMock(ApplicationContext)
+        ctx.bot = mock.AsyncMock(NetBot)
         ctx.user = mock.AsyncMock(discord.Member)
         ctx.user.name = self.user.discord_id
         ctx.command = mock.AsyncMock(discord.ApplicationCommand)

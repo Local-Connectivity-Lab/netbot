@@ -6,9 +6,7 @@ import logging
 
 import discord
 
-from model import Ticket, User
-from tickets import TicketManager
-from session import RedmineSession
+from model import Ticket, User, NamedId
 import synctime
 
 log = logging.getLogger(__name__)
@@ -31,6 +29,22 @@ EMOJI = {
     'EPIC': '🎇',
 }
 
+
+COLOR = {
+    'Resolved': discord.Color.dark_green(),
+    'Reject': discord.Color.dark_orange(),
+    'Spam': discord.Color.orange(),
+    'New': discord.Color.yellow(),
+    'In Progress': discord.Color.blue(),
+    'Low': discord.Color.teal(),
+    'Normal': discord.Color.blue(),
+    'High': discord.Color.gold(),
+    'Urgent': discord.Color.dark_gold(),
+    'Immediate': discord.Color.red(),
+    'EPIC': discord.Color.dark_gray(),
+}
+
+
 class DiscordFormatter():
     """
     Format tickets and user information for Discord
@@ -40,19 +54,25 @@ class DiscordFormatter():
 
 
     async def print_tickets(self, title:str, tickets:list[Ticket], ctx:discord.ApplicationContext):
-        msg = self.format_tickets(title, tickets)
-        if len(msg) > MAX_MESSAGE_LEN:
-            log.warning(f"message over {MAX_MESSAGE_LEN} chars. truncing.")
-            msg = msg[:MAX_MESSAGE_LEN]
-        await ctx.respond(msg)
+        if len(tickets) == 1:
+            await self.print_ticket(tickets[0], ctx)
+        else:
+            msg = self.format_tickets(title, tickets)
+
+            if len(msg) > MAX_MESSAGE_LEN:
+                log.warning(f"message over {MAX_MESSAGE_LEN} chars. truncing.")
+                msg = msg[:MAX_MESSAGE_LEN]
+            await ctx.respond(msg)
 
 
     async def print_ticket(self, ticket, ctx):
-        msg = self.format_ticket_details(ticket)
-        if len(msg) > MAX_MESSAGE_LEN:
-            log.warning("message over {MAX_MESSAGE_LEN} chars. truncing.")
-            msg = msg[:MAX_MESSAGE_LEN]
-        await ctx.respond(msg)
+        await ctx.respond(embed=self.ticket_embed(ctx, ticket))
+
+        #msg = self.format_ticket_details(ticket)
+        #if len(msg) > MAX_MESSAGE_LEN:
+        #    log.warning("message over {MAX_MESSAGE_LEN} chars. truncing.")
+        #    msg = msg[:MAX_MESSAGE_LEN]
+        #await ctx.respond(msg)
 
 
     def format_registered_users(self, users: list[User]) -> str:
@@ -83,6 +103,7 @@ class DiscordFormatter():
                 legend[ticket.priority.name] = EMOJI[ticket.priority.name]
 
         return legend
+
 
     def format_tickets(self, title:str, tickets:list[Ticket], max_len=MAX_MESSAGE_LEN) -> str:
         if tickets is None:
@@ -204,15 +225,63 @@ class DiscordFormatter():
         return buff[:MAX_MESSAGE_LEN] # truncate!
 
 
+    def priotity_color(self, priority:NamedId) -> discord.Color:
+        """Get the default color associtated with a priority"""
+        return COLOR[priority.name]
+
+
+    def lookup_discord_user(self, ctx: discord.ApplicationContext, name:str) -> discord.Member:
+        for user in ctx.bot.get_all_members():
+            if user.name == name or user.nick == name:
+                return user
+        return None
+
+
+    def get_user_id(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
+        if ticket is None or ticket.assigned_to is None:
+            return ""
+
+        user = ctx.bot.redmine.user_mgr.get(ticket.assigned_to.id)
+        if user and user.discord_id:
+            member = self.lookup_discord_user(ctx, user.discord_id)
+            return f"<@!{member.id}>"
+        else:
+            return ticket.assigned
+
+
+    def ticket_embed(self, ctx: discord.ApplicationContext, ticket:Ticket) -> discord.Embed:
+        """Build an embed panel with full ticket details"""
+        embed = discord.Embed(
+            title=ticket.subject,
+            description=ticket.description,
+            colour=self.priotity_color(ticket.priority)
+        )
+
+        embed.add_field(name="Status", value=ticket.status)
+        embed.add_field(name="Priority", value=ticket.priority)
+        embed.add_field(name="Category", value=ticket.category)
+
+        embed.add_field(name="Owner", value=self.get_user_id(ctx, ticket))
+
+        # thread & redmine links
+        thread = ctx.bot.find_ticket_thread(ticket.id)
+        if thread:
+            embed.add_field(name="Thread", value=thread.jump_url)
+        embed.add_field(name="Redmine", value=self.format_link(ticket))
+
+        return embed
+
+
 def main():
-    ticket_manager = TicketManager(RedmineSession.fromenvfile(), "1")
+    pass
+    #redmine = Client.fromenv()
 
     # construct the formatter
-    formatter = DiscordFormatter(ticket_manager.session.url)
+    #formatter = DiscordFormatter(redmine)
 
-    tickets = ticket_manager.search("test")
-    output = formatter.format_tickets("Test Tickets", tickets)
-    print (output)
+    #tickets = ticket_manager.search("test")
+    #output = formatter.format_tickets("Test Tickets", tickets)
+    #print (output)
 
 if __name__ == '__main__':
     main()

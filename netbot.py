@@ -386,7 +386,7 @@ class NetBot(commands.Bot):
     def find_ticket_thread(self, ticket_id:int) -> discord.Thread|None:
         """Search thru thread titles looking for a matching ticket ID"""
         # search thru all threads for:
-        title_prefix = f"Thread #{ticket_id}"
+        title_prefix = f"Ticket #{ticket_id}"
         for guild in self.guilds:
             for thread in guild.threads:
                 if thread.name.startswith(title_prefix):
