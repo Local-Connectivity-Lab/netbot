@@ -224,9 +224,13 @@ class DiscordFormatter():
         return buff[:MAX_MESSAGE_LEN] # truncate!
 
 
-    def priotity_color(self, priority:NamedId) -> discord.Color:
+    def ticket_color(self, ticket:Ticket) -> discord.Color:
         """Get the default color associtated with a priority"""
-        return COLOR[priority.name]
+        if ticket.status.is_closed:
+            # return the status color:
+            return COLOR[ticket.status.name]
+        else:
+            return COLOR[ticket.priority.name]
 
 
     def lookup_discord_user(self, ctx: discord.ApplicationContext, name:str) -> discord.Member:
@@ -253,12 +257,12 @@ class DiscordFormatter():
         embed = discord.Embed(
             title=ticket.subject,
             description=ticket.description,
-            colour=self.priotity_color(ticket.priority)
+            colour=self.ticket_color(ticket)
         )
 
         embed.add_field(name="Status", value=ticket.status)
-        embed.add_field(name="Priority", value=ticket.priority)
-        embed.add_field(name="Category", value=ticket.category)
+        embed.add_field(name="Priority", value=ticket.priority.name)
+        embed.add_field(name="Category", value=ticket.category.name)
 
         embed.add_field(name="Owner", value=self.get_user_id(ctx, ticket))
 
@@ -275,13 +279,55 @@ class DiscordFormatter():
         """Build an embed panel with help"""
         embed = discord.Embed(
             title="Ticket Help",
-            description="Managing Redmine tickets with Discord commands",
+            description="Tickets are used to manage SCN work items. Discord commands are provided to:\n" +
+            "* Register with the ticket system\n"
+            "* Find tickets\n" +
+            "* Create new tickets\n"+
+            "* Work on tickets",
         )
 
-        embed.add_field(name="`/scn add <redmine-id>`", value="Register your Discord account with a Redmine account *<redmine-id>*. If that Redmine account doesn't exist, a new account will be registered for admin approval.", inline=False)
-        embed.add_field(name="`/ticket query me`", value="List *your* tickets.", inline=False)
-        embed.add_field(name="`/ticket subject <#>`", value="Update the subject of ticket *<#>*", inline=False)
-        embed.add_field(name="`/ticket create <subject>`", value="Create a new ticket with the subject *<subject>*.", inline=False)
+        embed.add_field(
+            name="Register to work on tickets",
+            value="* **`/scn add <redmine-login>`** Register your Discord account with a new Redmine account *<redmine-login>*. " +
+            "A new account will be created on the ticket system, for approval by administrators.",
+            inline=False)
+
+        embed.add_field(
+            name="Find tickets to work on",
+            value="* **`/ticket query me`** to find tickets assigned to you.\n" +
+            "* **`/ticket query <term>`** to find tickets associated with a specific *<term>*\n" +
+            "* **`/ticket details <id>`** to get detailed information about ticket *<id>*\n" +
+            "* **`/ticket epics`** to list the large projects",
+            inline=False)
+
+        embed.add_field(
+            name="Create a new ticket",
+            value="* **`/ticket create <subject>`** Create a new ticket with the subject *<subject>*.",
+            inline=False)
+
+        embed.add_field(
+            name="Work on a ticket",
+            value="* **`/ticket progress <id>`** to take ownership of ticket *<id>* and mark it In Progress\n" +
+            "* **`/ticket subject <id> <new subject>`** to change the subject of a ticket\n" +
+            "* **`/ticket priority <id> <new priority>`** to change the priority of a ticket\n" +
+            "* **`/ticket tracker <id> <new tracker>`** to change the tracker of a ticket\n" +
+            "* **`/ticket resolve <id>`** to mark the ticket complete\n" +
+            "Each ticket has an associated Discord thread (see `/ticket details`). Any comments in that thread will be synced with the ticket system.",
+            inline=False)
+
+        embed.add_field(
+            name="Typical workflow",
+            value="*Pre-conditions:* Discord member has registered with **`/scn add`** and been approved.\n" +
+            "1. Create a new ticket to track a problem:\n" +
+            "   - **`/ticket new Replace lightbulb 27b`**\n" +
+            "2. Take ownership of the new ticket and mark it in-progress:\n" +
+            "   - **`/ticket progress 42`**\n" +
+            "3. *Actually get an new lightbulb and replace the burned out bulb at location 27b.*\n" +
+            "4. Comment on the ticket-thread: *Replaced that bulb.*\n" +
+            "5. Update the ticket to make it complete:\n" +
+            "   - **`/ticket resolve 42`**\n" +
+            "*Post-conditions:* Task has been completed, ticket is resolved. Ready for the next task!",
+            inline=False)
 
         return embed
 
