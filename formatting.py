@@ -65,9 +65,8 @@ class DiscordFormatter():
             await ctx.respond(msg)
 
 
-    async def print_ticket(self, ticket, ctx):
+    async def print_ticket(self, ticket, ctx:discord.ApplicationContext):
         await ctx.respond(embed=self.ticket_embed(ctx, ticket))
-
         #msg = self.format_ticket_details(ticket)
         #if len(msg) > MAX_MESSAGE_LEN:
         #    log.warning("message over {MAX_MESSAGE_LEN} chars. truncing.")
@@ -268,6 +267,21 @@ class DiscordFormatter():
         if thread:
             embed.add_field(name="Thread", value=thread.jump_url)
         embed.add_field(name="Redmine", value=self.format_link(ticket))
+
+        return embed
+
+
+    def help_embed(self, ctx: discord.ApplicationContext) -> discord.Embed:
+        """Build an embed panel with help"""
+        embed = discord.Embed(
+            title="Ticket Help",
+            description="Managing Redmine tickets with Discord commands",
+        )
+
+        embed.add_field(name="`/scn add <redmine-id>`", value="Register your Discord account with a Redmine account *<redmine-id>*. If that Redmine account doesn't exist, a new account will be registered for admin approval.", inline=False)
+        embed.add_field(name="`/ticket query me`", value="List *your* tickets.", inline=False)
+        embed.add_field(name="`/ticket subject <#>`", value="Update the subject of ticket *<#>*", inline=False)
+        embed.add_field(name="`/ticket create <subject>`", value="Create a new ticket with the subject *<subject>*.", inline=False)
 
         return embed
 

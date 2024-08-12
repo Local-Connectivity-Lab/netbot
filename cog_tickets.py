@@ -360,8 +360,9 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 
 
-    @ticket.command(name="edit", description="Edit a ticket")
-    @option("ticket_id", description="ticket ID")
+    # command disabled
+    #@ticket.command(name="edit", description="Edit a ticket")
+    #@option("ticket_id", description="ticket ID")
     async def edit(self, ctx:discord.ApplicationContext, ticket_id: int):
         """Edit the fields of a ticket"""
         # check team? admin?, provide reasonable error msg.
@@ -539,3 +540,7 @@ class TicketsCog(commands.Cog):
         updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
 
         await ctx.respond(f"Updated {ticket_link} with new subject => {updated.subject}") #TODO return ticket summary.
+
+    @ticket.command(name="help", description="Display hepl about ticket management")
+    async def help(self, ctx: discord.ApplicationContext):
+        await ctx.respond(embed=self.bot.formatter.help_embed(ctx))
