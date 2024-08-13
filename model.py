@@ -105,7 +105,7 @@ class NamedId():
 
     def __str__(self) -> str:
         if self.name:
-            return self.name + ":" + str(self.id)
+            return self.name #+ ":" + str(self.id)
         else:
             return str(self.id)
 

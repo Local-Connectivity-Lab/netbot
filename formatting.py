@@ -261,8 +261,8 @@ class DiscordFormatter():
         )
 
         embed.add_field(name="Status", value=ticket.status)
-        embed.add_field(name="Priority", value=ticket.priority.name)
-        embed.add_field(name="Category", value=ticket.category.name)
+        embed.add_field(name="Priority", value=ticket.priority)
+        embed.add_field(name="Category", value=ticket.category)
 
         embed.add_field(name="Owner", value=self.get_user_id(ctx, ticket))
 
