@@ -202,7 +202,7 @@ class TicketsCog(commands.Cog):
     """encapsulate Discord ticket functions"""
     def __init__(self, bot:NetBot):
         self.bot:NetBot = bot
-        self.redmine:Client = bot.redmine
+        self.redmine: Client = bot.redmine
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
     ticket = SlashCommandGroup("ticket",  "ticket commands")
@@ -262,11 +262,11 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Get ticket details")
-    @option("term", description="ticket ID")
+    @option("ticket_id", description="ticket ID")
     async def details(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
         #log.debug(f"found user mapping for {ctx.user.name}: {user}")
-        ticket = self.redmine.get_ticket(ticket_id)
+        ticket = self.redmine.get_ticket(ticket_id, include="children")
         if ticket:
             await self.bot.formatter.print_ticket(ticket, ctx)
         else:

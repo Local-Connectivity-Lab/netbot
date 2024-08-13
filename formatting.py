@@ -11,7 +11,6 @@ import synctime
 
 log = logging.getLogger(__name__)
 
-
 MAX_MESSAGE_LEN = 2000
 
 
@@ -47,6 +46,10 @@ COLOR = {
     'Immediate': discord.Color.red(),
     'EPIC': discord.Color.dark_gray(),
 }
+
+EPIC_TAG = "[EPIC] "
+def strip_epic_tag(subject:str) -> str:
+     return subject[len(EPIC_TAG):] if subject.startswith(EPIC_TAG) else subject
 
 
 class DiscordFormatter():
@@ -263,8 +266,9 @@ class DiscordFormatter():
 
     def ticket_embed(self, ctx: discord.ApplicationContext, ticket:Ticket) -> discord.Embed:
         """Build an embed panel with full ticket details"""
+        subject = f"{get_emoji(ticket.priority.name)} {strip_epic_tag(ticket.subject)} (#{ticket.id})"
         embed = discord.Embed(
-            title=ticket.subject,
+            title=subject,
             description=ticket.description,
             colour=self.ticket_color(ticket)
         )
@@ -278,17 +282,12 @@ class DiscordFormatter():
         if ticket.assigned_to:
             embed.add_field(name="Owner", value=self.get_user_id(ctx, ticket))
 
-        if ticket.priority.name == "EPIC":
-            # list the sub-tickets
-            epic = ctx.bot.redmine.get_ticket(ticket.id, include="children")
-            if epic.children:
-                buff = ""
-                for child in epic.children:
-                    buff += "- " + self.format_subticket(child) + "\n"
-                embed.add_field(name="Tickets", value=buff, inline=False)
-
-            #subtickets = []
-            #embed.add_field(name="Tickets", value=self.format_tickets("", subtickets))
+        # list the sub-tickets
+        if ticket.children:
+            buff = ""
+            for child in ticket.children:
+                buff += "- " + self.format_subticket(child) + "\n"
+            embed.add_field(name="Tickets", value=buff, inline=False)
 
         # thread & redmine links
         thread = ctx.bot.find_ticket_thread(ticket.id)
@@ -305,8 +304,7 @@ class DiscordFormatter():
 
         for tracker_name, tickets in epics.items():
             for epic in tickets:
-                subject = epic.subject[6:] if epic.subject.startswith("[EPIC]") else epic.subject
-                subject = f"{ get_emoji('EPIC') } {subject} (#{epic.id})"
+                subject = f"{ get_emoji(epic.priority.name) } {strip_epic_tag(epic.subject)} (#{epic.id})"
                 embed.add_field(name=subject, value=epic.description, inline=False)
                 if epic.assigned_to:
                     embed.add_field(name="Owner", value=self.get_user_id(ctx, epic))
