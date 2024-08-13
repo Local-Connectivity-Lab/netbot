@@ -227,26 +227,30 @@ class TicketManager():
             log.info(f"Unknown ticket numbers: {ticket_ids}")
             return []
 
+
     def get_epics(self) -> dict[str, list[Ticket]]:
         """Get all the open epics, organized by tracker"""
         # query tickets pri = epic
         # http://localhost/issues.json?priority_id=14
         epic_priority_id = 14 # fixme - lookup based on "EPIC", from redmine.get_priorities()
-        response = self.session.get(f"/issues.json?priority_id={epic_priority_id}&limit=100")
+        response = self.session.get(f"/issues.json?priority_id={epic_priority_id}include=children&limit=100")
         if not response:
-            return None
+            return {}
 
         epics = defaultdict(list)
         result = TicketsResult(**response)
         if result.total_count > 0:
             # iterate to slot by tracker
             for epic in result.issues:
-                tracker_name = epic.tracker.name
+                # re-get the ticket, to include the children ticket
+                ticket = self.get(epic.id, include="children")
+                #log.info(f"        {ticket} {ticket.children}")c
+
+                tracker_name = ticket.tracker.name if ticket and ticket.tracker else "none"
                 if tracker_name not in epics.keys():
-                    # create the tracker list
-                    epics[tracker_name] = [epic]
+                    epics[tracker_name] = [ticket] # create list with 1st element
                 else:
-                    epics[tracker_name].append(epic)
+                    epics[tracker_name].append(ticket)
 
         return epics
 

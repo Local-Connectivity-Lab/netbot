@@ -20,7 +20,7 @@ from netbot import NetBot
 log = logging.getLogger(__name__)
 
 
-def setup(bot):
+def setup(bot:NetBot):
     bot.add_cog(TicketsCog(bot))
     log.info("initialized tickets cog")
 
@@ -202,7 +202,7 @@ class TicketsCog(commands.Cog):
     """encapsulate Discord ticket functions"""
     def __init__(self, bot:NetBot):
         self.bot:NetBot = bot
-        self.redmine: Client = bot.redmine
+        self.redmine:Client = bot.redmine
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
     ticket = SlashCommandGroup("ticket",  "ticket commands")

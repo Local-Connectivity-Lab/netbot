@@ -6,7 +6,7 @@ import logging
 
 import discord
 
-from model import Ticket, User, NamedId
+from model import Ticket, SubTicket, User
 import synctime
 
 log = logging.getLogger(__name__)
@@ -27,7 +27,11 @@ EMOJI = {
     'Urgent': '⚠️',
     'Immediate': '❗',
     'EPIC': '🎇',
+    '?': '❓',
 }
+
+def get_emoji(key:str) -> str:
+    return EMOJI.get(key, EMOJI['?'])
 
 
 COLOR = {
@@ -90,16 +94,15 @@ class DiscordFormatter():
     def build_legend(self, tickets:list[Ticket]) -> dict[str,str]:
         # builds an icon-based legend from the status and
         # priorities of a list of tickets
-
         legend = {}
 
-        # TODO: Ordering?
+        #TODO: Ordering?
         for ticket in tickets:
             # track which symbols are used for status and priority
             if ticket.status.name not in legend:
-                legend[ticket.status.name] = EMOJI[ticket.status.name]
+                legend[ticket.status.name] = get_emoji(ticket.status.name)
             if ticket.priority.name not in legend:
-                legend[ticket.priority.name] = EMOJI[ticket.priority.name]
+                legend[ticket.priority.name] = get_emoji(ticket.priority.name)
 
         return legend
 
@@ -138,11 +141,16 @@ class DiscordFormatter():
         # link is mostly hidden, so we can't use the length to format.
         # but the length of the ticket id can be used
         link_padding = ' ' * (5 - len(str(ticket.id))) # field width = 6
-        status = EMOJI[ticket.status.name]
-        priority = EMOJI[ticket.priority.name]
+
+        status = get_emoji(ticket.status.name) if ticket.status else get_emoji('?')
+        priority = get_emoji(ticket.priority.name) if ticket.priority else get_emoji('?')
         age = synctime.age_str(ticket.updated_on)
         assigned = ticket.assigned_to.name if ticket.assigned_to else ""
         return f"`{link_padding}`{link}` {status} {priority}  {age:<10} {assigned:<18} `{ticket.subject[:60]}"
+
+
+    def format_subticket(self, ticket:SubTicket) -> str:
+        return f"[{ticket.id}]({self.base_url}/issues/{ticket.id}) - {ticket.subject}"
 
 
     def format_discord_note(self, note) -> str:
@@ -153,8 +161,8 @@ class DiscordFormatter():
 
     def format_ticket(self, ticket:Ticket) -> str:
         link = self.format_link(ticket)
-        status = f"{EMOJI[ticket.status.name]} {ticket.status.name}"
-        priority = f"{EMOJI[ticket.priority.name]} {ticket.priority.name}"
+        status = f"{get_emoji(ticket.status.name)} {ticket.status.name}"
+        priority = f"{get_emoji(ticket.priority.name)} {ticket.priority.name}"
         assigned = ticket.assigned_to.name if ticket.assigned_to else ""
         return " ".join([link, priority, status, ticket.tracker.name, assigned, ticket.subject])
 
@@ -174,8 +182,8 @@ class DiscordFormatter():
         # ### Description
         # description text
         #link_padding = ' ' * (5 - len(str(ticket.id))) # field width = 6
-        status = f"{EMOJI[ticket.status.name]} {ticket.status}"
-        priority = f"{EMOJI[ticket.priority.name]} {ticket.priority}"
+        status = f"{get_emoji(ticket.status.name)} {ticket.status}"
+        priority = f"{get_emoji(ticket.priority.name)} {ticket.priority}"
         created_age = synctime.age_str(ticket.created_on)
         updated_age = synctime.age_str(ticket.updated_on)
         assigned = ticket.assigned_to.name if ticket.assigned_to else ""
@@ -209,14 +217,14 @@ class DiscordFormatter():
         ids_str = ["@" + id for id in discord_ids]
         return f"ALERT #{self.format_link(ticket)} {' '.join(ids_str)}: {msg}"
 
-
+    # OLD REMOVE
     def format_epic(self, name: str, epic: list[Ticket]) -> str:
         buff = f"**{name}**\n"
         for ticket in epic:
             buff += self.format_ticket_row(ticket)
         return buff
 
-
+    # OLD REMOVE
     def format_epics(self, epics: dict[str,list[Ticket]]) -> str:
         buff = ""
         for name, epic in epics.items():
@@ -247,9 +255,10 @@ class DiscordFormatter():
         user = ctx.bot.redmine.user_mgr.get(ticket.assigned_to.id)
         if user and user.discord_id:
             member = self.lookup_discord_user(ctx, user.discord_id)
-            return f"<@!{member.id}>"
-        else:
-            return ticket.assigned
+            if member:
+                return f"<@!{member.id}>"
+
+        return ticket.assigned
 
 
     def ticket_embed(self, ctx: discord.ApplicationContext, ticket:Ticket) -> discord.Embed:
@@ -269,12 +278,47 @@ class DiscordFormatter():
         if ticket.assigned_to:
             embed.add_field(name="Owner", value=self.get_user_id(ctx, ticket))
 
+        if ticket.priority.name == "EPIC":
+            # list the sub-tickets
+            epic = ctx.bot.redmine.get_ticket(ticket.id, include="children")
+            if epic.children:
+                buff = ""
+                for child in epic.children:
+                    buff += "- " + self.format_subticket(child) + "\n"
+                embed.add_field(name="Tickets", value=buff, inline=False)
+
+            #subtickets = []
+            #embed.add_field(name="Tickets", value=self.format_tickets("", subtickets))
+
         # thread & redmine links
         thread = ctx.bot.find_ticket_thread(ticket.id)
         if thread:
             embed.add_field(name="Thread", value=thread.jump_url)
         embed.add_field(name="Redmine", value=self.format_link(ticket))
 
+        return embed
+
+
+    def epics_embed(self, ctx: discord.ApplicationContext, epics: dict[str,list[Ticket]]) -> discord.Embed:
+        """Build an embed panel with full ticket details"""
+        embed = discord.Embed(color=discord.Color.blurple())
+
+        for tracker_name, tickets in epics.items():
+            for epic in tickets:
+                subject = epic.subject[6:] if epic.subject.startswith("[EPIC]") else epic.subject
+                subject = f"{ get_emoji('EPIC') } {subject} (#{epic.id})"
+                embed.add_field(name=subject, value=epic.description, inline=False)
+                if epic.assigned_to:
+                    embed.add_field(name="Owner", value=self.get_user_id(ctx, epic))
+                embed.add_field(name="Tracker", value=epic.tracker.name)
+                embed.add_field(name="Age", value=epic.age_str)
+                embed.add_field(name="Redmine", value=self.format_link(epic))
+
+                if epic.children:
+                    buff = ""
+                    for child in epic.children:
+                        buff += "- " + self.format_subticket(child) + "\n"
+                    embed.add_field(name="", value=buff, inline=False)
         return embed
 
 

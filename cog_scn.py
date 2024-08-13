@@ -6,6 +6,7 @@ import discord
 
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
+from discord.types import embed
 
 from model import Message, User
 from redmine import Client, BLOCKED_TEAM_NAME
@@ -305,8 +306,7 @@ class SCNCog(commands.Cog):
         # get the epics.
         epics = self.redmine.ticket_mgr.get_epics()
         # format the epics and respond
-        msg = self.bot.formatter.format_epics(epics)
-        await ctx.respond(msg)
+        await ctx.respond(embed=self.bot.formatter.epics_embed(ctx, epics))
 
     @scn.command(description="list blocked email")
     async def blocked(self, ctx:discord.ApplicationContext):

@@ -221,6 +221,17 @@ class UserResult:
         return f"users:({[u.login + ',' for u in self.users]}), total={self.total_count}, {self.limit}/{self.offset}"
 
 
+@dataclass
+class SubTicket:
+    """Minimal ticket metadata included when include=children"""
+    id: int
+    tracker: NamedId
+    subject: str
+
+    def __post_init__(self):
+        self.tracker = NamedId(**self.tracker)
+
+
 SYNC_FIELD_NAME = "syncdata"
 TO_CC_FIELD_NAME = "To/CC"
 
@@ -252,7 +263,7 @@ class Ticket():
     assigned_to: NamedId|None = None
     custom_fields: list[CustomField]|None = None
     journals: list[TicketNote]|None = None
-    children: list |None = None
+    children: list[SubTicket]|None = None
     watchers: list[NamedId]|None = None
 
 
@@ -281,6 +292,8 @@ class Ticket():
             self.journals = [TicketNote(**note) for note in self.journals]
         if self.category and isinstance(self.category, dict):
             self.category = NamedId(**self.category)
+        if self.children and len(self.children) > 0 and isinstance(self.children[0], dict):
+            self.children = [SubTicket(**child) for child in self.children]
 
         if self.watchers:
             self.watchers = [NamedId(**named) for named in self.watchers]
