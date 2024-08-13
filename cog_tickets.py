@@ -319,8 +319,11 @@ class TicketsCog(commands.Cog):
             return
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
-            self.redmine.resolve_ticket(ticket_id, user.login)
-            await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
+            updated = self.redmine.resolve_ticket(ticket_id, user.login)
+            ticket_link = self.bot.formatter.format_link(ticket)
+            await ctx.respond(
+                f"Updated {ticket_link}, status: {ticket.status} -> {updated.status}",
+                embed=self.bot.formatter.ticket_embed(ctx, updated))
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 
@@ -337,8 +340,11 @@ class TicketsCog(commands.Cog):
 
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
-            self.redmine.progress_ticket(ticket_id, user.login)
-            await self.bot.formatter.print_ticket(self.redmine.get_ticket(ticket_id), ctx)
+            updated = self.redmine.progress_ticket(ticket_id, user.login)
+            ticket_link = self.bot.formatter.format_link(ticket)
+            await ctx.respond(
+                f"Updated {ticket_link}, owner: {updated.assigned}, status: {updated.status}",
+                embed=self.bot.formatter.ticket_embed(ctx, updated))
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 
@@ -410,7 +416,12 @@ class TicketsCog(commands.Cog):
                 log.debug(f"not tracker for {channel_name}")
             # create related discord thread
             await self.thread(ctx, ticket.id)
-            #await self.bot.formatter.print_ticket(ticket, ctx)
+            await self.bot.formatter.print_ticket(ticket, ctx)
+
+            ticket_link = self.bot.formatter.format_link(ticket)
+            await ctx.respond(
+                f"Created ticket {ticket_link}",
+                embed=self.bot.formatter.ticket_embed(ctx, ticket))
         else:
             await ctx.respond(f"Error creating ticket with title={title}")
 
@@ -491,7 +502,9 @@ class TicketsCog(commands.Cog):
             }
             updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
 
-            await ctx.respond(f"Updated {ticket_link} to tracker => {updated.tracker.name}")
+            await ctx.respond(
+                f"Updated tracker of {ticket_link}: {ticket.tracker} -> {updated.tracker}",
+                embed=self.bot.formatter.ticket_embed(ctx, updated))
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
 
@@ -503,17 +516,17 @@ class TicketsCog(commands.Cog):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
-            ticket_link = self.bot.formatter.format_link(ticket)
-
-            # look up the tracker string
+            # look up the priority
             priority = self.bot.lookup_priority(priority)
-
             fields = {
                 "priority_id": priority.id,
             }
             updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
 
-            await ctx.respond(f"Updated {ticket_link} to priority => {updated.priority.name}")
+            ticket_link = self.bot.formatter.format_link(ticket)
+            await ctx.respond(
+                f"Updated priority of {ticket_link}: {ticket.priority} -> {updated.priority}",
+                embed=self.bot.formatter.ticket_embed(ctx, updated))
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
 
@@ -532,14 +545,15 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
             return
 
-        ticket_link = self.bot.formatter.format_link(ticket)
-
         fields = {
             "subject": subject,
         }
         updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
 
-        await ctx.respond(f"Updated {ticket_link} with new subject => {updated.subject}") #TODO return ticket summary.
+        ticket_link = self.bot.formatter.format_link(ticket)
+        await ctx.respond(
+            f"Updated subject of {ticket_link} to: {updated.subject}",
+            embed=self.bot.formatter.ticket_embed(ctx, updated))
 
     @ticket.command(name="help", description="Display hepl about ticket management")
     async def help(self, ctx: discord.ApplicationContext):

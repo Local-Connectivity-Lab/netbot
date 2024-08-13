@@ -176,8 +176,8 @@ class Client():
         else:
             log.error(f"unknow user: {target}") # Exception?
 
-    def progress_ticket(self, ticket_id, user_id=None): # TODO notes
-        self.ticket_mgr.progress_ticket(ticket_id, user_id)
+    def progress_ticket(self, ticket_id, user_id=None) -> Ticket: # TODO notes
+        return self.ticket_mgr.progress_ticket(ticket_id, user_id)
 
     def reject_ticket(self, ticket_id, user_id=None):
         self.ticket_mgr.reject_ticket(ticket_id, user_id)
@@ -185,7 +185,7 @@ class Client():
     def unassign_ticket(self, ticket_id, user_id=None):
         self.ticket_mgr.unassign_ticket(ticket_id, user_id)
 
-    def resolve_ticket(self, ticket_id, user_id=None):
+    def resolve_ticket(self, ticket_id, user_id=None) -> Ticket:
         return self.ticket_mgr.resolve_ticket(ticket_id, user_id)
 
     def get_team(self, teamname:str) -> Team:

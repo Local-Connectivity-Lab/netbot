@@ -476,12 +476,12 @@ class TicketManager():
         self.session.post(f"{ISSUE_RESOURCE}{ticket_id}/watchers.json" , json.dumps(fields))
 
 
-    def progress_ticket(self, ticket_id, user_id=None):
+    def progress_ticket(self, ticket_id, user_id=None) -> Ticket:
         fields = {
             "assigned_to_id": "me",
             "status_id": "2", # "In Progress"
         }
-        self.update(ticket_id, fields, user_id)
+        return self.update(ticket_id, fields, user_id)
 
 
     def reject_ticket(self, ticket_id, user_id=None) -> Ticket:
@@ -501,7 +501,7 @@ class TicketManager():
 
 
     def resolve_ticket(self, ticket_id, user_id=None):
-        self.update(ticket_id, {"status_id": "3"}, user_id) # '3' is the status_id, it doesn't accept "Resolved"
+        return self.update(ticket_id, {"status_id": "3"}, user_id) # '3' is the status_id, it doesn't accept "Resolved"
 
 
     def update_sync_record(self, record:synctime.SyncRecord):
