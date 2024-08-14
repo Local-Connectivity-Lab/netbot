@@ -75,17 +75,6 @@ class Message():
 
 
 @dataclass
-class TicketStatus():
-    """status of a ticket"""
-    id: int
-    name: str
-    is_closed: bool
-
-    def __str__(self):
-        return self.name
-
-
-@dataclass
 class PropertyChange(): # https://www.redmine.org/projects/redmine/wiki/Rest_IssueJournals
     """a documented change in a single property"""
     property: str
@@ -108,6 +97,17 @@ class NamedId():
             return self.name #+ ":" + str(self.id)
         else:
             return str(self.id)
+
+
+@dataclass
+class TicketStatus(NamedId):
+    """status of a ticket"""
+    id: int
+    name: str
+    is_closed: bool
+
+    def __str__(self):
+        return self.name
 
 
 @dataclass

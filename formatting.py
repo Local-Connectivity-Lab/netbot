@@ -3,16 +3,23 @@
 """Formatting Discord messages"""
 
 import logging
+from os import name
 
 import discord
 
-from model import Ticket, SubTicket, User
+from model import NamedId, Ticket, SubTicket, User
 import synctime
 
 log = logging.getLogger(__name__)
 
 MAX_MESSAGE_LEN = 2000
+EMBED_TITLE_LEN = 256 # title, field name, author
+EMBED_DESC_LEN = 4096
+EMBED_VALUE_LEN = 1024
+EMBED_FOOTER_LEN = 2048
+EMBED_MAX_LEN = 6000
 
+# Note: Up to 10 embeds per response, 25 fields each
 
 EMOJI = {
     'Resolved': '✅',
@@ -30,7 +37,7 @@ EMOJI = {
 }
 
 def get_emoji(key:str) -> str:
-    return EMOJI.get(key, EMOJI['?'])
+    return EMOJI.get(key, "")
 
 
 COLOR = {
@@ -47,9 +54,9 @@ COLOR = {
     'EPIC': discord.Color.dark_gray(),
 }
 
-EPIC_TAG = "[EPIC] "
-def strip_epic_tag(subject:str) -> str:
-     return subject[len(EPIC_TAG):] if subject.startswith(EPIC_TAG) else subject
+#EPIC_TAG = "[EPIC] "
+#def strip_epic_tag(subject:str) -> str:
+#     return subject[len(EPIC_TAG):] if subject.startswith(EPIC_TAG) else subject
 
 
 class DiscordFormatter():
@@ -138,6 +145,23 @@ class DiscordFormatter():
     def format_link(self, ticket:Ticket) -> str: ## to Ticket.link(base_url)?
         return f"[`#{ticket.id}`]({self.base_url}/issues/{ticket.id})"
 
+    def format_tracker(self, tracker:NamedId|None) -> str:
+        if tracker:
+            return f"{get_emoji(tracker.name)} {tracker.name}"
+        else:
+            return ""
+
+    def format_icon(self, value:NamedId|None) -> str:
+        if value and value.name:
+            emoji = get_emoji(value.name)
+            if len(emoji) > 0:
+                return f"{get_emoji(value.name)} {value.name}"
+            else:
+                return value.name
+        elif value:
+            return str(value.id)
+        else:
+            return ""
 
     def format_ticket_row(self, ticket:Ticket) -> str:
         link = self.format_link(ticket)
@@ -185,8 +209,8 @@ class DiscordFormatter():
         # ### Description
         # description text
         #link_padding = ' ' * (5 - len(str(ticket.id))) # field width = 6
-        status = f"{get_emoji(ticket.status.name)} {ticket.status}"
-        priority = f"{get_emoji(ticket.priority.name)} {ticket.priority}"
+        status = self.format_icon(ticket.status)
+        priority = self.format_icon(ticket.priority)
         created_age = synctime.age_str(ticket.created_on)
         updated_age = synctime.age_str(ticket.updated_on)
         assigned = ticket.assigned_to.name if ticket.assigned_to else ""
@@ -266,16 +290,19 @@ class DiscordFormatter():
 
     def ticket_embed(self, ctx: discord.ApplicationContext, ticket:Ticket) -> discord.Embed:
         """Build an embed panel with full ticket details"""
-        subject = f"{get_emoji(ticket.priority.name)} {strip_epic_tag(ticket.subject)} (#{ticket.id})"
+        subject = f"{get_emoji(ticket.priority.name)} {ticket.subject[:EMBED_TITLE_LEN-8]} (#{ticket.id})"
         embed = discord.Embed(
             title=subject,
-            description=ticket.description,
+            description=ticket.description[:EMBED_DESC_LEN],
             colour=self.ticket_color(ticket)
         )
 
-        embed.add_field(name="Status", value=ticket.status)
-        embed.add_field(name="Priority", value=ticket.priority)
-        embed.add_field(name="Tracker", value=ticket.tracker)
+        # noting, assuming all these values are less than
+        #         status = self.format_icon(ticket.status)
+        #priority = self.format_icon(ticket.priority)
+        embed.add_field(name="Status", value=self.format_icon(ticket.status))
+        embed.add_field(name="Priority", value=self.format_icon(ticket.priority))
+        embed.add_field(name="Tracker", value=self.format_icon(ticket.tracker))
         if ticket.category:
             embed.add_field(name="Category", value=ticket.category)
 
@@ -298,17 +325,23 @@ class DiscordFormatter():
         return embed
 
 
-    def epics_embed(self, ctx: discord.ApplicationContext, epics: dict[str,list[Ticket]]) -> discord.Embed:
-        """Build an embed panel with full ticket details"""
-        embed = discord.Embed(color=discord.Color.blurple())
+    def epics_embed(self, ctx: discord.ApplicationContext, epics: dict[str,list[Ticket]]) -> list[discord.Embed]:
+        """Build an array of embeds, one for each epic"""
+        embeds = []
 
         for tracker_name, tickets in epics.items():
             for epic in tickets:
-                subject = f"{ get_emoji(epic.priority.name) } {strip_epic_tag(epic.subject)} (#{epic.id})"
-                embed.add_field(name=subject, value=epic.description, inline=False)
+                title = f"{ get_emoji(epic.priority.name) } {epic.subject[:EMBED_TITLE_LEN-8]} (#{epic.id})"
+                embed = discord.Embed(
+                    title=title,
+                    description=epic.description[:EMBED_DESC_LEN],
+                    color=discord.Color.blurple() # based on tracker?
+                )
+
+                # noting, assuming all these values are less than
                 if epic.assigned_to:
                     embed.add_field(name="Owner", value=self.get_user_id(ctx, epic))
-                embed.add_field(name="Tracker", value=epic.tracker.name)
+                embed.add_field(name="Tracker", value=self.format_tracker(epic.tracker))
                 embed.add_field(name="Age", value=epic.age_str)
                 embed.add_field(name="Redmine", value=self.format_link(epic))
 
@@ -317,7 +350,9 @@ class DiscordFormatter():
                     for child in epic.children:
                         buff += "- " + self.format_subticket(child) + "\n"
                     embed.add_field(name="", value=buff, inline=False)
-        return embed
+                # add each embed to the set
+                embeds.append(embed)
+        return embeds
 
 
     def help_embed(self, ctx: discord.ApplicationContext) -> discord.Embed:

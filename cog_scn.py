@@ -306,7 +306,7 @@ class SCNCog(commands.Cog):
         # get the epics.
         epics = self.redmine.ticket_mgr.get_epics()
         # format the epics and respond
-        await ctx.respond(embed=self.bot.formatter.epics_embed(ctx, epics))
+        await ctx.respond(embeds=self.bot.formatter.epics_embed(ctx, epics))
 
     @scn.command(description="list blocked email")
     async def blocked(self, ctx:discord.ApplicationContext):
