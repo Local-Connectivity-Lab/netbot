@@ -1,0 +1,122 @@
+Delivered-To: redmine@seattlecommunitynetwork.org
+Received: by 2002:a05:7022:1085:b0:6f:ed48:a9ba with SMTP id ep5csp35928dlb;
+        Wed, 22 Nov 2023 15:30:00 -0800 (PST)
+X-Received: by 2002:a0d:fb47:0:b0:5b3:b17d:190f with SMTP id l68-20020a0dfb47000000b005b3b17d190fmr4175972ywf.29.1700695800248;
+        Wed, 22 Nov 2023 15:30:00 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1700695800; cv=none;
+        d=google.com; s=arc-20160816;
+        b=ai0pCHlmNQ+L//0R2NNgGhRQ9lQBea3Uh8nk9mL/a7TjHSvEB+sBWXM2bqgZen+6bg
+         +NSYLcu5cyq/1yVFvHAg64WjwZOnBfG2tQd8qdQ55aE9KL+qNbOS41zRbKFUaC2/rmBK
+         vsmEJBnLiym9dbWGyM4Xu855kNz5fnJUPlo+Fbe0+GuJomttXww0QzcYvTW0fuQdwpSp
+         9/wxQV3OldJ0gRYJ97Ar5TVCxuO5sruE6kfQfzAoqE2g+XWpa0IuP6U2hfwI8ZqBOyL/
+         /9oiA7KqbtnlKf3FBfiD/ubCw1hXrchFr6bXxOTMnF8ZnJ3aGoDRTlF/nT26GlF301x8
+         7sTw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=to:subject:message-id:date:from:reply-to:in-reply-to:references
+         :mime-version;
+        bh=7sxqK4MaO/Min9pwIEdo+bS/hzVcrWEw2bHyC3Dk250=;
+        fh=ex/TYvp8cVd+2766c1LClrvXBq48oaslxt36Qu94xB8=;
+        b=vE3MmO2TAb9g0aQ6EFPwBuS4PfQn60T2xYrSXMtJSjeWtPXVACiA3HI8tHvkurV3gT
+         mrJkWlispYKi4DE7Lq2K/XNb2eZohSjfbKDwZzB38fHqIhWnJmShNB9e6jrdHF7hYgeD
+         rRu9Dbt0/iwWmHHdb7uZGLTyqI+UmK0E5bVvS6mnfnHgRcifsEAoHTkO+k658D7s+j3k
+         xyrC9VKuq89/785SvPazdClh+s87KmUsW8tggDJMOsBmefZI9ovPzDzj6QVMGH/8QsJY
+         OO8HcNbC2P8WJU4zIYjhPskgZaYb/NzDMtWP7pOcgY9MZIzzv+SLxGD/NUtjjW2UE7Rv
+         8MWw==
+ARC-Authentication-Results: i=1; mx.google.com;
+       spf=pass (google.com: domain of philion@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=philion@gmail.com
+Return-Path: <philion@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id m123-20020a0dca81000000b005cca7b5a5afsor53306ywd.7.2023.11.22.15.30.00
+        for <redmine@seattlecommunitynetwork.org>
+        (Google Transport Security);
+        Wed, 22 Nov 2023 15:30:00 -0800 (PST)
+Received-SPF: pass (google.com: domain of philion@gmail.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       spf=pass (google.com: domain of philion@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=philion@gmail.com
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1700695800; x=1701300600;
+        h=to:subject:message-id:date:from:reply-to:in-reply-to:references
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=7sxqK4MaO/Min9pwIEdo+bS/hzVcrWEw2bHyC3Dk250=;
+        b=OOCMJcIH0e75ikUX7yc01mGOYIhrZ9XhZ4QCEcMXKP1NfpvcBnM8Y1u7hYPWa5OvSy
+         Um/42KWq88j+P6ob5WoQp7gYcMwoAOFUb+Dw3n25AeQn1Aw4iIfxV5wvBA7OfA6FnCPG
+         8gi2bxz42eMWsza4/SSoVoNYadcGAdZ0OCrwEkhmTC2IUU2/MLrtEzbl92ZuGmdz7xkT
+         rhDRh/Bopm+Azn5zlQJMLoXHQEKriMBay9/+nhA4xinG6/OAiTCuRRtyGqtif2t969ng
+         zTaWiTfkvoHwxy4waYnk/EC9Q7TwfGIl4Z9tJUViSIcfeAxEhS2lsAjv8+4c6zlaA3I5
+         D5RA==
+X-Gm-Message-State: AOJu0YwVFOr4f6WSKwu/Husi40ZOWwnOTetZ/w8E/dpOQXUp+1BLccet
+	LI9CipfK74KcpCaR5CKyLBSy74sElXhifD38gV5zTe94vGQ=
+X-Google-Smtp-Source: AGHT+IGouLT1wh4wtxBmowxlRS9SKVnZwpsqwElDTiX+fOvcZyLSQVyazoyh7K+cxDWuorItTuh0Uj1e0oKNTquEEos=
+X-Received: by 2002:a0d:fe05:0:b0:5c9:8532:e868 with SMTP id
+ o5-20020a0dfe05000000b005c98532e868mr3322813ywf.52.1700695799732; Wed, 22 Nov
+ 2023 15:29:59 -0800 (PST)
+MIME-Version: 1.0
+References: <CAADveDHuaN4E88m3NjprUpVmNDLpj-uF-8JjhiqK+dan+bzVkg@mail.gmail.com>
+ <CAADveDFbZnBD4d890vj1FDtnFcSi49ROM5hL38v7V6dydk2iqQ@mail.gmail.com> <CAADveDGpe7AwbO=i98kD-7gw4aotBF-ETKoUm0N6urmg0EYPEA@mail.gmail.com>
+In-Reply-To: <CAADveDGpe7AwbO=i98kD-7gw4aotBF-ETKoUm0N6urmg0EYPEA@mail.gmail.com>
+Reply-To: philion@acmerocket.com
+From: Paul Philion <philion@acmerocket.com>
+Date: Wed, 22 Nov 2023 15:29:48 -0800
+Message-ID: <CAADveDHVJ_K2gUCz86pag6R5SNEg=ugJD43kU_T6iSZDBJnYzA@mail.gmail.com>
+Subject: Re: Search for subject match in email threading
+To: Paul Philion <redmine@seattlecommunitynetwork.org>, philion@acmerocket.com
+Content-Type: multipart/alternative; boundary="00000000000003a105060ac6196b"
+
+--00000000000003a105060ac6196b
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+Woo!
+
+
+On Wed, Nov 22, 2023 at 3:11=E2=80=AFPM Paul Philion <philion@acmerocket.co=
+m> wrote:
+
+> Let's try another reply.
+>
+> On Wed, Nov 22, 2023 at 3:08=E2=80=AFPM Paul Philion <philion@acmerocket.=
+com>
+> wrote:
+>
+>> Another attempt.
+>>
+>> Hi all!
+>>
+>> On Wed, Nov 22, 2023 at 2:52=E2=80=AFPM philion <philion@gmail.com> wrot=
+e:
+>>
+>>> Will this work?
+>>>
+>>> Woo hoo!
+>>>
+>>
+
+--00000000000003a105060ac6196b
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr">Woo!<div><br></div></div><br><div class=3D"gmail_quote"><d=
+iv dir=3D"ltr" class=3D"gmail_attr">On Wed, Nov 22, 2023 at 3:11=E2=80=AFPM=
+ Paul Philion &lt;<a href=3D"mailto:philion@acmerocket.com">philion@acmeroc=
+ket.com</a>&gt; wrote:<br></div><blockquote class=3D"gmail_quote" style=3D"=
+margin:0px 0px 0px 0.8ex;border-left-width:1px;border-left-style:solid;bord=
+er-left-color:rgb(204,204,204);padding-left:1ex"><div dir=3D"ltr">Let&#39;s=
+ try another reply.</div><br><div class=3D"gmail_quote"><div dir=3D"ltr" cl=
+ass=3D"gmail_attr">On Wed, Nov 22, 2023 at 3:08=E2=80=AFPM Paul Philion &lt=
+;<a href=3D"mailto:philion@acmerocket.com" target=3D"_blank">philion@acmero=
+cket.com</a>&gt; wrote:<br></div><blockquote class=3D"gmail_quote" style=3D=
+"margin:0px 0px 0px 0.8ex;border-left-width:1px;border-left-style:solid;bor=
+der-left-color:rgb(204,204,204);padding-left:1ex"><div dir=3D"ltr">Another =
+attempt.<div><br></div><div>Hi all!</div></div><br><div class=3D"gmail_quot=
+e"><div dir=3D"ltr" class=3D"gmail_attr">On Wed, Nov 22, 2023 at 2:52=E2=80=
+=AFPM philion &lt;<a href=3D"mailto:philion@gmail.com" target=3D"_blank">ph=
+ilion@gmail.com</a>&gt; wrote:<br></div><blockquote class=3D"gmail_quote" s=
+tyle=3D"margin:0px 0px 0px 0.8ex;border-left-width:1px;border-left-style:so=
+lid;border-left-color:rgb(204,204,204);padding-left:1ex"><div dir=3D"ltr">W=
+ill this work?<div><br></div><div>Woo hoo!</div></div>
+</blockquote></div>
+</blockquote></div>
+</blockquote></div>
+
+--00000000000003a105060ac6196b--
