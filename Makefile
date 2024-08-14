@@ -24,10 +24,10 @@ $(VENV)/bin/activate: requirements.txt
 	$(PIP) install -r requirements.txt
 
 test: $(VENV)/bin/activate
-	$(PYTHON) -m unittest 
+	$(PYTHON) -m unittest
 
 coverage: $(VENV)/bin/activate
-	$(PYTHON) -m coverage run -m unittest
+	$(PYTHON) -m coverage run -m unittest tests/test_*.py
 	$(PYTHON) -m coverage report
 
 htmlcov: $(VENV)/bin/activate
@@ -35,7 +35,7 @@ htmlcov: $(VENV)/bin/activate
 	$(PYTHON) -m coverage html
 
 lint: $(VENV)/bin/activate
-	$(PYTHON) -m pylint *.py 
+	$(PYTHON) -m pylint *.py
 
 clean:
 	rm -rf __pycache__
