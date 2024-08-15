@@ -8,7 +8,6 @@
 A collection of Seattle Community Network ([SCN](https://seattlecommunitynetwork.org/)) tools, including:
 * **`threader.ph`**: SCN's email threading service to collect and categorize SCN messages.
 * **`netbot.py`**: SCN's Discord bot to manage Redmine tickets from Discord.
-* **`cli.py`**: A rich-terminal CLI version of the `netbot` commands.
 * **`redmine.py`**: A Redmine client written in Python, designed for SCN use cases.
 
 This code base currently supports several different services due to the reliance on the Redmine client code. (In the future, this should be split into several projects, and redmine.py cleaned up and submitted to PyPI.)
@@ -32,16 +31,10 @@ For design and implementation details, see [Design](docs/design.md).
 For deployment and operational details, see [Netbot Operation](docs/netbot.md).
 
 
-## cli
-
-`cli.py` provides an implementation of the netbot Discord commands that can be run on a local command line.
-
-For details about configuration and usage, see [CLI](docs/cli.md)
-
-
 ## Development
 A `Makefile` is provided with the following targets:
 - `venv`     : build a Python virtual environment ("venv")
+- `run`      : run netbot
 - `test`     : run the unit test suite
 - `coverage` : run the unit tests and generate a minimal coverage report
 - `htmlcov`  : run the unit tests and generate a full report in htmlcov/
