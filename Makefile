@@ -40,6 +40,7 @@ lint: $(VENV)/bin/activate
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)
+	rm -rf htmlcov
 	rm -f discord.log
 	rm -f dpytest_*.dat
 	find . -type f -name ‘*.pyc’ -delete
