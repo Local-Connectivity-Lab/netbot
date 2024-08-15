@@ -327,7 +327,7 @@ class DiscordFormatter():
         """Build an array of embeds, one for each epic"""
         embeds = []
 
-        for tracker_name, tickets in epics.items():
+        for _, tickets in epics.items():
             for epic in tickets:
                 title = f"{ get_emoji(epic.priority.name) } {epic.subject[:EMBED_TITLE_LEN-8]} (#{epic.id})"
                 embed = discord.Embed(
@@ -353,7 +353,7 @@ class DiscordFormatter():
         return embeds
 
 
-    def help_embed(self, ctx: discord.ApplicationContext) -> discord.Embed:
+    def help_embed(self, _: discord.ApplicationContext) -> discord.Embed:
         """Build an embed panel with help"""
         embed = discord.Embed(
             title="Ticket Help",

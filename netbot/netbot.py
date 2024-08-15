@@ -9,10 +9,11 @@ import discord
 from dotenv import load_dotenv
 from discord.ext import commands, tasks
 
-from netbot.formatting import DiscordFormatter
 from redmine.model import TicketNote, Ticket, NamedId
 from redmine import synctime
 from redmine.redmine import Client
+
+from .formatting import DiscordFormatter
 
 
 log = logging.getLogger(__name__)

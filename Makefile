@@ -14,7 +14,7 @@ PIP = $(VENV)/bin/pip
 all: venv
 
 run: venv
-	$(PYTHON) netbot.py
+	$(PYTHON) -m netbot.netbot
 
 venv: $(VENV)/bin/activate
 
@@ -35,7 +35,7 @@ htmlcov: $(VENV)/bin/activate
 	$(PYTHON) -m coverage html
 
 lint: $(VENV)/bin/activate
-	$(PYTHON) -m pylint *.py
+	$(PYTHON) -m pylint */*.py
 
 clean:
 	rm -rf __pycache__
