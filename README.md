@@ -6,9 +6,9 @@
 
 
 A collection of Seattle Community Network ([SCN](https://seattlecommunitynetwork.org/)) tools, including:
-* **`threader.ph`**: SCN's email threading service to collect and categorize SCN messages.
-* **`netbot.py`**: SCN's Discord bot to manage Redmine tickets from Discord.
-* **`redmine.py`**: A Redmine client written in Python, designed for SCN use cases.
+* **`threader`**: SCN's email threading service to collect and categorize SCN messages.
+* **`netbot`**: SCN's Discord bot to manage Redmine tickets from Discord.
+* **`redmine`**: A Redmine client written in Python, designed for SCN use cases.
 
 This code base currently supports several different services due to the reliance on the Redmine client code. (In the future, this should be split into several projects, and redmine.py cleaned up and submitted to PyPI.)
 
