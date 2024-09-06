@@ -512,12 +512,17 @@ class TicketsCog(commands.Cog):
     @ticket.command(name="priority", description="Update the tracker of a ticket")
     @option("ticket_id", description="ID of ticket to update")
     @option("priority", description="Priority to assign to ticket", autocomplete=get_priorities)
-    async def priority(self, ctx: discord.ApplicationContext, ticket_id:int, priority:str):
+    async def priority(self, ctx: discord.ApplicationContext, ticket_id:int, priority_str:str):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
             # look up the priority
-            priority = self.bot.lookup_priority(priority)
+            priority = self.bot.lookup_priority(priority_str)
+            if priority is None:
+                log.error(f"Unknown priority: {priority_str}")
+                await ctx.respond(f"Unknown priority: {priority_str}")
+                return
+
             fields = {
                 "priority_id": priority.id,
             }
