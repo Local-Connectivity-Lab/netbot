@@ -405,10 +405,10 @@ class TicketManager():
 
 
     def search(self, term) -> list[Ticket]:
-        """search all text of all tickets (not just open) for the supplied terms"""
+        """search all text of open tickets for the supplied terms"""
         # todo url-encode term?
-        # note: sort doesn't seem to be working for search
-        query = f"/search.json?q={term}&issues=1&limit=100&sort={DEFAULT_SORT}"
+        # note: open_issues=1 is open issues only
+        query = f"/search.json?q={term}&issues=1&open_issues=1&limit=100"
 
         response = self.session.get(query)
         if not response:
