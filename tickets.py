@@ -233,7 +233,7 @@ class TicketManager():
         # query tickets pri = epic
         # http://localhost/issues.json?priority_id=14
         epic_priority_id = 14 # fixme - lookup based on "EPIC", from redmine.get_priorities()
-        response = self.session.get(f"/issues.json?priority_id={epic_priority_id}include=children&limit=100")
+        response = self.session.get(f"/issues.json?priority_id={epic_priority_id}&include=children&limit=10&sort={DEFAULT_SORT}")
         if not response:
             return {}
 

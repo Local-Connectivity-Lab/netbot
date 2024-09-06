@@ -8,6 +8,9 @@ Using this as a change log (apart from git log).
 
 Fixed #[1206](http://172.16.20.20/issues/1206): Only open tickets are displayed in search results.
 
+Fixed #[1204](http://172.16.20.20/issues/1204): Truncated epics to the most recent 10 (until paging is implemented)
+
+
 ### 2023-08-29
 After the ticket workflow discussions, I've been thinking about how to better integrate the "issue source of truth" (was osticket, becomming redmine) with the tools that *humans* use for discussion and issue resolution (Discord). Esther suggested an integration that tracked ticket discussion in specific threads, which was similar to slack-thread-per-issue in a few startups.
 
