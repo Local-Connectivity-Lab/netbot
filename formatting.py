@@ -328,8 +328,10 @@ class DiscordFormatter():
     def epics_embed(self, ctx: discord.ApplicationContext, epics: dict[str,list[Ticket]]) -> list[discord.Embed]:
         """Build an array of embeds, one for each epic"""
         embeds = []
+        total_len = 0
+        count = 0
 
-        for tracker_name, tickets in epics.items():
+        for _, tickets in epics.items():
             for epic in tickets:
                 title = f"{ get_emoji(epic.priority.name) } {epic.subject[:EMBED_TITLE_LEN-8]} (#{epic.id})"
                 embed = discord.Embed(
@@ -350,8 +352,40 @@ class DiscordFormatter():
                     for child in epic.children:
                         buff += "- " + self.format_subticket(child) + "\n"
                     embed.add_field(name="", value=buff, inline=False)
-                # add each embed to the set
+
+                # truncing approach:
+                # 1 message, 10 embeds, 6000 chars max
+                # if the embed is > 600, clip the description so the overall length == 600
+                # this effectively removes descriptions from epics with a lot of tickets.
+                # it also leaves a lot of wasted overhead, when the other embeds in the message
+                # are less than 600, about 10% on current samples.
+                embed_len = len(embed)
+                if embed_len > 600: # 6000/10
+                    overage = embed_len - 600
+                    embed.description = embed.description[:-overage]
+                    #log.info(f"EMBED: orig={embed_len}, desc={len(embed.description)}, over={overage}")
+
+                # add embed to the set
+                total_len += len(embed)
                 embeds.append(embed)
+
+        # if total_len > EMBED_MAX_LEN:
+        #     log.info(f"too-long epics: total={total_len}, max={EMBED_MAX_LEN}")
+        #     adjusted_total = 0
+        #     over_count = 10 - under_count
+        #     grace = under_total/over_count
+
+        #     for embed in embeds:
+        #         embed_len = len(embed)
+        #         overage = int(round(embed_len - (600 + grace)))
+        #         if overage > 0:
+        #             log.info(f"EMBED1: len={embed_len}, desc={len(embed.description)}, over={overage}")
+        #             embed.description = embed.description[:-overage]
+        #             log.info(f"EMBED2: len={embed_len}, desc={len(embed.description)}")
+        #         adjusted_total += len(embed)
+
+        #log.info(f"after adjust: total={total_len}")
+
         return embeds
 
 
