@@ -402,6 +402,7 @@ class TicketsCog(commands.Cog):
         message = Message(from_addr=user.mail, subject=title, to=ctx.channel.name)
         message.set_note(text)
 
+        ticket: Ticket = None
         ticket_id = self.bot.parse_thread_title(channel_name)
         if ticket_id:
             # check if it's an epic
@@ -410,6 +411,8 @@ class TicketsCog(commands.Cog):
                 ticket = self.redmine.ticket_mgr.create(user, message, parent_issue_id=ticket_id)
             else:
                 ticket = self.redmine.ticket_mgr.create(user, message)
+        else:
+            ticket = self.redmine.ticket_mgr.create(user, message)
 
         if ticket:
             # ticket created, set tracker
