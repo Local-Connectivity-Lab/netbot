@@ -85,7 +85,7 @@ class TicketManager():
         return None
 
 
-    def create(self, user: User, message: Message, project_id: int = None) -> Ticket:
+    def create(self, user: User, message: Message, project_id: int = None, **params) -> Ticket:
         """create a redmine ticket"""
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
         # would need full param handling to pass that thru discord to get to this invocation
@@ -111,6 +111,10 @@ class TicketManager():
             }
         }
 
+        if params:
+            data["issue"].update(params)
+            log.debug(f"added params to new ticket, ticket={data['issue']}")
+
         if message.attachments and len(message.attachments) > 0:
             data['issue']['uploads'] = []
             for a in message.attachments:
@@ -120,8 +124,8 @@ class TicketManager():
                     "content_type": a.content_type,
                 })
 
-        #log.debug(f"POST data: {data}")
         response = self.session.post(ISSUES_RESOURCE, json.dumps(data), user.login)
+        #log.debug(f"POST response: {response}")
 
         # check status
         if response:

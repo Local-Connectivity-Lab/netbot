@@ -33,7 +33,8 @@
         "is_closed": false
     },
     "parent": {
-        "id": 104
+        "id": 104,
+        "subject": "Parent test ticket"
     },
     "spent_hours": 0.0,
     "total_spent_hours": 0.0,

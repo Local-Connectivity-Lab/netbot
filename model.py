@@ -232,6 +232,13 @@ class SubTicket:
         self.tracker = NamedId(**self.tracker)
 
 
+@dataclass
+class ParentTicket:
+    """Parent ticket metadata"""
+    id: int
+    subject: str|None = None
+
+
 SYNC_FIELD_NAME = "syncdata"
 TO_CC_FIELD_NAME = "To/CC"
 
@@ -256,7 +263,7 @@ class Ticket():
     priority: NamedId|None = None
     author: NamedId|None = None
     status: TicketStatus|None = None
-    parent: NamedId|None = None
+    parent: ParentTicket|None = None
     spent_hours: float = 0.0
     total_spent_hours: float = 0.0
     category: NamedId|None = None
@@ -274,6 +281,8 @@ class Ticket():
         self.project =  NamedId(**self.project)
         self.tracker = NamedId(**self.tracker)
 
+        if self.parent and isinstance(self.parent, dict):
+            self.parent = ParentTicket(**self.parent)
         if self.assigned_to and isinstance(self.assigned_to, dict):
             self.assigned_to = NamedId(**self.assigned_to)
         if self.created_on and isinstance(self.created_on, str):

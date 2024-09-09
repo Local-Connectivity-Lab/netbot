@@ -395,11 +395,19 @@ class TicketsCog(commands.Cog):
             return
 
         channel_name = ctx.channel.name
-        text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
+        text = f"Created by Discord user {ctx.user.name} -> {user.login}"
         message = Message(from_addr=user.mail, subject=title, to=ctx.channel.name)
         message.set_note(text)
-        ## TODO cleanup with cogscn.sync: both have complex ticket creation
-        ticket = self.redmine.create_ticket(user, message)
+
+        ticket_id = self.bot.parse_thread_title(channel_name)
+        if ticket_id:
+            # check if it's an epic
+            epic = self.redmine.ticket_mgr.get(ticket_id)
+            if epic and epic.priority.name == "EPIC":
+                ticket = self.redmine.ticket_mgr.create(user, message, parent_issue_id=ticket_id)
+            else:
+                ticket = self.redmine.ticket_mgr.create(user, message)
+
         if ticket:
             # ticket created, set tracker
             # set tracker
