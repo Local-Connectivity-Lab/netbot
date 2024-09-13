@@ -145,7 +145,7 @@ class TestMessages(test_utils.RedmineTestCase):
         self.assertEqual(1, len(tickets))
         self.assertEqual(ticket.id, tickets[0].id)
 
-        tickets = self.redmine.search_tickets(tag)
+        tickets = self.redmine.ticket_mgr.search(tag)
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
         self.assertEqual(ticket.id, tickets[0].id)

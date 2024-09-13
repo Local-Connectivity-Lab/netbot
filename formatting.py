@@ -244,20 +244,6 @@ class DiscordFormatter():
         ids_str = ["@" + id for id in discord_ids]
         return f"ALERT #{self.format_link(ticket)} {' '.join(ids_str)}: {msg}"
 
-    # OLD REMOVE
-    def format_epic(self, name: str, epic: list[Ticket]) -> str:
-        buff = f"**{name}**\n"
-        for ticket in epic:
-            buff += self.format_ticket_row(ticket)
-        return buff
-
-    # OLD REMOVE
-    def format_epics(self, epics: dict[str,list[Ticket]]) -> str:
-        buff = ""
-        for name, epic in epics.items():
-            buff += self.format_epic(name, epic) + '\n'
-        return buff[:MAX_MESSAGE_LEN] # truncate!
-
 
     def ticket_color(self, ticket:Ticket) -> discord.Color:
         """Get the default color associtated with a priority"""
@@ -329,7 +315,6 @@ class DiscordFormatter():
         """Build an array of embeds, one for each epic"""
         embeds = []
         total_len = 0
-        count = 0
 
         for _, tickets in epics.items():
             for epic in tickets:

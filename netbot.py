@@ -2,6 +2,7 @@
 """netbot"""
 
 import os
+import sys
 import re
 import logging
 import asyncio
@@ -433,7 +434,13 @@ def main():
 
 def setup_logging():
     """set up logging for netbot"""
-    logging.basicConfig(level=logging.INFO,
+    log_level = logging.INFO
+    # check args
+    for arg in sys.argv:
+        if arg.lower() == "debug":
+            log_level = logging.DEBUG
+
+    logging.basicConfig(level=log_level,
                         format="{asctime} {levelname:<8s} {name:<16} {message}",
                         style='{')
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
@@ -442,6 +449,7 @@ def setup_logging():
     logging.getLogger("discord.client").setLevel(logging.WARNING)
     logging.getLogger("discord.webhook.async_").setLevel(logging.WARNING)
 
+    log.debug("log level set to debug")
 
 if __name__ == '__main__':
     setup_logging()

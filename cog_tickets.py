@@ -210,11 +210,11 @@ class TicketsCog(commands.Cog):
 
     # figure out what the term refers to
     # could be ticket#, team name, user name or search term
-    def resolve_query_term(self, term):
+    def resolve_query_term(self, term) -> list[Ticket]:
         # special cases: ticket num and team name
         try:
             int_id = int(term)
-            ticket = self.redmine.get_ticket(int_id)
+            ticket = self.redmine.get_ticket(int_id, include="children") # get the children
             return [ticket]
         except ValueError:
             # ignore
@@ -231,7 +231,7 @@ class TicketsCog(commands.Cog):
 
         # assume a search term
         log.debug(f"QUERY {term}")
-        return self.redmine.search_tickets(term)
+        return self.redmine.ticket_mgr.search(term)
 
 
     @ticket.command(description="Query tickets")
@@ -259,6 +259,9 @@ class TicketsCog(commands.Cog):
             query = args[0]
             results = self.resolve_query_term(query)
             await self.bot.formatter.print_tickets(f"Search for '{query}'", results, ctx)
+        else:
+            results = self.redmine.ticket_mgr.search(term)
+            await self.bot.formatter.print_tickets(f"Search for '{term}'", results, ctx)
 
 
     @ticket.command(description="Get ticket details")

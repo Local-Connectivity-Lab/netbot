@@ -117,11 +117,6 @@ class Client():
         return self.ticket_mgr.get(ticket_id, **params)
 
 
-    #GET /issues.xml?issue_id=1,2
-    def get_tickets(self, ticket_ids) -> list[Ticket]:
-        return self.ticket_mgr.get_tickets(ticket_ids)
-
-
     def find_ticket_from_str(self, string:str) -> Ticket:
         """parse a ticket number from a string and get the associated ticket"""
         # for now, this is a trivial REGEX to match '#nnn' in a string, and return ticket #nnn
@@ -148,9 +143,6 @@ class Client():
 
     def my_tickets(self, user=None) -> list[Ticket]:
         return self.ticket_mgr.my_tickets(user)
-
-    def search_tickets(self, term) -> list[Ticket]:
-        return self.ticket_mgr.search(term)
 
     def match_subject(self, subject):
         return self.ticket_mgr.match_subject(subject)

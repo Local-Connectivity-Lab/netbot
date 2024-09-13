@@ -212,13 +212,18 @@ class TicketManager():
 
 
     #GET /issues.json?issue_id=1,2
-    def get_tickets(self, ticket_ids: list[int]) -> list[Ticket]:
+    def get_tickets(self, ticket_ids: list[int], **params) -> list[Ticket]:
         """get several tickets based on a list of IDs"""
         if ticket_ids is None or len(ticket_ids) == 0:
             log.debug("No ticket numbers supplied to get_tickets.")
             return []
 
-        response = self.session.get(f"/issues.json?issue_id={','.join(map(str, ticket_ids))}&status_id=*&sort={DEFAULT_SORT}")
+        # status_id=* is "get open and closed tickets"
+        url_str = f"/issues.json?issue_id={','.join(map(str, ticket_ids))}&status_id=*&sort={DEFAULT_SORT}"
+        if len(params) > 0:
+            url_str += "&" + urllib.parse.urlencode(params)
+        log.debug(f"QUERY: {url_str}")
+        response = self.session.get(url_str)
         log.debug(f"query response: {response}")
         if response:
             result = TicketsResult(**response)
@@ -423,7 +428,7 @@ class TicketManager():
         log.debug(f"SEARCH {response}")
         ids = [result['id'] for result in response['results']]
         # but there's a call to get several tickets
-        return self.get_tickets(ids)
+        return self.get_tickets(ids, include="children") # get sub-ticket IDs when querying tickets
 
 
     def match_subject(self, subject) -> list[Ticket]:
