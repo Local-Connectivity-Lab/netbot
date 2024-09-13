@@ -3,6 +3,7 @@
 
 import os
 import logging
+
 from urllib3.exceptions import ConnectTimeoutError
 import requests
 from requests.exceptions import ConnectTimeout
@@ -75,7 +76,7 @@ class RedmineSession():
             if r.ok:
                 return r.json()
             else:
-                log.info(f"GET {r.reason}/{r.status_code} url={r.request.url}, reqid={r.headers.get('X-Request-Id','')}")
+                log.debug(f"GET {r.status_code} {r.reason} url={r.request.url}, reqid={r.headers.get('X-Request-Id','')}")
         except (TimeoutError, ConnectTimeoutError, ConnectTimeout, ConnectionError):
             # ticket-509: Handle timeout gracefully
             log.warning(f"TIMEOUT ({TIMEOUT}s) during {query_str}")
