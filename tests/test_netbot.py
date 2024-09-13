@@ -7,10 +7,10 @@ import logging
 import discord
 from dotenv import load_dotenv
 
-import netbot
-from formatting import MAX_MESSAGE_LEN
+from netbot import netbot
+from netbot.formatting import MAX_MESSAGE_LEN
 
-import test_utils
+from tests import test_utils
 
 
 logging.getLogger().setLevel(logging.ERROR)

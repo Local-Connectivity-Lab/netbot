@@ -8,9 +8,9 @@ import re
 import discord
 from dotenv import load_dotenv
 
-from netbot import NetBot
-from cog_tickets import TicketsCog
-import test_utils
+from netbot.netbot import NetBot
+from netbot.cog_tickets import TicketsCog
+from tests import test_utils
 
 
 logging.getLogger().setLevel(logging.ERROR)
@@ -26,7 +26,7 @@ class TestTicketsCog(test_utils.BotTestCase):
     def setUp(self):
         super().setUp()
         self.bot: NetBot = NetBot(self.redmine)
-        self.bot.load_extension("cog_tickets")
+        self.bot.load_extension("netbot.cog_tickets")
         self.cog: TicketsCog = self.bot.cogs["TicketsCog"]
 
 

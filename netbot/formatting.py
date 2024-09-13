@@ -3,12 +3,10 @@
 """Formatting Discord messages"""
 
 import logging
-from os import name
-
 import discord
 
-from model import NamedId, Ticket, SubTicket, User
-import synctime
+from redmine.model import NamedId, Ticket, SubTicket, User
+from redmine import synctime
 
 log = logging.getLogger(__name__)
 
@@ -374,7 +372,7 @@ class DiscordFormatter():
         return embeds
 
 
-    def help_embed(self, ctx: discord.ApplicationContext) -> discord.Embed:
+    def help_embed(self, _: discord.ApplicationContext) -> discord.Embed:
         """Build an embed panel with help"""
         embed = discord.Embed(
             title="Ticket Help",

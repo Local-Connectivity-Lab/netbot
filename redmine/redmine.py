@@ -8,11 +8,11 @@ import datetime as dt
 
 from dotenv import load_dotenv
 
-import synctime
-from session import RedmineSession
-from model import Message, Ticket, User, Team, NamedId
-from users import UserManager
-from tickets import TicketManager, SCN_PROJECT_ID
+from redmine.synctime import SyncRecord, parse_str
+from redmine.session import RedmineSession
+from redmine.model import Message, Ticket, User, Team, NamedId
+from redmine.users import UserManager
+from redmine.tickets import TicketManager, SCN_PROJECT_ID
 
 
 log = logging.getLogger(__name__)
@@ -183,7 +183,7 @@ class Client():
     def get_team(self, teamname:str) -> Team:
         return self.user_mgr.cache.get_team_by_name(teamname)
 
-    def update_sync_record(self, record:synctime.SyncRecord):
+    def update_sync_record(self, record:SyncRecord):
         log.debug(f"Updating sync record in redmine: {record}")
         fields = {
             "custom_fields": [
@@ -194,7 +194,7 @@ class Client():
         self.update_ticket(record.ticket_id, fields)
 
     def get_updated_field(self, ticket) -> dt.datetime:
-        return synctime.parse_str(ticket.updated_on)
+        return parse_str(ticket.updated_on)
 
 
     # NOTE: This implies that ticket should be a full object with methods.

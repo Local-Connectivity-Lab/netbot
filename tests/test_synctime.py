@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """unittest for time"""
 
-import unittest
+import datetime as dt
 import logging
+import unittest
 
 from dotenv import load_dotenv
 
-import datetime as dt
-import synctime
-import test_utils
-
-
+from redmine import synctime
+from tests import test_utils
 
 log = logging.getLogger(__name__)
 

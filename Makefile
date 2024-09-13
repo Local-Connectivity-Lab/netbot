@@ -14,7 +14,7 @@ PIP = $(VENV)/bin/pip
 all: venv
 
 run: venv
-	$(PYTHON) netbot.py debug
+	$(PYTHON) -m netbot.netbot debug
 
 venv: $(VENV)/bin/activate
 
@@ -27,7 +27,7 @@ test: $(VENV)/bin/activate
 	$(PYTHON) -m unittest
 
 coverage: $(VENV)/bin/activate
-	$(PYTHON) -m coverage run -m unittest
+	$(PYTHON) -m coverage run -m unittest tests/test_*.py
 	$(PYTHON) -m coverage report
 
 htmlcov: $(VENV)/bin/activate
@@ -35,11 +35,12 @@ htmlcov: $(VENV)/bin/activate
 	$(PYTHON) -m coverage html
 
 lint: $(VENV)/bin/activate
-	$(PYTHON) -m pylint *.py
+	$(PYTHON) -m pylint */*.py
 
 clean:
 	rm -rf __pycache__
 	rm -rf $(VENV)
+	rm -rf htmlcov
 	rm -f discord.log
 	rm -f dpytest_*.dat
 	find . -type f -name ‘*.pyc’ -delete

@@ -7,10 +7,10 @@ import discord
 
 from dotenv import load_dotenv
 
-from netbot import NetBot
-from cog_scn import SCNCog
+from netbot.netbot import NetBot
+from netbot.cog_scn import SCNCog
 
-import test_utils
+from tests import test_utils
 
 logging.getLogger().setLevel(logging.ERROR)
 
@@ -29,7 +29,7 @@ class TestSCNCog(test_utils.BotTestCase):
     def setUp(self):
         super().setUp()
         self.bot = NetBot(self.redmine)
-        self.bot.load_extension("cog_scn")
+        self.bot.load_extension("netbot.cog_scn")
         self.cog:SCNCog = self.bot.cogs["SCNCog"] # Note class name, note filename.
 
 

@@ -6,10 +6,9 @@ import discord
 
 from discord.commands import SlashCommandGroup
 from discord.ext import commands
-from discord.types import embed
 
-from model import Message, User
-from redmine import Client, BLOCKED_TEAM_NAME
+from redmine.model import Message, User
+from redmine.redmine import Client, BLOCKED_TEAM_NAME
 
 
 log = logging.getLogger(__name__)

@@ -12,9 +12,9 @@ from discord.ext import commands
 from discord.enums import InputTextStyle
 from discord.ui.item import Item, V
 
-from model import Message, Ticket
-from redmine import Client
-from netbot import NetBot
+from redmine.model import Message, Ticket
+from redmine.redmine import Client
+from netbot.netbot import NetBot
 
 
 log = logging.getLogger(__name__)

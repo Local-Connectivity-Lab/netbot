@@ -10,10 +10,11 @@ import discord
 from dotenv import load_dotenv
 from discord.ext import commands, tasks
 
-from formatting import DiscordFormatter
-from model import TicketNote, Ticket, NamedId
-import synctime
-import redmine
+from redmine.model import TicketNote, Ticket, NamedId
+from redmine import synctime
+from redmine.redmine import Client
+
+from .formatting import DiscordFormatter
 
 
 log = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ class NetbotException(Exception):
 
 class NetBot(commands.Bot):
     """netbot"""
-    def __init__(self, client: redmine.Client):
+    def __init__(self, client: Client):
         log.info(f'initializing {self}')
         intents = discord.Intents.default()
         intents.message_content = True
@@ -421,12 +422,12 @@ def main():
     log.info(f"loading .env for {__name__}")
     load_dotenv()
 
-    client = redmine.Client.fromenv()
+    client = Client.fromenv()
     bot = NetBot(client)
 
     # register cogs
-    bot.load_extension("cog_scn")
-    bot.load_extension("cog_tickets")
+    bot.load_extension("netbot.cog_scn")
+    bot.load_extension("netbot.cog_tickets")
 
     # run the bot
     bot.run_bot()

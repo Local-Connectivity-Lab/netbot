@@ -6,8 +6,8 @@ import logging
 import json
 
 
-from model import Team, User, UserResult
-from session import RedmineSession, RedmineException
+from redmine.model import Team, User, UserResult
+from redmine.session import RedmineSession, RedmineException
 
 
 log = logging.getLogger(__name__)

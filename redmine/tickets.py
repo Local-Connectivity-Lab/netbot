@@ -6,13 +6,12 @@ import datetime as dt
 import logging
 import re
 import json
+import sys
 import urllib.parse
 
-
-
-from model import TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult, SYNC_FIELD_NAME
-from session import RedmineSession, RedmineException
-import synctime
+from redmine.model import TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult, SYNC_FIELD_NAME
+from redmine.session import RedmineSession, RedmineException
+from redmine import synctime
 
 
 log = logging.getLogger(__name__)
@@ -47,7 +46,9 @@ class TicketManager():
                 fields[field['name']] = NamedId(id=field['id'], name=field['name'])
             return fields
         else:
-            log.warning("No custom fields to load")
+            log.fatal("No custom fields. Aborting.")
+            sys.exit("Unable to load custom fields. Aborting start-up. Check Redmine configuration.")
+
 
 
     def load_trackers(self) -> dict[str,NamedId]:

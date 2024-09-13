@@ -8,9 +8,9 @@ import glob
 
 from dotenv import load_dotenv
 
-from model import Message
-import imap
-import test_utils
+from redmine.model import Message
+from threader import imap
+from tests import test_utils
 
 
 log = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class TestMessages(test_utils.RedmineTestCase):
 
     def test_messages_stripping(self):
         # open
-        for filename in glob.glob('test/*.eml'):
+        for filename in glob.glob('data/*.eml'):
             with open(os.path.join(os.getcwd(), filename), 'rb') as file:
                 message = self.imap.parse_message(file.read())
                 self.assertNotIn("------ Forwarded message ---------", message.note)
@@ -33,7 +33,7 @@ class TestMessages(test_utils.RedmineTestCase):
                 self.assertNotIn("https://voice.google.com", message.note)
 
     def test_google_stripping(self):
-        with open("test/New text message from 5551212.eml", 'rb') as file:
+        with open("data/New text message from 5551212.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
             self.assertNotIn("Forwarded message", message.note)
             self.assertNotIn("https://voice.google.com", message.note)
@@ -57,7 +57,7 @@ class TestMessages(test_utils.RedmineTestCase):
 
     # disabled so I don't flood the system with files
     def test_upload(self):
-        with open("test/message-161.eml", 'rb') as file:
+        with open("data/message-161.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
             user = self.redmine.user_mgr.get_by_name('admin')
             self.redmine.upload_attachments(user, message.attachments)
@@ -66,7 +66,7 @@ class TestMessages(test_utils.RedmineTestCase):
     def test_doctype_head(self):
         # NOTING for future: This doc shows a need for much better HTML stripping, but I'm not
         # rewriting that this afternoon, this tests the fix for the actual bug (ignoring DOCTYPE)
-        with open("test/message-doctype.eml", 'rb') as file:
+        with open("data/message-doctype.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
             self.assertFalse(message.note.startswith("<!doctype html>"))
 
@@ -106,7 +106,7 @@ class TestMessages(test_utils.RedmineTestCase):
         tickets = self.redmine.match_subject(subject)
         self.assertEqual(0, len(tickets), f"Found ticket matching: '{subject}' - {tickets}, please delete.")
 
-        with open("test/message-190.eml", 'rb') as file:
+        with open("data/message-190.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
             log.debug(f"loaded message: {message}")
             self.imap.handle_message("test", message)

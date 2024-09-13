@@ -8,8 +8,9 @@ from unittest.mock import MagicMock, patch
 
 from dotenv import load_dotenv
 
-from model import ParentTicket, Ticket
-import test_utils
+from redmine.model import ParentTicket
+
+from tests import test_utils
 
 
 log = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ log = logging.getLogger(__name__)
 class TestTicketManager(test_utils.MockRedmineTestCase):
     """Mocked testing of ticket manager"""
 
-    @patch('session.RedmineSession.get')
+    @patch('redmine.session.RedmineSession.get')
     def test_expired_tickets(self, mock_get:MagicMock):
         # setup the mock tickets
         ticket = test_utils.mock_ticket()
@@ -34,7 +35,7 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
         #FIXME mock_get.assert_called_once()
 
 
-    @patch('session.RedmineSession.post')
+    @patch('redmine.session.RedmineSession.post')
     def test_default_project_id(self, mock_post:MagicMock):
         test_proj_id = "42"
 
@@ -54,7 +55,7 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
 
 
     # note: patching 'get' instead of 'post': the get gets the new ticket
-    @patch('session.RedmineSession.post')
+    @patch('redmine.session.RedmineSession.post')
     def test_create_sub_ticket(self, mock_post:MagicMock):
 
         # setup the mock tickets

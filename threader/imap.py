@@ -15,8 +15,8 @@ from html.parser import HTMLParser
 from imapclient import IMAPClient, SEEN, DELETED
 from dotenv import load_dotenv
 
-from model import Attachment, Message
-import redmine
+from redmine.model import Attachment, Message
+from redmine import redmine
 
 
 # imapclient docs: https://imapclient.readthedocs.io/en/3.0.0/index.html

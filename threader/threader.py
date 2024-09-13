@@ -3,7 +3,7 @@
 import logging
 from dotenv import load_dotenv
 
-import imap
+from threader import imap
 
 # configure logging
 logging.basicConfig(level=logging.INFO,

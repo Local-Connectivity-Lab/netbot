@@ -6,9 +6,9 @@ import logging
 
 from dotenv import load_dotenv
 
-import redmine
-import session
-import test_utils
+from redmine import redmine
+from redmine import session
+from tests import test_utils
 
 
 logging.getLogger().setLevel(logging.ERROR)

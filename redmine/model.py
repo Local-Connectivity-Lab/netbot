@@ -9,7 +9,7 @@ import datetime as dt
 import re
 import json
 
-import synctime
+from redmine import synctime
 
 log = logging.getLogger(__name__)
 
@@ -229,7 +229,8 @@ class SubTicket:
     subject: str
 
     def __post_init__(self):
-        self.tracker = NamedId(**self.tracker)
+        if self.tracker:
+            self.tracker = NamedId(**self.tracker)
 
 
 @dataclass
