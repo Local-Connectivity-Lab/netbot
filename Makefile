@@ -14,7 +14,7 @@ PIP = $(VENV)/bin/pip
 all: venv
 
 run: venv
-	$(PYTHON) -m netbot.netbot
+	$(PYTHON) netbot.py debug
 
 venv: $(VENV)/bin/activate
 

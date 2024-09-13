@@ -1,7 +1,18 @@
 ## Development Log
 
+### 2024-09-05
+*Haven't updated in a year. Sorry.*
+*I've got the notes, I just haven't put them here. I can if they are needed.*
+
+Using this as a change log (apart from git log).
+
+Fixed #[1206](http://172.16.20.20/issues/1206): Only open tickets are displayed in search results.
+
+Fixed #[1204](http://172.16.20.20/issues/1204): Truncated epics to the most recent 10 (until paging is implemented)
+
+
 ### 2023-08-29
-After the ticket workflow discussions, I've been thinking about how to better integrate the "issue source of truth" (was osticket, becomming redmine) with the tools that *humans* use for discussion and issue resolution (Discord). Esther suggested an integration that tracked ticket discussion in specific threads, which was similar to slack-thread-per-issue in a few startups. 
+After the ticket workflow discussions, I've been thinking about how to better integrate the "issue source of truth" (was osticket, becomming redmine) with the tools that *humans* use for discussion and issue resolution (Discord). Esther suggested an integration that tracked ticket discussion in specific threads, which was similar to slack-thread-per-issue in a few startups.
 
 The state of this thread tracking can be managed in redmine, using a custom boolean field attached to the issue. When this flag is enabled (for an open ticket), an external cron script can sync comments on a Discord thread with comments on the redmine ticket.
 
@@ -79,11 +90,11 @@ Basic idea -> command -> autocomplete-options -> command+params -> url/request -
   * options + autocomplete (interface with file-based impl is superclass?)
 	* url (with {} substitution tags)
 	* filter, perhaps several or iterating-filters, as per (details vs summary)
-	
+
 
 - commands:
   - my tickets:
-		- url: 
+		- url:
 		- filter:
 	- my [user,identity]:
 		- url:
@@ -172,7 +183,7 @@ pip install python-dotenv
 pip freeze > requirements.txt
 ```
 
-Example bot working. 
+Example bot working.
 
 #### netbox
 Moving on to netbox integration.

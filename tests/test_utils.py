@@ -75,7 +75,7 @@ def mock_ticket(**kwargs) -> Ticket:
     with open('data/test-ticket.json', "r", encoding="utf-8") as ticket_file:
         data = json.load(ticket_file)
         ticket = Ticket(**data)
-        ticket.id = random.randint(100,9999)
+        ticket.id = random.randint(10000,99999)
 
         for key, value in kwargs.items():
             ticket.set_field(key, value)
@@ -178,6 +178,12 @@ class MockRedmineTestCase(unittest.TestCase):
         text = f"This is a ticket for {unittest.TestCase.id(self)} with {self.tag}."
         message = Message(self.user.mail, subject, f"to-{self.tag}@example.com", f"cc-{self.tag}@example.com")
         message.set_note(text)
+        return message
+
+
+    def message_from(self, ticket: Ticket) -> Message:
+        message = Message(ticket.author.name, ticket.subject, f"to-{self.tag}@example.com", f"cc-{self.tag}@example.com")
+        message.set_note(ticket.subject)
         return message
 
 

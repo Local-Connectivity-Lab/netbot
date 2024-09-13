@@ -8,7 +8,7 @@ import datetime as dt
 
 from dotenv import load_dotenv
 
-from redmine import synctime
+from redmine.synctime import SyncRecord, parse_str
 from redmine.session import RedmineSession
 from redmine.model import Message, Ticket, User, Team, NamedId
 from redmine.users import UserManager
@@ -117,11 +117,6 @@ class Client():
         return self.ticket_mgr.get(ticket_id, **params)
 
 
-    #GET /issues.xml?issue_id=1,2
-    def get_tickets(self, ticket_ids) -> list[Ticket]:
-        return self.ticket_mgr.get_tickets(ticket_ids)
-
-
     def find_ticket_from_str(self, string:str) -> Ticket:
         """parse a ticket number from a string and get the associated ticket"""
         # for now, this is a trivial REGEX to match '#nnn' in a string, and return ticket #nnn
@@ -148,9 +143,6 @@ class Client():
 
     def my_tickets(self, user=None) -> list[Ticket]:
         return self.ticket_mgr.my_tickets(user)
-
-    def search_tickets(self, term) -> list[Ticket]:
-        return self.ticket_mgr.search(term)
 
     def match_subject(self, subject):
         return self.ticket_mgr.match_subject(subject)
@@ -191,7 +183,7 @@ class Client():
     def get_team(self, teamname:str) -> Team:
         return self.user_mgr.cache.get_team_by_name(teamname)
 
-    def update_sync_record(self, record:synctime.SyncRecord):
+    def update_sync_record(self, record:SyncRecord):
         log.debug(f"Updating sync record in redmine: {record}")
         fields = {
             "custom_fields": [
@@ -202,7 +194,7 @@ class Client():
         self.update_ticket(record.ticket_id, fields)
 
     def get_updated_field(self, ticket) -> dt.datetime:
-        return synctime.parse_str(ticket.updated_on)
+        return parse_str(ticket.updated_on)
 
 
     # NOTE: This implies that ticket should be a full object with methods.

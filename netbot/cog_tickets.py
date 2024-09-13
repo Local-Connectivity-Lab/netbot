@@ -210,11 +210,11 @@ class TicketsCog(commands.Cog):
 
     # figure out what the term refers to
     # could be ticket#, team name, user name or search term
-    def resolve_query_term(self, term):
+    def resolve_query_term(self, term) -> list[Ticket]:
         # special cases: ticket num and team name
         try:
             int_id = int(term)
-            ticket = self.redmine.get_ticket(int_id)
+            ticket = self.redmine.get_ticket(int_id, include="children") # get the children
             return [ticket]
         except ValueError:
             # ignore
@@ -231,7 +231,7 @@ class TicketsCog(commands.Cog):
 
         # assume a search term
         log.debug(f"QUERY {term}")
-        return self.redmine.search_tickets(term)
+        return self.redmine.ticket_mgr.search(term)
 
 
     @ticket.command(description="Query tickets")
@@ -259,6 +259,9 @@ class TicketsCog(commands.Cog):
             query = args[0]
             results = self.resolve_query_term(query)
             await self.bot.formatter.print_tickets(f"Search for '{query}'", results, ctx)
+        else:
+            results = self.redmine.ticket_mgr.search(term)
+            await self.bot.formatter.print_tickets(f"Search for '{term}'", results, ctx)
 
 
     @ticket.command(description="Get ticket details")
@@ -379,8 +382,11 @@ class TicketsCog(commands.Cog):
     async def create_thread(self, ticket:Ticket, ctx:discord.ApplicationContext):
         log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
         thread_name = f"Ticket #{ticket.id}: {ticket.subject}"
-        # added public_thread type param
-        thread = await ctx.channel.create_thread(name=thread_name, type=discord.ChannelType.public_thread)
+        if isinstance(ctx.channel, discord.Thread):
+            log.debug(f"creating thread in parent channel {ctx.channel.parent}, for {ticket}")
+            thread = await ctx.channel.parent.create_thread(name=thread_name, type=discord.ChannelType.public_thread)
+        else:
+            thread = await ctx.channel.create_thread(name=thread_name, type=discord.ChannelType.public_thread)
         # ticket-614: Creating new thread should post the ticket details to the new thread
         await thread.send(self.bot.formatter.format_ticket_details(ticket))
         return thread
@@ -395,11 +401,22 @@ class TicketsCog(commands.Cog):
             return
 
         channel_name = ctx.channel.name
-        text = f"ticket created by Discord user {ctx.user.name} -> {user.login}, with the text: {title}"
+        text = f"Created by Discord user {ctx.user.name} -> {user.login}"
         message = Message(from_addr=user.mail, subject=title, to=ctx.channel.name)
         message.set_note(text)
-        ## TODO cleanup with cogscn.sync: both have complex ticket creation
-        ticket = self.redmine.create_ticket(user, message)
+
+        ticket: Ticket = None
+        ticket_id = self.bot.parse_thread_title(channel_name)
+        if ticket_id:
+            # check if it's an epic
+            epic = self.redmine.ticket_mgr.get(ticket_id)
+            if epic and epic.priority.name == "EPIC":
+                ticket = self.redmine.ticket_mgr.create(user, message, parent_issue_id=ticket_id)
+            else:
+                ticket = self.redmine.ticket_mgr.create(user, message)
+        else:
+            ticket = self.redmine.ticket_mgr.create(user, message)
+
         if ticket:
             # ticket created, set tracker
             # set tracker
@@ -512,12 +529,17 @@ class TicketsCog(commands.Cog):
     @ticket.command(name="priority", description="Update the tracker of a ticket")
     @option("ticket_id", description="ID of ticket to update")
     @option("priority", description="Priority to assign to ticket", autocomplete=get_priorities)
-    async def priority(self, ctx: discord.ApplicationContext, ticket_id:int, priority:str):
+    async def priority(self, ctx: discord.ApplicationContext, ticket_id:int, priority_str:str):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
         ticket = self.redmine.get_ticket(ticket_id)
         if ticket:
             # look up the priority
-            priority = self.bot.lookup_priority(priority)
+            priority = self.bot.lookup_priority(priority_str)
+            if priority is None:
+                log.error(f"Unknown priority: {priority_str}")
+                await ctx.respond(f"Unknown priority: {priority_str}")
+                return
+
             fields = {
                 "priority_id": priority.id,
             }

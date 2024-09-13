@@ -86,7 +86,7 @@ class TicketManager():
         return None
 
 
-    def create(self, user: User, message: Message, project_id: int = None) -> Ticket:
+    def create(self, user: User, message: Message, project_id: int = None, **params) -> Ticket:
         """create a redmine ticket"""
         # https://www.redmine.org/projects/redmine/wiki/Rest_Issues#Creating-an-issue
         # would need full param handling to pass that thru discord to get to this invocation
@@ -112,6 +112,10 @@ class TicketManager():
             }
         }
 
+        if params:
+            data["issue"].update(params)
+            log.debug(f"added params to new ticket, ticket={data['issue']}")
+
         if message.attachments and len(message.attachments) > 0:
             data['issue']['uploads'] = []
             for a in message.attachments:
@@ -121,8 +125,8 @@ class TicketManager():
                     "content_type": a.content_type,
                 })
 
-        #log.debug(f"POST data: {data}")
         response = self.session.post(ISSUES_RESOURCE, json.dumps(data), user.login)
+        #log.debug(f"POST response: {response}")
 
         # check status
         if response:
@@ -209,13 +213,18 @@ class TicketManager():
 
 
     #GET /issues.json?issue_id=1,2
-    def get_tickets(self, ticket_ids: list[int]) -> list[Ticket]:
+    def get_tickets(self, ticket_ids: list[int], **params) -> list[Ticket]:
         """get several tickets based on a list of IDs"""
         if ticket_ids is None or len(ticket_ids) == 0:
             log.debug("No ticket numbers supplied to get_tickets.")
             return []
 
-        response = self.session.get(f"/issues.json?issue_id={','.join(map(str, ticket_ids))}&status_id=*&sort={DEFAULT_SORT}")
+        # status_id=* is "get open and closed tickets"
+        url_str = f"/issues.json?issue_id={','.join(map(str, ticket_ids))}&status_id=*&sort={DEFAULT_SORT}"
+        if len(params) > 0:
+            url_str += "&" + urllib.parse.urlencode(params)
+        log.debug(f"QUERY: {url_str}")
+        response = self.session.get(url_str)
         log.debug(f"query response: {response}")
         if response:
             result = TicketsResult(**response)
@@ -234,7 +243,7 @@ class TicketManager():
         # query tickets pri = epic
         # http://localhost/issues.json?priority_id=14
         epic_priority_id = 14 # fixme - lookup based on "EPIC", from redmine.get_priorities()
-        response = self.session.get(f"/issues.json?priority_id={epic_priority_id}include=children&limit=100")
+        response = self.session.get(f"/issues.json?priority_id={epic_priority_id}&include=children&limit=10&sort={DEFAULT_SORT}")
         if not response:
             return {}
 
@@ -406,10 +415,10 @@ class TicketManager():
 
 
     def search(self, term) -> list[Ticket]:
-        """search all text of all tickets (not just open) for the supplied terms"""
+        """search all text of open tickets for the supplied terms"""
         # todo url-encode term?
-        # note: sort doesn't seem to be working for search
-        query = f"/search.json?q={term}&issues=1&limit=100&sort={DEFAULT_SORT}"
+        # note: open_issues=1 is open issues only
+        query = f"/search.json?q={term}&issues=1&open_issues=1&limit=100"
 
         response = self.session.get(query)
         if not response:
@@ -420,7 +429,7 @@ class TicketManager():
         log.debug(f"SEARCH {response}")
         ids = [result['id'] for result in response['results']]
         # but there's a call to get several tickets
-        return self.get_tickets(ids)
+        return self.get_tickets(ids, include="children") # get sub-ticket IDs when querying tickets
 
 
     def match_subject(self, subject) -> list[Ticket]:

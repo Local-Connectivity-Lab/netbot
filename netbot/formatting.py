@@ -242,20 +242,6 @@ class DiscordFormatter():
         ids_str = ["@" + id for id in discord_ids]
         return f"ALERT #{self.format_link(ticket)} {' '.join(ids_str)}: {msg}"
 
-    # OLD REMOVE
-    def format_epic(self, name: str, epic: list[Ticket]) -> str:
-        buff = f"**{name}**\n"
-        for ticket in epic:
-            buff += self.format_ticket_row(ticket)
-        return buff
-
-    # OLD REMOVE
-    def format_epics(self, epics: dict[str,list[Ticket]]) -> str:
-        buff = ""
-        for name, epic in epics.items():
-            buff += self.format_epic(name, epic) + '\n'
-        return buff[:MAX_MESSAGE_LEN] # truncate!
-
 
     def ticket_color(self, ticket:Ticket) -> discord.Color:
         """Get the default color associtated with a priority"""
@@ -326,6 +312,7 @@ class DiscordFormatter():
     def epics_embed(self, ctx: discord.ApplicationContext, epics: dict[str,list[Ticket]]) -> list[discord.Embed]:
         """Build an array of embeds, one for each epic"""
         embeds = []
+        total_len = 0
 
         for _, tickets in epics.items():
             for epic in tickets:
@@ -348,8 +335,40 @@ class DiscordFormatter():
                     for child in epic.children:
                         buff += "- " + self.format_subticket(child) + "\n"
                     embed.add_field(name="", value=buff, inline=False)
-                # add each embed to the set
+
+                # truncing approach:
+                # 1 message, 10 embeds, 6000 chars max
+                # if the embed is > 600, clip the description so the overall length == 600
+                # this effectively removes descriptions from epics with a lot of tickets.
+                # it also leaves a lot of wasted overhead, when the other embeds in the message
+                # are less than 600, about 10% on current samples.
+                embed_len = len(embed)
+                if embed_len > 600: # 6000/10
+                    overage = embed_len - 600
+                    embed.description = embed.description[:-overage]
+                    #log.info(f"EMBED: orig={embed_len}, desc={len(embed.description)}, over={overage}")
+
+                # add embed to the set
+                total_len += len(embed)
                 embeds.append(embed)
+
+        # if total_len > EMBED_MAX_LEN:
+        #     log.info(f"too-long epics: total={total_len}, max={EMBED_MAX_LEN}")
+        #     adjusted_total = 0
+        #     over_count = 10 - under_count
+        #     grace = under_total/over_count
+
+        #     for embed in embeds:
+        #         embed_len = len(embed)
+        #         overage = int(round(embed_len - (600 + grace)))
+        #         if overage > 0:
+        #             log.info(f"EMBED1: len={embed_len}, desc={len(embed.description)}, over={overage}")
+        #             embed.description = embed.description[:-overage]
+        #             log.info(f"EMBED2: len={embed_len}, desc={len(embed.description)}")
+        #         adjusted_total += len(embed)
+
+        #log.info(f"after adjust: total={total_len}")
+
         return embeds
 
 

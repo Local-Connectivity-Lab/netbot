@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 from dotenv import load_dotenv
 
+from redmine.model import ParentTicket
 
 from tests import test_utils
 
@@ -52,6 +53,23 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
         mock_post.assert_called_once()
         self.assertEqual(test_proj_id, resp_ticket['project_id'])
 
+
+    # note: patching 'get' instead of 'post': the get gets the new ticket
+    @patch('redmine.session.RedmineSession.post')
+    def test_create_sub_ticket(self, mock_post:MagicMock):
+
+        # setup the mock tickets
+        ticket = test_utils.mock_ticket(parent=ParentTicket(id=4242, subject="Test Parent Ticket"))
+        mock_post.return_value = { "issue": ticket.asdict() }
+
+        msg = self.message_from(ticket)
+        check = self.tickets_mgr.create(self.user, msg, parent_issue_id=4242)
+
+        post_json = json.loads(mock_post.call_args[0][1])["issue"]
+        self.assertEqual(4242, post_json['parent_issue_id'])
+
+        mock_post.assert_called_once()
+        self.assertEqual(4242, check.parent.id)
 
 # The integration test suite is only run if the ENV settings are configured correctly
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")

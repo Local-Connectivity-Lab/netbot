@@ -66,7 +66,7 @@ class TestRedmine(test_utils.RedmineTestCase):
         self.assertIsNotNone(ticket)
 
         # search for the ticket
-        tickets = self.redmine.search_tickets(self.tag)
+        tickets = self.redmine.ticket_mgr.search(self.tag)
 
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
