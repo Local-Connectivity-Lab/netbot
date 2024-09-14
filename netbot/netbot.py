@@ -20,16 +20,24 @@ from .formatting import DiscordFormatter
 log = logging.getLogger(__name__)
 
 
-_TRACKER_MAPPING = {
-    "External-Comms-Intake": "admin-team",
-    "Admin": "admin-team",
-    "Comms": "outreach",
-    "Infra-Config": "routing-and-infrastructure",
-    "Infra-Field": "installs",
-    "Software-Dev": "network-software",
-    "Research": "uw-research-nsf",
+# _TRACKER_MAPPING = {
+#     "External-Comms-Intake": "admin-team",
+#     "Admin": "admin-team",
+#     "Comms": "outreach",
+#     "Infra-Config": "routing-and-infrastructure",
+#     "Infra-Field": "installs",
+#     "Software-Dev": "network-software",
+#     "Research": "uw-research-nsf",
+# }
+CHANNEL_MAPPING = {
+    "support": "External-Comms-Intake",
+    "admin-team": "Admin",
+    "outreach": "Comms",
+    "routing-and-infrastructure": "Infra-Config",
+    "installs": "Infra-Field",
+    "network-software": "Software-Dev",
+    "uw-research-nsf": "Research",
 }
-
 
 class NetbotException(Exception):
     """netbot exception"""
@@ -72,7 +80,7 @@ class NetBot(commands.Bot):
         self.trackers = self.redmine.ticket_mgr.load_trackers()
 
         # update to include each mapping in
-        for tracker_name, channel_name in _TRACKER_MAPPING.items():
+        for channel_name, tracker_name in CHANNEL_MAPPING.items():
             if tracker_name in self.trackers:
                 self.trackers[channel_name] = self.trackers[tracker_name]
             else:
@@ -324,15 +332,16 @@ class NetBot(commands.Bot):
                 # yield?
                 return
 
-        if str(ticket.tracker) in _TRACKER_MAPPING:
-            # lookup channel
-            channel_name = _TRACKER_MAPPING[str(ticket.tracker)]
-            channel = self.get_channel_by_name(channel_name)
-            if channel:
-                channel.send(self.formatter.format_expiration_notification(ticket, []))
-                return
-            else:
-                log.warning(f"Expiring ticket #{ticket.id} on unknown channel: {channel_name}")
+        # There are better ways to do this, using teams
+        # if str(ticket.tracker) in _TRACKER_MAPPING:
+        #     # lookup channel
+        #     channel_name = _TRACKER_MAPPING[str(ticket.tracker)]
+        #     channel = self.get_channel_by_name(channel_name)
+        #     if channel:
+        #         channel.send(self.formatter.format_expiration_notification(ticket, []))
+        #         return
+        #     else:
+        #         log.warning(f"Expiring ticket #{ticket.id} on unknown channel: {channel_name}")
 
         # shouldn't get here
         log.warning(f"Unable to find channel for ticket {ticket}, tracker={ticket.tracker}, defaulting to admin")

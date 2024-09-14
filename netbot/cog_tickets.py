@@ -11,7 +11,7 @@ from discord.commands import option, SlashCommandGroup
 from discord.ext import commands
 from discord.enums import InputTextStyle
 from discord.ui.item import Item, V
-
+from discord.utils import basic_autocomplete
 from redmine.model import Message, Ticket
 from redmine.redmine import Client
 from netbot.netbot import NetBot
@@ -166,36 +166,47 @@ class EditSubjectAndDescModal(discord.ui.Modal):
         await interaction.response.send_message(embeds=[embed])
 
 
-class EditView(discord.ui.View):
-    """View to allow ticket editing"""
-    # to build, need:
-    # - list of trackers
-    # - list or priorities
-    # - ticket subject
-    # - from email
-    # build intake view
-    # 1. Assign: (popup with potential assignments)
-    # 2. Priority: (popup with priorities)
-    # 3. (Reject) Subject
-    # 4. (Block) email-addr
-    def __init__(self, bot_: discord.Bot, ticket: Ticket) -> None:
-        self.bot = bot_
-        super().__init__()
+# REMOVE unused
+# class EditView(discord.ui.View):
+#     """View to allow ticket editing"""
+#     # to build, need:
+#     # - list of trackers
+#     # - list or priorities
+#     # - ticket subject
+#     # - from email
+#     # build intake view
+#     # 1. Assign: (popup with potential assignments)
+#     # 2. Priority: (popup with priorities)
+#     # 3. (Reject) Subject
+#     # 4. (Block) email-addr
+#     def __init__(self, bot_: discord.Bot) -> None:
+#         self.bot = bot_
+#         super().__init__()
 
-        # Adds the dropdown to our View object
-        self.add_item(PrioritySelect(self.bot))
-        #self.add_item(SubjectEdit(self.bot, ticket))
-        self.add_item(TrackerSelect(self.bot))
+#         # Adds the dropdown to our View object
+#         self.add_item(PrioritySelect(self.bot))
+#         self.add_item(TrackerSelect(self.bot))
 
-        self.add_item(discord.ui.Button(label="Done", row=4))
-        self.add_item(discord.ui.Button(label="Edit Subject & Description", row=4))
-        #self.add_item(discord.ui.Button(label="Block email@address.com", row=4))
+#         self.add_item(discord.ui.Button(label="Done", row=4))
+#         self.add_item(discord.ui.Button(label="Edit Subject & Description", row=4))
 
-    async def select_callback(self, select, interaction): # the function called when the user is done selecting options
-        await interaction.response.send_message(f"EditView.select_callback() selected: {select.values[0]}")
+#     async def select_callback(self, select, interaction): # the function called when the user is done selecting options
+#         await interaction.response.send_message(f"EditView.select_callback() selected: {select.values[0]}")
 
-    async def callback(self, interaction: discord.Interaction):
+#     async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_message(f"EditView.callback() {interaction.data}")
+
+
+# WHERE SHOULD THIS GO?
+# returns ticket id or none
+def default_ticket(ctx: discord.AutocompleteContext) -> list[int]:
+    # examine the thread
+    log.debug(f"### Called with {ctx.interaction.channel}")
+    ticket_id = ctx.bot.parse_thread_title(ctx.interaction.channel.name)
+    if ticket_id:
+        return [ticket_id]
+    else:
+        return []
 
 
 class TicketsCog(commands.Cog):
@@ -265,7 +276,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Get ticket details")
-    @option("ticket_id", description="ticket ID")
+    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
     async def details(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
         #log.debug(f"found user mapping for {ctx.user.name}: {user}")
@@ -372,11 +383,11 @@ class TicketsCog(commands.Cog):
     # command disabled
     #@ticket.command(name="edit", description="Edit a ticket")
     #@option("ticket_id", description="ticket ID")
-    async def edit(self, ctx:discord.ApplicationContext, ticket_id: int):
-        """Edit the fields of a ticket"""
-        # check team? admin?, provide reasonable error msg.
-        ticket = self.redmine.ticket_mgr.get(ticket_id)
-        await ctx.respond(f"EDIT #{ticket.id}", view=EditView(self.bot, ticket))
+    # async def edit(self, ctx:discord.ApplicationContext, ticket_id: int):
+    #     """Edit the fields of a ticket"""
+    #     # check team? admin?, provide reasonable error msg.
+    #     ticket = self.redmine.ticket_mgr.get(ticket_id)
+    #     await ctx.respond(f"EDIT #{ticket.id}", view=EditView(self.bot))
 
 
     async def create_thread(self, ticket:Ticket, ctx:discord.ApplicationContext):
