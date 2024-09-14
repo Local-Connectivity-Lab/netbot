@@ -14,7 +14,7 @@ from discord.ui.item import Item, V
 from discord.utils import basic_autocomplete
 from redmine.model import Message, Ticket
 from redmine.redmine import Client
-from netbot.netbot import NetBot
+from netbot.netbot import NetBot, TEAM_MAPPING, CHANNEL_MAPPING
 
 
 log = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def setup(bot:NetBot):
 
 def get_trackers(ctx: discord.AutocompleteContext):
     """Returns a list of trackers that begin with the characters entered so far."""
-    trackers = ctx.bot.redmine.get_trackers() # this is expected to be cached
+    trackers = ctx.bot.redmine.get_trackers() # this is expected to be cached IT'S NOT!!!
     # .lower() is used to make the autocomplete match case-insensitive
     return [tracker['name'] for tracker in trackers if tracker['name'].lower().startswith(ctx.value.lower())]
 
@@ -201,12 +201,23 @@ class EditSubjectAndDescModal(discord.ui.Modal):
 # returns ticket id or none
 def default_ticket(ctx: discord.AutocompleteContext) -> list[int]:
     # examine the thread
-    log.debug(f"### Called with {ctx.interaction.channel}")
     ticket_id = ctx.bot.parse_thread_title(ctx.interaction.channel.name)
     if ticket_id:
         return [ticket_id]
     else:
         return []
+
+# distinct from above. takes app-context
+def default_term(ctx: discord.ApplicationContext) -> str:
+    # examine the thread
+    ch_name = ctx.channel.name
+    ticket_id = ctx.bot.parse_thread_title(ch_name)
+    if ticket_id:
+        return str(ticket_id)
+    elif ch_name in TEAM_MAPPING:
+        return TEAM_MAPPING[ch_name]
+    elif ch_name in CHANNEL_MAPPING:
+        return CHANNEL_MAPPING[ch_name]
 
 
 class TicketsCog(commands.Cog):
@@ -222,22 +233,34 @@ class TicketsCog(commands.Cog):
     # figure out what the term refers to
     # could be ticket#, team name, user name or search term
     def resolve_query_term(self, term) -> list[Ticket]:
+        log.debug(f"QQQ>: {term}")
         # special cases: ticket num and team name
         try:
             int_id = int(term)
             ticket = self.redmine.get_ticket(int_id, include="children") # get the children
-            return [ticket]
+            if ticket:
+                log.debug(f"QQQ<: {ticket}")
+                return [ticket]
         except ValueError:
-            # ignore
+            # ignore, not a ticket number
             pass
 
         # not a numeric id, check for known user or group
         user_team = self.redmine.user_mgr.find(term)
         if user_team:
-            log.debug(f"{term} -> {user_team}")
-            result = self.redmine.ticket_mgr.tickets_for_team(user_team)
-            if result:
+            log.debug(f"{term} -> Team-or-user:{user_team}")
+            result = self.redmine.ticket_mgr.tickets_for_team(user_team) # owner = team name assigned_to_id
+            if result and len(result) > 0:
                 return result
+            # note: fall thru for empty result from team query.
+
+        if term in CHANNEL_MAPPING:
+            tracker = self.bot.lookup_tracker(CHANNEL_MAPPING[term])
+            if tracker:
+                result = self.redmine.ticket_mgr.tickets(tracker_id=tracker.id)
+                log.debug(f"QQQ<: {result}")
+                if result and len(result) > 0:
+                    return result
             # note: fall thru for empty result from team query.
 
         # assume a search term
@@ -246,8 +269,10 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Query tickets")
-    @option("term", description="Ticket query term, should includes ticket ID, ticket owner, team or any term used for a text match.")
-    async def query(self, ctx: discord.ApplicationContext, term: str):
+    @option(name="term",
+            description="Query can include ticket ID, owner, team or any term used for a text match.",
+            default="")
+    async def query(self, ctx: discord.ApplicationContext, term:str = ""):
         """List tickets for you, or filtered by parameter"""
         # different options: none, me (default), [group-name], intake, tracker name
         # buid index for trackers, groups
@@ -263,16 +288,23 @@ class TicketsCog(commands.Cog):
 
         log.debug(f"found user mapping for {ctx.user.name}: {user}")
 
-        args = term.split()
-        if args[0] == "me":
-            await self.bot.formatter.print_tickets("My Tickets", self.redmine.my_tickets(user.login), ctx)
-        elif len(args) == 1:
-            query = args[0]
-            results = self.resolve_query_term(query)
-            await self.bot.formatter.print_tickets(f"Search for '{query}'", results, ctx)
+        if term == "":
+            # empty param, try to derive from channel name
+            term = default_term(ctx)
+            if term is None:
+                # still none, default to...
+                term = "me"
+
+        if term == "me":
+            results = self.redmine.my_tickets(user.login)
         else:
-            results = self.redmine.ticket_mgr.search(term)
-            await self.bot.formatter.print_tickets(f"Search for '{term}'", results, ctx)
+            results = self.resolve_query_term(term)
+
+        if results and len(results) > 0:
+            await self.bot.formatter.print_tickets(f"{term}", results, ctx)
+        else:
+            await ctx.respond(f"Zero results for: `{term}`")
+
 
 
     @ticket.command(description="Get ticket details")

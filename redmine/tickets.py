@@ -225,7 +225,6 @@ class TicketManager():
             url_str += "&" + urllib.parse.urlencode(params)
         log.debug(f"QUERY: {url_str}")
         response = self.session.get(url_str)
-        log.debug(f"query response: {response}")
         if response:
             result = TicketsResult(**response)
             if result.total_count > 0:
@@ -414,6 +413,19 @@ class TicketManager():
             return []
 
 
+    def tickets(self, **kwargs) -> list[Ticket]:
+        response = self.session.get(f"/issues.json?{urllib.parse.urlencode(kwargs)}&sort={DEFAULT_SORT}&limit=100")
+        if not response:
+            return []
+
+        result = TicketsResult(**response)
+        if result.total_count > 0:
+            return result.issues
+        else:
+            log.debug(f"Zero results for {kwargs}")
+            return []
+
+
     def search(self, term) -> list[Ticket]:
         """search all text of open tickets for the supplied terms"""
         # todo url-encode term?
@@ -426,7 +438,6 @@ class TicketManager():
             return None
 
         # the response has only IDs....
-        log.debug(f"SEARCH {response}")
         ids = [result['id'] for result in response['results']]
         # but there's a call to get several tickets
         return self.get_tickets(ids, include="children") # get sub-ticket IDs when querying tickets

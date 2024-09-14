@@ -67,7 +67,6 @@ class TestNetbot(test_utils.BotTestCase):
         # get notes from redmine, assert tags in most recent
         check_ticket = self.redmine.get_ticket(ticket.id, include="journals") # get the notes
         self.assertIsNotNone(check_ticket)
-        #log.info(f"### ticket: {ticket}")
         #self.assertIn(body, ticket.journals[-1].notes) NOT until thread history is working
 
         self.redmine.remove_ticket(ticket.id)
@@ -93,7 +92,7 @@ class TestNetbot(test_utils.BotTestCase):
         await self.bot.synchronize_ticket(ticket, thread)
 
         # assert method send called on mock thread, with the correct values
-        log.debug(f"### call args: {thread.send.call_args}")
+        #log.debug(f"### call args: {thread.send.call_args}")
         self.assertIn(self.tag, thread.send.call_args.args[0])
         self.assertLessEqual(len(thread.send.call_args.args[0]), MAX_MESSAGE_LEN, "Message sent to Discord is too long")
 

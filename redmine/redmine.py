@@ -87,12 +87,6 @@ class Client():
         return  reversed(priorities)
 
 
-    def get_trackers(self) -> list[NamedId]:
-        """get all trackers"""
-        resp = self.session.get("/trackers.json")
-        return resp['trackers'] # get specific dictionary in response
-
-
     def update_ticket(self, ticket_id:int, fields:dict, user_login:str|None=None):
         return self.ticket_mgr.update(ticket_id, fields, user_login)
 

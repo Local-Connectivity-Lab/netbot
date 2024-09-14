@@ -39,6 +39,16 @@ CHANNEL_MAPPING = {
     "uw-research-nsf": "Research",
 }
 
+TEAM_MAPPING = {
+    #"support": "External-Comms-Intake", ## FIXME - intake is a tracker, not a team? worry later
+    "admin-team": "admin-team",
+    "outreach": "comms-team",
+    "routing-and-infrastructure": "infra-config-team",
+    "installs": "infra-field-team",
+    "network-software": "software-dev-team",
+    "uw-research-nsf": "research-team",
+}
+
 class NetbotException(Exception):
     """netbot exception"""
 
@@ -50,6 +60,7 @@ class NetBot(commands.Bot):
         intents = discord.Intents.default()
         intents.message_content = True
 
+        self.run_sync = True # ticket sync on by default
         self.lock = asyncio.Lock()
         self.ticket_locks = {}
 
@@ -71,7 +82,7 @@ class NetBot(commands.Bot):
         #    debug_guilds = guilds
         )
 
-
+    # note to self: this is in netbot because it bridges channels and trackers.
     def initialize_tracker_mapping(self):
         # load the priorities, indexed by name
         self.priorities = self.redmine.ticket_mgr.load_priorities()
@@ -290,12 +301,16 @@ class NetBot(commands.Bot):
         return None
 
 
-    @tasks.loop(minutes=1.0) # FIXME to 5.0 minutes. set to 1 min for testing
+    @tasks.loop(minutes=5.0) # to 5.0 minutes. set to 1 min for testing
     async def sync_all_threads(self):
         """
         Configured to run every minute using the tasks.loop annotation.
         Get all Threads and sync each one.
         """
+        if not self.run_sync:
+            log.debug("SYNC disabled, skipping")
+            return
+
         log.info(f"sync_all_threads: starting for {self.guilds}")
 
         # get all threads
@@ -434,6 +449,11 @@ def main():
     client = Client.fromenv()
     bot = NetBot(client)
 
+    for arg in sys.argv:
+        if arg.lower() == "sync-off":
+            log.info("Disabling ticket sync, due to 'sync-off' param")
+            bot.run_sync = False
+
     # register cogs
     bot.load_extension("netbot.cog_scn")
     bot.load_extension("netbot.cog_tickets")
@@ -445,7 +465,7 @@ def main():
 def setup_logging():
     """set up logging for netbot"""
     log_level = logging.INFO
-    # check args
+    # check args. cheap, I know.
     for arg in sys.argv:
         if arg.lower() == "debug":
             log_level = logging.DEBUG
