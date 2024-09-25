@@ -14,7 +14,7 @@ from discord.ui.item import Item, V
 from discord.utils import basic_autocomplete
 from redmine.model import Message, Ticket
 from redmine.redmine import Client
-from netbot.netbot import NetBot, TEAM_MAPPING, CHANNEL_MAPPING
+from netbot.netbot import NetBot, TEAM_MAPPING, CHANNEL_MAPPING, default_ticket
 
 
 log = logging.getLogger(__name__)
@@ -197,16 +197,6 @@ class EditSubjectAndDescModal(discord.ui.Modal):
         await interaction.response.send_message(f"EditView.callback() {interaction.data}")
 
 
-# WHERE SHOULD THIS GO?
-# returns ticket id or none
-def default_ticket(ctx: discord.AutocompleteContext) -> list[int]:
-    # examine the thread
-    ticket_id = ctx.bot.parse_thread_title(ctx.interaction.channel.name)
-    if ticket_id:
-        return [ticket_id]
-    else:
-        return []
-
 # distinct from above. takes app-context
 def default_term(ctx: discord.ApplicationContext) -> str:
     # examine the thread
@@ -321,7 +311,7 @@ class TicketsCog(commands.Cog):
 
     @ticket.command(description="Collaborate on a ticket")
     @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
-    @option("member", description="Discord member to collaborate", optional=True)
+    @option("member", description="Discord member collaborating with ticket", optional=True)
     async def collaborate(self, ctx: discord.ApplicationContext, ticket_id:int, member:discord.Member=None):
         """Add yourself as a collaborator on a ticket"""
         # lookup the user
@@ -384,6 +374,7 @@ class TicketsCog(commands.Cog):
 
     @ticket.command(description="Mark a ticket in-progress")
     @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("member", description="Discord member taking ownership", optional=True)
     async def progress(self, ctx: discord.ApplicationContext, ticket_id:int, member:discord.Member=None):
         """Update status on a ticket, using: progress"""
         # lookup the user
@@ -410,6 +401,7 @@ class TicketsCog(commands.Cog):
 
     @ticket.command(description="Assign a ticket")
     @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("member", description="Discord member taking ownership", optional=True)
     async def assign(self, ctx: discord.ApplicationContext, ticket_id:int, member:discord.Member=None):
         # lookup the user
         user_name = ctx.user.name

@@ -4,6 +4,22 @@
 
 Starting work on ticket 1207, to add admin overrides for all actions that default to self.
 
+Added admin-specific params to allow member assignement for:
+* collaborate
+* progress
+* assign
+
+Adding ticket ID autofill if in ticket thread:
+* collaborate
+* progress
+* assign
+* unassign
+* resolve
+* tracker
+* priority
+* subject
+
+
 ### 2024-09-05
 *Haven't updated in a year. Sorry.*
 *I've got the notes, I just haven't put them here. I can if they are needed.*

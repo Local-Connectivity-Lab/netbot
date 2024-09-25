@@ -49,6 +49,17 @@ TEAM_MAPPING = {
     "uw-research-nsf": "research-team",
 }
 
+# utility method to get a list of (one) ticket from the title of the channel, or empty list
+# TODO could be moved to NetBot
+def default_ticket(ctx: discord.AutocompleteContext) -> list[int]:
+    # examine the thread
+    ticket_id = ctx.bot.parse_thread_title(ctx.interaction.channel.name)
+    if ticket_id:
+        return [ticket_id]
+    else:
+        return []
+
+
 class NetbotException(Exception):
     """netbot exception"""
 
