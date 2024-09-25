@@ -103,28 +103,17 @@ class Client():
         self.ticket_mgr.upload_attachments(user, attachments)
 
 
-    def get_tickets_by(self, user) -> list[Ticket]:
-        return self.ticket_mgr.get_tickets_by(user)
-
-
-    def get_ticket(self, ticket_id:int, **params) -> Ticket:
-        return self.ticket_mgr.get(ticket_id, **params)
-
-
     def find_ticket_from_str(self, string:str) -> Ticket:
         """parse a ticket number from a string and get the associated ticket"""
         # for now, this is a trivial REGEX to match '#nnn' in a string, and return ticket #nnn
         match = re.search(r'#(\d+)', string)
         if match:
             ticket_num = int(match.group(1))
-            return self.get_ticket(ticket_num)
+            return self.ticket_mgr.get(ticket_num)
         else:
             log.debug(f"Unable to match ticket number in: {string}")
             return []
 
-
-    def remove_ticket(self, ticket_id:int):
-        self.ticket_mgr.remove(ticket_id)
 
     def most_recent_ticket_for(self, email: str) -> Ticket:
         return self.ticket_mgr.most_recent_ticket_for(email)
@@ -167,12 +156,6 @@ class Client():
 
     def reject_ticket(self, ticket_id, user_id=None):
         self.ticket_mgr.reject_ticket(ticket_id, user_id)
-
-    def unassign_ticket(self, ticket_id, user_id=None):
-        self.ticket_mgr.unassign_ticket(ticket_id, user_id)
-
-    def resolve_ticket(self, ticket_id, user_id=None) -> Ticket:
-        return self.ticket_mgr.resolve_ticket(ticket_id, user_id)
 
     def get_team(self, teamname:str) -> Team:
         return self.user_mgr.cache.get_team_by_name(teamname)

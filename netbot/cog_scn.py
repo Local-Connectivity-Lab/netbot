@@ -327,7 +327,7 @@ class SCNCog(commands.Cog):
             # add the user to the blocked list
             self.redmine.user_mgr.block(user)
             # search and reject all tickets from that user
-            for ticket in self.redmine.get_tickets_by(user):
+            for ticket in self.redmine.ticket_mgr.get_by(user):
                 self.redmine.reject_ticket(ticket.id)
             await ctx.respond(f"Blocked user: {user.login} and rejected all created tickets")
         else:

@@ -73,7 +73,7 @@ class TestRedmine(test_utils.RedmineTestCase):
         self.assertEqual(ticket.id, tickets[0].id)
 
         # clean up
-        self.redmine.remove_ticket(ticket.id)
+        self.redmine.ticket_mgr.remove(ticket.id)
 
 
 if __name__ == '__main__':

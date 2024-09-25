@@ -65,11 +65,11 @@ class TestNetbot(test_utils.BotTestCase):
         self.assertIn(body, thread.send.call_args.args[0])
 
         # get notes from redmine, assert tags in most recent
-        check_ticket = self.redmine.get_ticket(ticket.id, include="journals") # get the notes
+        check_ticket = self.redmine.ticket_mgr.get(ticket.id, include="journals") # get the notes
         self.assertIsNotNone(check_ticket)
         #self.assertIn(body, ticket.journals[-1].notes) NOT until thread history is working
 
-        self.redmine.remove_ticket(ticket.id)
+        self.redmine.ticket_mgr.remove(ticket.id)
 
 
     async def test_sync_ticket_long_message(self):
@@ -97,7 +97,7 @@ class TestNetbot(test_utils.BotTestCase):
         self.assertLessEqual(len(thread.send.call_args.args[0]), MAX_MESSAGE_LEN, "Message sent to Discord is too long")
 
         # clean up
-        self.redmine.remove_ticket(ticket.id)
+        self.redmine.ticket_mgr.remove(ticket.id)
 
 
     async def test_on_application_command_error(self):

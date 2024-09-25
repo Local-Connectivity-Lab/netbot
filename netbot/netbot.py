@@ -106,7 +106,6 @@ class NetBot(commands.Bot):
 
         super().run(os.getenv('DISCORD_TOKEN'))
 
-
     async def on_ready(self):
         #log.info(f"Logged in as {self.user} (ID: {self.user.id})")
         #log.debug(f"bot: {self}, guilds: {self.guilds}")
@@ -269,7 +268,7 @@ class NetBot(commands.Bot):
         # get the ticket id from the thread name
         ticket_id = self.parse_thread_title(thread.name)
 
-        ticket = self.redmine.get_ticket(ticket_id, include="journals")
+        ticket = self.redmine.ticket_mgr.get(ticket_id, include="journals")
         if ticket:
             completed = await self.synchronize_ticket(ticket, thread)
             # note: synchronize_ticket returns True only when successfully completing a sync
@@ -439,6 +438,17 @@ class NetBot(commands.Bot):
                 log.info(f"ERROR: user ID {named} not found")
 
         return []
+
+
+    def is_admin(self, user: discord.Member) -> bool:
+        """Check if the given Discord memeber is in a authorized role"""
+        # search user for "auth" role
+        for role in user.roles:
+            if "auth" == role.name: ## FIXME
+                return True
+
+        # auth role not found
+        return False
 
 
 def main():

@@ -122,7 +122,7 @@ class TestMessages(test_utils.RedmineTestCase):
         self.assertEqual(user.id, tickets[0].author.id)
 
         # remove the ticket
-        self.redmine.remove_ticket(tickets[0].id)
+        self.redmine.ticket_mgr.remove(tickets[0].id)
 
         # remove the user after the test
         self.redmine.user_mgr.remove(user)
@@ -151,7 +151,7 @@ class TestMessages(test_utils.RedmineTestCase):
         self.assertEqual(ticket.id, tickets[0].id)
 
         # clean up
-        self.redmine.remove_ticket(ticket.id)
+        self.redmine.ticket_mgr.remove(ticket.id)
 
 
     def test_handle_message(self):
@@ -169,7 +169,7 @@ class TestMessages(test_utils.RedmineTestCase):
         self.assertEqual(subject, tickets[0].subject)
 
         # clean up
-        self.redmine.remove_ticket(tickets[0].id)
+        self.redmine.ticket_mgr.remove(tickets[0].id)
 
 
     def test_to_cc(self):
@@ -194,7 +194,7 @@ class TestMessages(test_utils.RedmineTestCase):
         self.assertEqual(cc_addr, ticket.cc[0])
 
         # clean up
-        self.redmine.remove_ticket(tickets[0].id)
+        self.redmine.ticket_mgr.remove(tickets[0].id)
 
 
 if __name__ == '__main__':
