@@ -33,7 +33,7 @@ def get_trackers(ctx: discord.AutocompleteContext):
 
 
 def get_priorities(ctx: discord.AutocompleteContext):
-    """Returns a list of trackers that begin with the characters entered so far."""
+    """Returns a list of priorities that begin with the characters entered so far."""
     priorities = ctx.bot.redmine.get_priorities() # this is expected to be cached
     # .lower() is used to make the autocomplete match case-insensitive
     return [priority.name for priority in priorities if priority.name.lower().startswith(ctx.value.lower())]

@@ -2,6 +2,7 @@
 """Utilities to help testing"""
 
 import json
+import os
 import time
 import string
 import random
@@ -20,7 +21,11 @@ from redmine.session import RedmineSession
 from redmine.redmine import Client
 from netbot.netbot import NetBot
 
+
 log = logging.getLogger(__name__)
+
+
+TEST_DATA = "data" # dir with test data
 
 
 # from https://github.com/tonyseek/python-base36/blob/master/base36.py
@@ -50,6 +55,15 @@ def tagstr() -> str:
 def randstr(length:int=12) -> str:
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
+
+def load_json(filename:str):
+    with open(os.path.join(TEST_DATA, filename), 'r', encoding="utf-8") as file:
+        return json.load(file)
+
+
+def load_file(filename:str):
+    with open(os.path.join(TEST_DATA, filename), 'r', encoding="utf-8") as file:
+        return file.read()
 
 
 def create_test_user(user_mgr:UserManager, tag:str):
@@ -151,11 +165,37 @@ class MockTicketManager(TicketManager):
         return result
 
 
-def create_mock_redmine():
-    sess = mock_session()
-    user_mgr = MockUserManager(sess)
-    ticket_mgr = MockTicketManager(sess)
-    return Client(sess, user_mgr, ticket_mgr)
+class MockRedmine(Client):
+    """Redmine client for unit tests"""
+    def __init__(self):
+        session = mock_session()
+        user_mgr = MockUserManager(session)
+        ticket_mgr = MockTicketManager(session)
+        super().__init__(session, user_mgr, ticket_mgr)
+
+
+    def load_priorities(self) -> list[NamedId]:
+        """get all active priorities"""
+        resp = load_json("issue_priorities.json")
+        priorities = resp['issue_priorities'] # get specific dictionary in response
+        priorities = [NamedId(priority['id'], priority['name']) for priority in priorities]
+        # reverse the list, so higest is first
+        return reversed(priorities)
+
+
+    def load_trackers(self) -> dict[str,NamedId]:
+        response = load_json("trackers.json")
+        trackers = {}
+        for item in response['trackers']:
+            trackers[item['name']] = NamedId(id=item['id'], name=item['name'])
+        return trackers
+
+
+    def reindex(self):
+        self.priorities = load_json("issue_priorities.json")
+        self.trackers = self.load_trackers()
+        self.user_mgr.reindex()
+
 
 
 class MockRedmineTestCase(unittest.TestCase):
@@ -163,7 +203,7 @@ class MockRedmineTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.redmine = create_mock_redmine()
+        cls.redmine = MockRedmine()
         cls.user_mgr = cls.redmine.user_mgr
         cls.tickets_mgr = cls.redmine.ticket_mgr
         cls.tag:str = tagstr()

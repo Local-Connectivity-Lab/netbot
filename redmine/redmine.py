@@ -41,7 +41,7 @@ class Client():
         self.user_mgr = user_mgr
         self.ticket_mgr = ticket_mgr
 
-        self.user_mgr.reindex() # build the cache when starting
+        self.reindex() # build the cache when starting
 
 
     @classmethod
@@ -78,13 +78,31 @@ class Client():
         return ticket
 
 
-    def get_priorities(self) -> list[NamedId]:
+    def load_priorities(self) -> list[NamedId]:
         """get all active priorities"""
         resp = self.session.get("/enumerations/issue_priorities.json")
         priorities = resp['issue_priorities'] # get specific dictionary in response
         priorities = [NamedId(priority['id'], priority['name']) for priority in priorities]
         # reverse the list, so higest is first
-        return  reversed(priorities)
+        return reversed(priorities)
+
+
+    def load_trackers(self) -> dict[str,NamedId]:
+        # call redmine to get the ticket trackers
+        response = self.session.get("/trackers.json")
+        if response:
+            trackers = {}
+            for item in response['trackers']:
+                trackers[item['name']] = NamedId(id=item['id'], name=item['name'])
+            return trackers
+        else:
+            log.warning("No reackers to load")
+
+
+    def reindex(self):
+        self.priorities = self.load_priorities()
+        self.trackers = self.load_trackers()
+        self.user_mgr.reindex() # rebuild the user cache
 
 
     def update_ticket(self, ticket_id:int, fields:dict, user_login:str|None=None):

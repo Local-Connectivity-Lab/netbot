@@ -480,7 +480,7 @@ class UserManager():
 
     def reindex_teams(self):
         all_teams = self.get_all_teams()
-        if all_teams:
+        if all_teams and len(all_teams) > 0:
             self.cache.teams = all_teams # replace all the cached teams
             log.debug(f"indexed {len(all_teams)} teams")
         else:
@@ -492,7 +492,6 @@ class UserManager():
         self.reindex_users()
         self.reindex_teams()
         log.info(f"reindex took {dt.datetime.now() - start}")
-
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@
 
 import unittest
 import logging
+from unittest.mock import MagicMock, patch
 
 from dotenv import load_dotenv
 
@@ -11,14 +12,31 @@ from redmine import session
 from tests import test_utils
 
 
+
 logging.getLogger().setLevel(logging.ERROR)
 
 
 log = logging.getLogger(__name__)
 
 
+class TestRedmine(test_utils.MockRedmineTestCase):
+    """Mocked testing of redmine function"""
+
+    @patch('redmine.session.RedmineSession.get')
+    def test_priorities(self, mock_get:MagicMock):
+        mock_get.return_value = test_utils.load_json("issue_priorities.json")
+
+        found = False
+        for priority in self.redmine.load_priorities():
+            if priority.name == "EPIC" and priority.id == 14:
+                found = True
+
+        self.assertTrue(found, "Expected priority, EPIC (14), not found in data")
+
+
+
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
-class TestRedmine(test_utils.RedmineTestCase):
+class TestRedmineIntegration(test_utils.RedmineTestCase):
     """Test suite for Redmine client"""
 
     def test_block_user(self):
@@ -53,7 +71,7 @@ class TestRedmine(test_utils.RedmineTestCase):
         # construct an invalid client to try to get a timeout
         try:
             bad_session = session.RedmineSession("http://192.168.1.42/", "bad-token")
-            client = redmine.Client(bad_session)
+            client = redmine.Client.from_session(bad_session, default_project=1)
             self.assertIsNotNone(client)
             #log.info(client)
         except Exception:

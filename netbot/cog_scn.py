@@ -241,8 +241,8 @@ class SCNCog(commands.Cog):
 
     @scn.command()
     async def reindex(self, ctx:discord.ApplicationContext):
-        """reindex the user and team information"""
-        self.redmine.user_mgr.reindex()
+        """reindex the all cached information"""
+        self.redmine.reindex()
         await ctx.respond("Rebuilt redmine indices.")
 
 

@@ -50,32 +50,6 @@ class TicketManager():
             sys.exit("Unable to load custom fields. Aborting start-up. Check Redmine configuration.")
 
 
-
-    def load_trackers(self) -> dict[str,NamedId]:
-        # call redmine to get the ticket trackers
-        response = self.session.get("/trackers.json")
-        if response:
-            trackers = {}
-            for item in response['trackers']:
-                trackers[item['name']] = NamedId(id=item['id'], name=item['name'])
-            return trackers
-        else:
-            log.warning("No custom fields to load")
-
-    def load_priorities(self) -> dict[str,NamedId]:
-        # call redmine to get the ticket priorities
-        response = self.session.get("/enumerations/issue_priorities.json?sort")
-        if response:
-            priorities = {}
-            for item in response['issue_priorities']:
-                priorities[item['name']] = NamedId(id=item['id'], name=item['name'])
-            return priorities
-        else:
-            log.warning("No priorities to load")
-
-        # TODO reverse the list!
-
-
     def get_field_id(self, name:str) -> int | None:
         if not self.custom_fields:
             log.warning(f"Custom field '{name}' requested, none available")
