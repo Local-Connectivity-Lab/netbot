@@ -185,7 +185,7 @@ class TicketManager():
             a.set_token(token)
 
 
-    def get_tickets_by(self, user) -> list[Ticket]:
+    def get_by(self, user) -> list[Ticket]:
         # GET /issues.json?author_id=6
         response = self.session.get(f"/issues.json?author_id={user.id}")
         if response:
@@ -517,7 +517,7 @@ class TicketManager():
         return self.update(ticket_id, fields, user_id)
 
 
-    def unassign_ticket(self, ticket_id, user_id=None):
+    def unassign(self, ticket_id, user_id=None):
         fields = {
             "assigned_to_id": "",
             "status_id": "1", # New, TODO lookup in status table
@@ -525,7 +525,7 @@ class TicketManager():
         self.update(ticket_id, fields, user_id)
 
 
-    def resolve_ticket(self, ticket_id, user_id=None):
+    def resolve(self, ticket_id, user_id=None):
         return self.update(ticket_id, {"status_id": "3"}, user_id) # '3' is the status_id, it doesn't accept "Resolved"
 
 

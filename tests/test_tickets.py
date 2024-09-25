@@ -106,15 +106,15 @@ class TestIntegrationTicketManager(test_utils.RedmineTestCase):
         ticket = self.create_test_ticket()
 
         # unassign the ticket
-        self.tickets_mgr.unassign_ticket(ticket.id)
+        self.tickets_mgr.unassign(ticket.id)
 
         check = self.tickets_mgr.get(ticket.id)
         self.assertEqual("New", check.status.name)
         self.assertEqual("", check.assigned)
 
         # delete ticket with redmine api, assert
-        self.redmine.remove_ticket(int(ticket.id))
-        self.assertIsNone(self.redmine.get_ticket(int(ticket.id)))
+        self.redmine.ticket_mgr.remove(int(ticket.id))
+        self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket.id)))
 
 
     def test_ticket_collaborate(self):
@@ -128,8 +128,8 @@ class TestIntegrationTicketManager(test_utils.RedmineTestCase):
         self.assertEqual(self.user.id, check.watchers[0].id)
 
         # delete ticket with redmine api, assert
-        self.redmine.remove_ticket(int(ticket.id))
-        self.assertIsNone(self.redmine.get_ticket(int(ticket.id)))
+        self.redmine.ticket_mgr.remove(int(ticket.id))
+        self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket.id)))
 
 
 

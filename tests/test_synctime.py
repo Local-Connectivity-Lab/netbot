@@ -32,14 +32,14 @@ class TestTime(test_utils.RedmineTestCase):
         self.redmine.ticket_mgr.update_sync_record(sync_rec)
 
         # refetch ticket
-        ticket2 = self.redmine.get_ticket(ticket.id)
+        ticket2 = self.redmine.ticket_mgr.get(ticket.id)
         sync_rec2 = ticket2.validate_sync_record(expected_channel=1111) # NOT the test_channel
         log.info(f"ticket2 updated={ticket2.updated_on}, {synctime.age_str(ticket2.updated_on)} ago, channel: {sync_rec.channel_id}")
 
         self.assertIsNone(sync_rec2)
 
         # clean up
-        self.redmine.remove_ticket(ticket.id)
+        self.redmine.ticket_mgr.remove(ticket.id)
 
 
     def test_redmine_isoformat(self):

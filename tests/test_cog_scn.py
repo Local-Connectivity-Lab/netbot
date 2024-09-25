@@ -120,7 +120,7 @@ class TestSCNCog(test_utils.BotTestCase):
         # check for actual changes! updated timestamp!
 
         # cleanup
-        self.redmine.remove_ticket(ticket.id)
+        self.redmine.ticket_mgr.remove(ticket.id)
 
 
     async def test_block_user(self):
@@ -135,11 +135,11 @@ class TestSCNCog(test_utils.BotTestCase):
             self.assertTrue(self.redmine.user_mgr.is_blocked(self.user))
 
             # confirm ticket rejected
-            check_ticket = self.redmine.get_ticket(ticket.id)
+            check_ticket = self.redmine.ticket_mgr.get(ticket.id)
             self.assertEqual("Reject", check_ticket.status.name)
         finally:
             # cleanup
-            self.redmine.remove_ticket(ticket.id)
+            self.redmine.ticket_mgr.remove(ticket.id)
 
 
     async def test_unblock_user(self):
@@ -204,7 +204,7 @@ class TestSCNCog(test_utils.BotTestCase):
 
         # clean up
         del self.bot.ticket_locks[ticket.id]
-        self.redmine.remove_ticket(ticket.id)
+        self.redmine.ticket_mgr.remove(ticket.id)
 
 
 if __name__ == '__main__':

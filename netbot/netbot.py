@@ -49,6 +49,17 @@ TEAM_MAPPING = {
     "uw-research-nsf": "research-team",
 }
 
+# utility method to get a list of (one) ticket from the title of the channel, or empty list
+# TODO could be moved to NetBot
+def default_ticket(ctx: discord.AutocompleteContext) -> list[int]:
+    # examine the thread
+    ticket_id = ctx.bot.parse_thread_title(ctx.interaction.channel.name)
+    if ticket_id:
+        return [ticket_id]
+    else:
+        return []
+
+
 class NetbotException(Exception):
     """netbot exception"""
 
@@ -105,7 +116,6 @@ class NetBot(commands.Bot):
         self.initialize_tracker_mapping()
 
         super().run(os.getenv('DISCORD_TOKEN'))
-
 
     async def on_ready(self):
         #log.info(f"Logged in as {self.user} (ID: {self.user.id})")
@@ -269,7 +279,7 @@ class NetBot(commands.Bot):
         # get the ticket id from the thread name
         ticket_id = self.parse_thread_title(thread.name)
 
-        ticket = self.redmine.get_ticket(ticket_id, include="journals")
+        ticket = self.redmine.ticket_mgr.get(ticket_id, include="journals")
         if ticket:
             completed = await self.synchronize_ticket(ticket, thread)
             # note: synchronize_ticket returns True only when successfully completing a sync
@@ -439,6 +449,17 @@ class NetBot(commands.Bot):
                 log.info(f"ERROR: user ID {named} not found")
 
         return []
+
+
+    def is_admin(self, user: discord.Member) -> bool:
+        """Check if the given Discord memeber is in a authorized role"""
+        # search user for "auth" role
+        for role in user.roles:
+            if "auth" == role.name: ## FIXME
+                return True
+
+        # auth role not found
+        return False
 
 
 def main():

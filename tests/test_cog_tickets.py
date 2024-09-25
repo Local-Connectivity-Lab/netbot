@@ -94,9 +94,9 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.assertIn(test_title, response_str)
 
         # delete ticket with redmine api, assert
-        self.redmine.remove_ticket(int(ticket_id))
+        self.redmine.ticket_mgr.remove(int(ticket_id))
         # check that the ticket has been removed
-        self.assertIsNone(self.redmine.get_ticket(int(ticket_id)))
+        self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket_id)))
 
     @unittest.skip
     async def test_ticket_unassign(self):
@@ -109,8 +109,8 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.assertIn(str(ticket.id), response_str)
 
         # delete ticket with redmine api, assert
-        self.redmine.remove_ticket(int(ticket.id))
-        self.assertIsNone(self.redmine.get_ticket(int(ticket.id)))
+        self.redmine.ticket_mgr.remove(int(ticket.id))
+        self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket.id)))
 
 
     @unittest.skip
@@ -124,8 +124,8 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.assertIn(str(ticket.id), response_str)
 
         # delete ticket with redmine api, assert
-        self.redmine.remove_ticket(ticket.id)
-        self.assertIsNone(self.redmine.get_ticket(int(ticket.id)))
+        self.redmine.ticket_mgr.remove(ticket.id)
+        self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket.id)))
 
     # create thread/sync
     async def test_thread_sync(self):
@@ -155,7 +155,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.assertIn(ticket.subject, thread_response)
 
         # delete the ticket
-        self.redmine.remove_ticket(ticket.id)
+        self.redmine.ticket_mgr.remove(ticket.id)
 
 
     async def test_query_term(self):
@@ -180,7 +180,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         #self.assertEqual(ticket.id, result_4[0].id)
 
         # delete the ticket
-        self.redmine.remove_ticket(ticket.id)
+        self.redmine.ticket_mgr.remove(ticket.id)
 
 
     async def test_resolve_invalid_discord_user(self):

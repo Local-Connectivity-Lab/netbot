@@ -4,12 +4,14 @@ import logging
 
 import discord
 
-from discord.commands import SlashCommandGroup
+from discord.commands import option, SlashCommandGroup
 from discord.ext import commands
+from discord.utils import basic_autocomplete
 
 from redmine.model import Message, User
 from redmine.redmine import Client, BLOCKED_TEAM_NAME
 
+from netbot.netbot import default_ticket
 
 log = logging.getLogger(__name__)
 
@@ -164,7 +166,10 @@ class SCNCog(commands.Cog):
         return False
 
 
-    @scn.command()
+    # FIXME rename to "register"?
+    @scn.command(description="Add a Discord user to redmine")
+    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("member", description="Discord member collaborating with ticket", optional=True)
     async def add(self, ctx:discord.ApplicationContext, redmine_login:str, member:discord.Member=None):
         """add a Discord user to the Redmine ticketing integration"""
         discord_name = ctx.user.name # by default, assume current user
@@ -327,7 +332,7 @@ class SCNCog(commands.Cog):
             # add the user to the blocked list
             self.redmine.user_mgr.block(user)
             # search and reject all tickets from that user
-            for ticket in self.redmine.get_tickets_by(user):
+            for ticket in self.redmine.ticket_mgr.get_by(user):
                 self.redmine.reject_ticket(ticket.id)
             await ctx.respond(f"Blocked user: {user.login} and rejected all created tickets")
         else:
