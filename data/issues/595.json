@@ -1,0 +1,125 @@
+{
+    "issue": {
+        "id": 595,
+        "project": {
+            "id": 1,
+            "name": "Seattle Community Network"
+        },
+        "tracker": {
+            "id": 4,
+            "name": "Software-Dev"
+        },
+        "status": {
+            "id": 1,
+            "name": "New",
+            "is_closed": false
+        },
+        "priority": {
+            "id": 14,
+            "name": "EPIC"
+        },
+        "author": {
+            "id": 15,
+            "name": "Yoyo Ma"
+        },
+        "assigned_to": {
+            "id": 5,
+            "name": "Scooby Doo"
+        },
+        "category": {
+            "id": 4,
+            "name": "feature request"
+        },
+        "subject": "Improved collaboration alerts for Redmine",
+        "description": "Owner = Assigned\r\nCollaborators = \"Watchers\" for Discord? (can turn off email- user setting)\r\nDue date, after which you have to give up the task by default (max 1 month)\r\nYour list is public\r\nEncourage people to carve out sub tickets\r\nOnly one owner and you can add yourself as Watcher \r\nCan you at mention watchers in a thread?\r\nYou can co own by creating a group\r\n\r\nAsks:\r\n* Command: \"Alert\" on a ticket/thread: if you're in a thread, it will know what ticket to alert on\r\n* Command: \"add yourself as a watcher\" for a ticket via Discord\r\n* Addition to \"new\" command- attach to a current ticket (as a sub ticket?)- this becomes a new thread\r\n* Unassign tickets that have not been touched for a certain amount of time eg 4 weeks- back to ticket intake, status back to new, send an alert to collaborators\r\n* Tracker to Discord channel mapping:\r\n- External Comms Intake- admin-team\r\n- Admin- admin-team\r\n- Comms- outreach\r\n- Infra-config- routing and infrastructure\r\n- Infra-field- installs\r\n- Software-dev- network software\r\n- Research- uw research nsf",
+        "start_date": "2024-03-21",
+        "due_date": null,
+        "done_ratio": 75,
+        "is_private": false,
+        "estimated_hours": null,
+        "total_estimated_hours": 0.0,
+        "spent_hours": 0.0,
+        "total_spent_hours": 0.0,
+        "custom_fields": [
+            {
+                "id": 4,
+                "name": "syncdata",
+                "value": "1284572588550525142|2024-09-14 17:52:53.238947+00:00"
+            },
+            {
+                "id": 5,
+                "name": "To/CC",
+                "value": ""
+            }
+        ],
+        "created_on": "2024-03-21T17:50:25Z",
+        "updated_on": "2024-09-14T17:52:53Z",
+        "closed_on": null,
+        "children": [
+            {
+                "id": 596,
+                "tracker": {
+                    "id": 4,
+                    "name": "Software-Dev"
+                },
+                "subject": "UX changes to redmine fields"
+            },
+            {
+                "id": 597,
+                "tracker": {
+                    "id": 4,
+                    "name": "Software-Dev"
+                },
+                "subject": "\"Alert\" cron job that runs daily to send notifications about expiring tickets."
+            },
+            {
+                "id": 598,
+                "tracker": {
+                    "id": 4,
+                    "name": "Software-Dev"
+                },
+                "subject": "Add \"alert\" feature to Discord integration"
+            },
+            {
+                "id": 599,
+                "tracker": {
+                    "id": 4,
+                    "name": "Software-Dev"
+                },
+                "subject": "Add \"collaborate\" command to netbot"
+            },
+            {
+                "id": 600,
+                "tracker": {
+                    "id": 4,
+                    "name": "Software-Dev"
+                },
+                "subject": "Add command to create new sub-ticket in context of an existing ticket thread"
+            },
+            {
+                "id": 601,
+                "tracker": {
+                    "id": 4,
+                    "name": "Software-Dev"
+                },
+                "subject": "Add automatic resolution for trackers \u003c--\u003e Discord channels"
+            },
+            {
+                "id": 602,
+                "tracker": {
+                    "id": 4,
+                    "name": "Software-Dev"
+                },
+                "subject": "Add \"unassign\" command to send a ticket back to intake"
+            },
+            {
+                "id": 607,
+                "tracker": {
+                    "id": 4,
+                    "name": "Software-Dev"
+                },
+                "subject": "Add auto-assignment for specificed known email senders"
+            }
+        ]
+    }
+}
