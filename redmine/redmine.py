@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 from redmine.synctime import SyncRecord, parse_str
 from redmine.session import RedmineSession
-from redmine.model import Message, Ticket, User, Team, NamedId
+from redmine.model import Message, Ticket, User, Team
 from redmine.users import UserManager
 from redmine.tickets import TicketManager, SCN_PROJECT_ID
 
@@ -41,8 +41,6 @@ class Client():
         self.user_mgr = user_mgr
         self.ticket_mgr = ticket_mgr
 
-        self.reindex() # build the cache when starting
-
 
     @classmethod
     def from_session(cls, session:RedmineSession, default_project:int):
@@ -67,6 +65,11 @@ class Client():
         return cls.from_session(RedmineSession(url, token), default_project)
 
 
+    def reindex(self):
+        self.ticket_mgr.reindex() # re-load enumerations (priority, tracker, etc)
+        self.user_mgr.reindex() # rebuild the user cache
+
+
     def create_ticket(self, user:User, message:Message) -> Ticket:
         # NOTE to self re "projects": TicketManager.create supports a project ID
         # Need to find a way to pass it in.
@@ -78,44 +81,15 @@ class Client():
         return ticket
 
 
-    def load_priorities(self) -> list[NamedId]:
-        """get all active priorities"""
-        resp = self.session.get("/enumerations/issue_priorities.json")
-        priorities = resp['issue_priorities'] # get specific dictionary in response
-        priorities = [NamedId(priority['id'], priority['name']) for priority in priorities]
-        # reverse the list, so higest is first
-        return reversed(priorities)
-
-
-    def load_trackers(self) -> dict[str,NamedId]:
-        # call redmine to get the ticket trackers
-        response = self.session.get("/trackers.json")
-        if response:
-            trackers = {}
-            for item in response['trackers']:
-                trackers[item['name']] = NamedId(id=item['id'], name=item['name'])
-            return trackers
-        else:
-            log.warning("No reackers to load")
-
-
-    def reindex(self):
-        self.priorities = self.load_priorities()
-        self.trackers = self.load_trackers()
-        self.user_mgr.reindex() # rebuild the user cache
-
-
+    # FIXME - remove unneeded code
     def update_ticket(self, ticket_id:int, fields:dict, user_login:str|None=None):
         return self.ticket_mgr.update(ticket_id, fields, user_login)
-
 
     def append_message(self, ticket_id:int, user_login:str, note:str, attachments=None): # Could be TicketNote
         return self.ticket_mgr.append_message(ticket_id, user_login, note, attachments)
 
-
     def upload_file(self, user:User, data, filename, content_type) -> str:
         return self.ticket_mgr.upload_file(user, data, filename, content_type)
-
 
     def upload_attachments(self, user:User, attachments):
         self.ticket_mgr.upload_attachments(user, attachments)

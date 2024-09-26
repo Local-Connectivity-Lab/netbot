@@ -67,11 +67,11 @@ class RedmineSession():
         return headers
 
 
-    def get(self, query_str:str, impersonate_id:str|None=None):
+    def get(self, query:str, impersonate_id:str|None=None):
         """run a query against a redmine instance"""
         headers = self.get_headers(impersonate_id)
         try:
-            r = self.session.get(f"{self.url}{query_str}", headers=headers, timeout=TIMEOUT)
+            r = self.session.get(f"{self.url}{query}", headers=headers, timeout=TIMEOUT)
 
             if r.ok:
                 return r.json()
@@ -79,9 +79,9 @@ class RedmineSession():
                 log.debug(f"GET {r.status_code} {r.reason} url={r.request.url}, reqid={r.headers.get('X-Request-Id','')}")
         except (TimeoutError, ConnectTimeoutError, ConnectTimeout, ConnectionError):
             # ticket-509: Handle timeout gracefully
-            log.warning(f"TIMEOUT ({TIMEOUT}s) during {query_str}")
+            log.warning(f"TIMEOUT ({TIMEOUT}s) during {query}")
         except Exception as ex:
-            log.exception(f"{type(ex)} during {query_str}: {ex}")
+            log.exception(f"{type(ex)} during {query}: {ex}")
 
         return None
 

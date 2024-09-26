@@ -6,7 +6,6 @@ import datetime as dt
 import logging
 import re
 import json
-import sys
 import urllib.parse
 
 from redmine.model import TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult, SYNC_FIELD_NAME
@@ -33,8 +32,18 @@ class TicketManager():
     """manage redmine tickets"""
     def __init__(self, session: RedmineSession, default_project):
         self.session: RedmineSession = session
-        self.custom_fields = self.load_custom_fields()
+        self.priorities = []
+        self.trackers = {}
+        self.custom_fields = {}
         self.default_project = default_project
+
+        self.reindex()
+
+
+    def reindex(self):
+        self.priorities = self.load_priorities()
+        self.trackers = self.load_trackers()
+        self.custom_fields = self.load_custom_fields()
 
 
     def load_custom_fields(self) -> dict[str,NamedId]:
@@ -46,18 +55,44 @@ class TicketManager():
                 fields[field['name']] = NamedId(id=field['id'], name=field['name'])
             return fields
         else:
-            log.fatal("No custom fields. Aborting.")
-            sys.exit("Unable to load custom fields. Aborting start-up. Check Redmine configuration.")
+            log.error("No custom fields.")
 
 
-    def get_field_id(self, name:str) -> int | None:
-        if not self.custom_fields:
-            log.warning(f"Custom field '{name}' requested, none available")
-            return None
+    def get_custom_field(self, name:str) -> NamedId | None:
+        return self.custom_fields.get(name, None)
 
-        if name in self.custom_fields:
-            return self.custom_fields[name].id
+
+    def load_priorities(self) -> list[NamedId]:
+        """get all active priorities"""
+        resp = self.session.get("/enumerations/issue_priorities.json")
+        priorities = resp['issue_priorities'] # get specific dictionary in response
+        priorities = [NamedId(priority['id'], priority['name']) for priority in priorities]
+        # reverse the list, so higest is first
+        return reversed(priorities)
+
+
+    def get_priority(self, name:str) -> NamedId | None:
+        # search
+        for priority in self.priorities:
+            if priority.name == name:
+                return priority
         return None
+
+
+    def load_trackers(self) -> dict[str,NamedId]:
+        # call redmine to get the ticket trackers
+        response = self.session.get("/trackers.json")
+        if response:
+            trackers = {}
+            for item in response['trackers']:
+                trackers[item['name']] = NamedId(id=item['id'], name=item['name'])
+            return trackers
+        else:
+            log.warning("No reackers to load")
+
+
+    def get_tracker(self, name:str) -> NamedId | None:
+        return self.trackers.get(name, None)
 
 
     def create(self, user: User, message: Message, project_id: int = None, **params) -> Ticket:
@@ -79,7 +114,7 @@ class TicketManager():
                 # where '//' is the separater.
                 'custom_fields': [
                     {
-                        'id': self.get_field_id(TO_CC_FIELD_NAME),
+                        'id': self.get_custom_field(TO_CC_FIELD_NAME).id,
                         'value': message.to_cc_str(),
                     }
                 ]

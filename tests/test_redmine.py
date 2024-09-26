@@ -3,7 +3,7 @@
 
 import unittest
 import logging
-from unittest.mock import MagicMock, patch
+#from unittest.mock import patch
 
 from dotenv import load_dotenv
 
@@ -22,17 +22,12 @@ log = logging.getLogger(__name__)
 class TestRedmine(test_utils.MockRedmineTestCase):
     """Mocked testing of redmine function"""
 
-    @patch('redmine.session.RedmineSession.get')
-    def test_priorities(self, mock_get:MagicMock):
-        mock_get.return_value = test_utils.load_json("issue_priorities.json")
+    def test_priorities(self):
+        p = self.redmine.ticket_mgr.get_priority("EPIC")
+        self.assertIsNotNone(p, "Expected EPIC priority, not found.")
 
-        found = False
-        for priority in self.redmine.load_priorities():
-            if priority.name == "EPIC" and priority.id == 14:
-                found = True
-
-        self.assertTrue(found, "Expected priority, EPIC (14), not found in data")
-
+        t = self.redmine.ticket_mgr.get_tracker("Software-Dev")
+        self.assertIsNotNone(t, "Expected Software-Dev tracker, not found.")
 
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")

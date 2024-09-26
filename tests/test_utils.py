@@ -8,6 +8,7 @@ import string
 import random
 import logging
 import unittest
+from urllib.parse import urlparse
 from unittest import mock
 
 from dotenv import load_dotenv
@@ -57,7 +58,8 @@ def randstr(length:int=12) -> str:
 
 
 def load_json(filename:str):
-    with open(os.path.join(TEST_DATA, filename), 'r', encoding="utf-8") as file:
+    #with open(os.path.join(TEST_DATA, filename), 'r', encoding="utf-8") as file:
+    with open(TEST_DATA + filename, 'r', encoding="utf-8") as file:
         return json.load(file)
 
 
@@ -125,7 +127,7 @@ def mock_session() -> RedmineSession:
 
 
 def custom_fields() -> dict:
-    with open('data/custom-fields.json', "r", encoding="utf-8") as fields_file:
+    with open('data/custom_fields.json', "r", encoding="utf-8") as fields_file:
         return json.load(fields_file)
 
 
@@ -138,6 +140,27 @@ def remove_test_users(user_mgr:UserManager):
 # TODO delete test tickets and "Search for subject match in email threading" ticket. TAG with test too?
 
 
+class MockSession(RedmineSession):
+    """Magic session handling for test"""
+    def __init__(self, token:str):
+        super().__init__("http://example.com", token)
+
+
+    def get(self, query:str, impersonate_id:str|None=None):
+        log.info(f"GET {query}, id={impersonate_id}")
+        # check if there's a file under TEST_DATA
+        #path = os.path.join(TEST_DATA, query)
+        # strip query
+        try:
+            path = urlparse(query).path
+            return load_json(path)
+        except FileNotFoundError as ex:
+            return super().get(query, impersonate_id)
+        except Exception as ex:
+            log.error(f"{ex}")
+            return None
+
+
 class MockUserManager(UserManager):
     """mock"""
     def get_all(self) -> list[User]:
@@ -147,66 +170,16 @@ class MockUserManager(UserManager):
         return {}
 
 
-class MockTicketManager(TicketManager):
-    """mock"""
-    def __init__(self, sess: RedmineSession):
-        super().__init__(sess, default_project=SCN_PROJECT_ID )
-
-
-    def load_custom_fields(self) -> dict[str,NamedId]:
-        """ override load_custom_fields to load expected custom fields. """
-        result = {}
-        with open('data/custom-fields.json', "r", encoding="utf-8") as fields_file:
-            fields = json.load(fields_file)
-            for name, value in fields.items():
-                result[name] = NamedId(**value)
-
-        log.debug(f"loading custom fields for test: {result}")
-        return result
-
-
-class MockRedmine(Client):
-    """Redmine client for unit tests"""
-    def __init__(self):
-        session = mock_session()
-        user_mgr = MockUserManager(session)
-        ticket_mgr = MockTicketManager(session)
-        super().__init__(session, user_mgr, ticket_mgr)
-
-
-    def load_priorities(self) -> list[NamedId]:
-        """get all active priorities"""
-        resp = load_json("issue_priorities.json")
-        priorities = resp['issue_priorities'] # get specific dictionary in response
-        priorities = [NamedId(priority['id'], priority['name']) for priority in priorities]
-        # reverse the list, so higest is first
-        return reversed(priorities)
-
-
-    def load_trackers(self) -> dict[str,NamedId]:
-        response = load_json("trackers.json")
-        trackers = {}
-        for item in response['trackers']:
-            trackers[item['name']] = NamedId(id=item['id'], name=item['name'])
-        return trackers
-
-
-    def reindex(self):
-        self.priorities = load_json("issue_priorities.json")
-        self.trackers = self.load_trackers()
-        self.user_mgr.reindex()
-
-
-
 class MockRedmineTestCase(unittest.TestCase):
     """Abstract base class for mocked redmine testing"""
 
     @classmethod
     def setUpClass(cls):
-        cls.redmine = MockRedmine()
+        cls.tag:str = tagstr()
+        session = MockSession(cls.tag)
+        cls.redmine = Client.from_session(session, default_project=1)
         cls.user_mgr = cls.redmine.user_mgr
         cls.tickets_mgr = cls.redmine.ticket_mgr
-        cls.tag:str = tagstr()
 
         cls.user:User = mock_user(cls.tag)
         cls.user_mgr.cache.cache_user(cls.user)
