@@ -16,8 +16,8 @@ from dotenv import load_dotenv
 import discord
 from discord import ApplicationContext
 from redmine.users import UserManager
-from redmine.model import Message, User, NamedId, Ticket, TicketsResult, Team
-from redmine.tickets import SCN_PROJECT_ID, TicketManager
+from redmine.model import Message, User, Ticket, TicketsResult
+from redmine.tickets import SCN_PROJECT_ID
 from redmine.session import RedmineSession
 from redmine.redmine import Client
 from netbot.netbot import NetBot
@@ -148,26 +148,14 @@ class MockSession(RedmineSession):
 
     def get(self, query:str, impersonate_id:str|None=None):
         log.info(f"GET {query}, id={impersonate_id}")
-        # check if there's a file under TEST_DATA
-        #path = os.path.join(TEST_DATA, query)
-        # strip query
         try:
             path = urlparse(query).path
             return load_json(path)
-        except FileNotFoundError as ex:
+        except FileNotFoundError:
             return super().get(query, impersonate_id)
         except Exception as ex:
             log.error(f"{ex}")
             return None
-
-
-class MockUserManager(UserManager):
-    """mock"""
-    def get_all(self) -> list[User]:
-        return []
-
-    def get_all_teams(self, include_users: bool = True) -> dict[str, Team]:
-        return {}
 
 
 class MockRedmineTestCase(unittest.TestCase):

@@ -177,7 +177,7 @@ class Client(): ## imap.Client()
 
         ticket = None
         # first, search for a matching subject
-        tickets = self.redmine.match_subject(subject)
+        tickets = self.redmine.ticket_mgr.match_subject(subject)
         if len(tickets) == 1:
             # as expected
             ticket = tickets[0]
@@ -208,7 +208,7 @@ class Client(): ## imap.Client()
 
         if ticket:
             # found a ticket, append the message
-            self.redmine.append_message(ticket.id, user.login, message.note, message.attachments)
+            self.redmine.ticket_mgr.append_message(ticket.id, user.login, message.note, message.attachments)
             log.info(f"Updated ticket #{ticket.id} with message from {user.login} and {len(message.attachments)} attachments")
         else:
             # no open tickets, create new ticket for the email message

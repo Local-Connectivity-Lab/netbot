@@ -22,12 +22,20 @@ log = logging.getLogger(__name__)
 class TestRedmine(test_utils.MockRedmineTestCase):
     """Mocked testing of redmine function"""
 
-    def test_priorities(self):
+    def test_enumerations(self):
         p = self.redmine.ticket_mgr.get_priority("EPIC")
         self.assertIsNotNone(p, "Expected EPIC priority, not found.")
 
         t = self.redmine.ticket_mgr.get_tracker("Software-Dev")
         self.assertIsNotNone(t, "Expected Software-Dev tracker, not found.")
+
+    def test_get_ticket(self):
+        ticket = self.redmine.ticket_mgr.get(595)
+        self.assertIsNotNone(ticket)
+        self.assertEqual(len(ticket.children), 8)
+
+    def test_reindex(self):
+        self.redmine.reindex()
 
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")

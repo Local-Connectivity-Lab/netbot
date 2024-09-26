@@ -41,7 +41,7 @@ class TestNetbot(test_utils.BotTestCase):
         # create a new ticket, identified by the tag, with a note
         body = f"Body for test {self.tag} {unittest.TestCase.id(self)}"
         ticket = self.create_test_ticket()
-        self.redmine.append_message(ticket.id, self.user.login, body) # re-using tagged str
+        self.redmine.ticket_mgr.append_message(ticket.id, self.user.login, body) # re-using tagged str
 
         # create mock message and thread
         message = unittest.mock.AsyncMock(discord.Message)
@@ -77,7 +77,7 @@ class TestNetbot(test_utils.BotTestCase):
         ticket = self.create_test_ticket()
 
         long_message = test_utils.randstr(3000) # random string 3000 chars long
-        self.redmine.append_message(ticket.id, self.user.login, long_message)
+        self.redmine.ticket_mgr.append_message(ticket.id, self.user.login, long_message)
 
         # create mock message and thread
         message = unittest.mock.AsyncMock(discord.Message)

@@ -132,7 +132,7 @@ class TestTicketsCog(test_utils.BotTestCase):
         # create a ticket and add a note
         note = f"This is a test note tagged with {self.tag}"
         ticket = self.create_test_ticket()
-        self.redmine.append_message(ticket.id, self.user.login, note)
+        self.redmine.ticket_mgr.append_message(ticket.id, self.user.login, note)
 
         # thread the ticket using
         ctx = self.build_context()

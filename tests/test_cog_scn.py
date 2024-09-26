@@ -173,7 +173,7 @@ class TestSCNCog(test_utils.BotTestCase):
         # create a new ticket, identified by the tag, with a note
         ticket = self.create_test_ticket()
         message = f"Message for {self.tag}"
-        self.redmine.append_message(ticket.id, self.user.login, message)
+        self.redmine.ticket_mgr.append_message(ticket.id, self.user.login, message)
 
         # create mock message and thread
         message = unittest.mock.AsyncMock(discord.Message)

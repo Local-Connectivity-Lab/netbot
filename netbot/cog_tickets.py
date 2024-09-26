@@ -416,7 +416,7 @@ class TicketsCog(commands.Cog):
 
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
-            self.redmine.assign_ticket(ticket_id, user.login)
+            self.redmine.ticket_mgr.assign_ticket(ticket_id, user.login)
             await self.bot.formatter.print_ticket(self.redmine.ticket_mgr.get(ticket_id), ctx)
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error

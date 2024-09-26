@@ -283,7 +283,7 @@ class SCNCog(commands.Cog):
         # list all teams, with members
 
         if teamname:
-            team = self.redmine.get_team(teamname)
+            team = self.redmine.user_mgr.cache.get_team_by_name(teamname)
             if team:
                 await ctx.respond(self.format_team(team))
             else:
@@ -314,7 +314,7 @@ class SCNCog(commands.Cog):
 
     @scn.command(description="list blocked email")
     async def blocked(self, ctx:discord.ApplicationContext):
-        team = self.redmine.get_team(BLOCKED_TEAM_NAME)
+        team = self.redmine.user_mgr.cache.get_team_by_name(BLOCKED_TEAM_NAME)
         if team:
             await ctx.respond(self.format_team(team))
         else:
@@ -333,7 +333,7 @@ class SCNCog(commands.Cog):
             self.redmine.user_mgr.block(user)
             # search and reject all tickets from that user
             for ticket in self.redmine.ticket_mgr.get_by(user):
-                self.redmine.reject_ticket(ticket.id)
+                self.redmine.ticket_mgr.reject_ticket(ticket.id)
             await ctx.respond(f"Blocked user: {user.login} and rejected all created tickets")
         else:
             log.debug("trying to block unknown user '{username}', ignoring")

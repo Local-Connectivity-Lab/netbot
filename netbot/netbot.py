@@ -166,7 +166,7 @@ class NetBot(commands.Bot):
     def gather_redmine_notes(self, ticket, sync_rec:synctime.SyncRecord) -> list[TicketNote]:
         notes = []
         # get the new notes from the redmine ticket
-        redmine_notes = self.redmine.get_notes_since(ticket.id, sync_rec.last_sync)
+        redmine_notes = self.redmine.ticket_mgr.get_notes_since(ticket.id, sync_rec.last_sync)
         for note in redmine_notes:
             if not note.notes.startswith('"Discord":'):
                 # skip anything that start with the Discord tag
@@ -183,13 +183,13 @@ class NetBot(commands.Bot):
         if user:
             # format the note
             formatted = f'"Discord":{message.jump_url}: {message.content}'
-            self.redmine.append_message(ticket.id, user.login, formatted)
+            self.ticket_mgr.append_message(ticket.id, user.login, formatted)
         else:
             # no user mapping
             log.debug(f"SYNC unknown Discord user: {message.author.name}")
             formatted = f'"Discord":{message.jump_url} user *{message.author.name}* said: {message.content}'
             # force user_login to None to use default user based on token (the admin)
-            self.redmine.append_message(ticket.id, user_login=None, note=formatted)
+            self.ticket_mgr.append_message(ticket.id, user_login=None, note=formatted)
 
 
     async def synchronize_ticket(self, ticket, thread:discord.Thread) -> bool:
@@ -242,7 +242,7 @@ class NetBot(commands.Bot):
                 # only update if something has changed
                 if dirty_flag:
                     sync_rec.last_sync = sync_start
-                    self.redmine.update_sync_record(sync_rec)
+                    self.redmine.ticket_mgr.update_sync_record(sync_rec)
 
                 log.info(f"DONE sync {ticket.id} <-> {thread.name}, took {synctime.age_str(sync_start)}")
                 return True # processed as expected

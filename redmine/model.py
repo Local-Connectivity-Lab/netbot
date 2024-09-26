@@ -26,7 +26,8 @@ class Attachment():
         self.token = None
 
     def upload(self, client, user):
-        self.token = client.upload_file(user, self.payload, self.name, self.content_type)
+        # FIXME This is messy, move to caller.
+        self.token = client.ticket_mgr.upload_file(user, self.payload, self.name, self.content_type)
 
     def set_token(self, token):
         self.token = token
@@ -416,7 +417,6 @@ class Ticket():
                 # no valid channel set in sync data, assume lagacy
                 record.channel_id = expected_channel
                 # update the record in redmine after adding the channel info
-                # self.update_sync_record(record) REALLY needed? should be handled when token created
                 return record
             elif record.channel_id != expected_channel:
                 log.debug(f"channel mismatch: rec={record.channel_id} =/= {expected_channel}")

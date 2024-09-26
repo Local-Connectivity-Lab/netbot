@@ -60,7 +60,7 @@ class TestMessages(test_utils.RedmineTestCase):
         with open("data/message-161.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
             user = self.redmine.user_mgr.get_by_name('admin')
-            self.redmine.upload_attachments(user, message.attachments)
+            self.redmine.ticket_mgr.upload_attachments(user, message.attachments)
 
 
     def test_doctype_head(self):
@@ -73,7 +73,7 @@ class TestMessages(test_utils.RedmineTestCase):
 
     def test_more_recent_ticket(self):
         user = self.redmine.user_mgr.get_by_name('admin')
-        ticket = self.redmine.most_recent_ticket_for(user)
+        ticket = self.redmine.ticket_mgr.most_recent_ticket_for(user)
         self.assertIsNotNone(ticket)
 
 
@@ -103,7 +103,7 @@ class TestMessages(test_utils.RedmineTestCase):
         self.assertIsNone(user, f"Found existing user: {test_email}")
 
         subject = "Search for subject match in email threading"
-        tickets = self.redmine.match_subject(subject)
+        tickets = self.redmine.ticket_mgr.match_subject(subject)
         self.assertEqual(0, len(tickets), f"Found ticket matching: '{subject}' - {tickets}, please delete.")
 
         with open("data/message-190.eml", 'rb') as file:
@@ -116,7 +116,7 @@ class TestMessages(test_utils.RedmineTestCase):
         self.assertEqual(test_email, user.mail)
 
         # validate the ticket created by message-190
-        tickets = self.redmine.match_subject(subject)
+        tickets = self.redmine.ticket_mgr.match_subject(subject)
         self.assertEqual(1, len(tickets))
         self.assertEqual(subject, tickets[0].subject)
         self.assertEqual(user.id, tickets[0].author.id)
@@ -139,7 +139,7 @@ class TestMessages(test_utils.RedmineTestCase):
         self.assertIsNotNone(ticket)
 
         # search for the ticket
-        tickets = self.redmine.match_subject(subject)
+        tickets = self.redmine.ticket_mgr.match_subject(subject)
         #for check in tickets:
         self.assertIsNotNone(tickets)
         self.assertEqual(1, len(tickets))
