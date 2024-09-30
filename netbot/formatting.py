@@ -174,8 +174,13 @@ class DiscordFormatter():
         return f"`{link_padding}`{link}` {status} {priority}  {age:<10} {assigned:<18} `{ticket.subject[:60]}"
 
 
-    def format_subticket(self, ticket:SubTicket) -> str:
-        return f"[{ticket.id}]({self.base_url}/issues/{ticket.id}) - {ticket.subject}"
+    def format_subticket(self, ticket:Ticket) -> str:
+        if ticket.status and ticket.status.is_closed:
+            # if the ticket is closed, remove the link and add strikeout
+            return f"~~{ticket.id} - {ticket.subject}~~"
+        else:
+            # TODO: What is the ticket thread in Discord?
+            return f"[{ticket.id}]({self.base_url}/issues/{ticket.id}) - {ticket.subject}"
 
 
     def format_discord_note(self, note) -> str:
@@ -309,65 +314,47 @@ class DiscordFormatter():
         return embed
 
 
-    def epics_embed(self, ctx: discord.ApplicationContext, epics: dict[str,list[Ticket]]) -> list[discord.Embed]:
+    def epics_embed(self, ctx: discord.ApplicationContext, epics: list[Ticket]) -> list[discord.Embed]:
         """Build an array of embeds, one for each epic"""
         embeds = []
         total_len = 0
 
-        for _, tickets in epics.items():
-            for epic in tickets:
-                title = f"{ get_emoji(epic.priority.name) } {epic.subject[:EMBED_TITLE_LEN-8]} (#{epic.id})"
-                embed = discord.Embed(
-                    title=title,
-                    description=epic.description[:EMBED_DESC_LEN],
-                    color=discord.Color.blurple() # based on tracker?
-                )
+        for epic in epics:
+            title = f"{ get_emoji(epic.priority.name) } {epic.subject[:EMBED_TITLE_LEN-8]} (#{epic.id})"
+            embed = discord.Embed(
+                title=title,
+                description=epic.description[:EMBED_DESC_LEN],
+                color=discord.Color.blurple() # based on tracker?
+            )
 
-                # noting, assuming all these values are less than
-                if epic.assigned_to:
-                    embed.add_field(name="Owner", value=self.get_user_id(ctx, epic))
-                embed.add_field(name="Tracker", value=self.format_tracker(epic.tracker))
-                embed.add_field(name="Age", value=epic.age_str)
-                embed.add_field(name="Redmine", value=self.format_link(epic))
+            # noting, assuming all these values are less than
+            if epic.assigned_to:
+                embed.add_field(name="Owner", value=self.get_user_id(ctx, epic))
+            embed.add_field(name="Tracker", value=self.format_tracker(epic.tracker))
+            embed.add_field(name="Age", value=epic.age_str)
+            embed.add_field(name="Redmine", value=self.format_link(epic))
 
-                if epic.children:
-                    buff = ""
-                    for child in epic.children:
-                        buff += "- " + self.format_subticket(child) + "\n"
-                    embed.add_field(name="", value=buff, inline=False)
+            if epic.children:
+                buff = ""
+                for child in epic.children:
+                    buff += "- " + self.format_subticket(child) + "\n"
+                embed.add_field(name="", value=buff, inline=False)
 
-                # truncing approach:
-                # 1 message, 10 embeds, 6000 chars max
-                # if the embed is > 600, clip the description so the overall length == 600
-                # this effectively removes descriptions from epics with a lot of tickets.
-                # it also leaves a lot of wasted overhead, when the other embeds in the message
-                # are less than 600, about 10% on current samples.
-                embed_len = len(embed)
-                if embed_len > 600: # 6000/10
-                    overage = embed_len - 600
-                    embed.description = embed.description[:-overage]
-                    #log.info(f"EMBED: orig={embed_len}, desc={len(embed.description)}, over={overage}")
+            # truncing approach:
+            # 1 message, 10 embeds, 6000 chars max
+            # if the embed is > 600, clip the description so the overall length == 600
+            # this effectively removes descriptions from epics with a lot of tickets.
+            # it also leaves a lot of wasted overhead, when the other embeds in the message
+            # are less than 600, about 10% on current samples.
+            embed_len = len(embed)
+            if embed_len > 600: # 6000/10
+                overage = embed_len - 600
+                embed.description = embed.description[:-overage]
+                #log.info(f"EMBED: orig={embed_len}, desc={len(embed.description)}, over={overage}")
 
-                # add embed to the set
-                total_len += len(embed)
-                embeds.append(embed)
-
-        # if total_len > EMBED_MAX_LEN:
-        #     log.info(f"too-long epics: total={total_len}, max={EMBED_MAX_LEN}")
-        #     adjusted_total = 0
-        #     over_count = 10 - under_count
-        #     grace = under_total/over_count
-
-        #     for embed in embeds:
-        #         embed_len = len(embed)
-        #         overage = int(round(embed_len - (600 + grace)))
-        #         if overage > 0:
-        #             log.info(f"EMBED1: len={embed_len}, desc={len(embed.description)}, over={overage}")
-        #             embed.description = embed.description[:-overage]
-        #             log.info(f"EMBED2: len={embed_len}, desc={len(embed.description)}")
-        #         adjusted_total += len(embed)
-
-        #log.info(f"after adjust: total={total_len}")
+            # add embed to the set
+            total_len += len(embed)
+            embeds.append(embed)
 
         return embeds
 

@@ -148,6 +148,7 @@ class TestIntegrationTicketManager(test_utils.RedmineTestCase):
         self.assertEqual(10, len(check))
         self.assertEqual(595, check[8].id)
         self.assertEqual(8, len(check[8].children))
+        # check which are open vs closed.
 
 
 if __name__ == '__main__':
