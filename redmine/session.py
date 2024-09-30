@@ -71,6 +71,7 @@ class RedmineSession():
         """run a query against a redmine instance"""
         headers = self.get_headers(impersonate_id)
         try:
+            log.debug(f"GET url={self.url}{query}, headers={headers}")
             r = self.session.get(f"{self.url}{query}", headers=headers, timeout=TIMEOUT)
 
             if r.ok:

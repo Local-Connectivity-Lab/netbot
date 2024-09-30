@@ -272,7 +272,7 @@ class Ticket():
     assigned_to: NamedId|None = None
     custom_fields: list[CustomField]|None = None
     journals: list[TicketNote]|None = None
-    children: list[SubTicket]|None = None
+    children: list|None = None
     watchers: list[NamedId]|None = None
 
 

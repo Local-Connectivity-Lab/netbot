@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """redmine ticket handling"""
 
-from collections import defaultdict
 import datetime as dt
 import logging
 import re
@@ -246,29 +245,18 @@ class TicketManager():
             return []
 
 
-    def get_epics(self) -> dict[str, list[Ticket]]:
+    def get_epics(self) -> list[Ticket]:
         """Get all the open epics, organized by tracker"""
         # query tickets pri = epic
-        # http://localhost/issues.json?priority_id=14
-        epic_priority_id = 14 # fixme - lookup based on "EPIC", from redmine.get_priorities()
-        response = self.session.get(f"/issues.json?priority_id={epic_priority_id}&include=children&limit=10&sort={DEFAULT_SORT}")
-        if not response:
-            return {}
+        epic_priority = self.get_priority("EPIC")
 
-        epics = defaultdict(list)
-        result = TicketsResult(**response)
-        if result.total_count > 0:
-            # iterate to slot by tracker
-            for epic in result.issues:
-                # re-get the ticket, to include the children ticket
-                ticket = self.get(epic.id, include="children")
-                #log.info(f"        {ticket} {ticket.children}")c
-
-                tracker_name = ticket.tracker.name if ticket and ticket.tracker else "none"
-                if tracker_name not in epics.keys():
-                    epics[tracker_name] = [ticket] # create list with 1st element
-                else:
-                    epics[tracker_name].append(ticket)
+        #response = self.session.get(f"/issues.json?priority_id={epic_priority_id}&include=children&limit=10&sort={DEFAULT_SORT}")
+        epics = self.tickets(priority_id=epic_priority.id, limit=10, sort=DEFAULT_SORT)
+        for epic in epics:
+            # get the sub-tickets for the epic (both open and closed)
+            children = self.tickets(parent_id=epic.id, status_id="*")
+            if children and len(children) > 0:
+                epic.children = children
 
         return epics
 
@@ -423,7 +411,7 @@ class TicketManager():
 
 
     def tickets(self, **kwargs) -> list[Ticket]:
-        response = self.session.get(f"/issues.json?{urllib.parse.urlencode(kwargs)}&sort={DEFAULT_SORT}&limit=100")
+        response = self.session.get(f"/issues.json?{urllib.parse.urlencode(kwargs)}")
         if not response:
             return []
 
@@ -595,7 +583,12 @@ def main():
     #print(ticket_mgr.get(105, include_children=True).json_str())
     #print(json.dumps(ticket_mgr.load_custom_fields(), indent=4, default=vars))
 
-    print(ticket_mgr.due())
+    for epic in ticket_mgr.get_epics():
+        if epic.children is None:
+            log.info(f"Epic {epic.id}, no children")
+        else:
+            for ticket in epic.children:
+                log.info(f"Epic {epic.id}, sub-ticket {ticket.id}, status: {ticket.status}")
 
 
 # for testing the redmine

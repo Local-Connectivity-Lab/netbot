@@ -71,6 +71,17 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
         mock_post.assert_called_once()
         self.assertEqual(4242, check.parent.id)
 
+    # needs to pathc 10 calls to GET
+    # @patch('redmine.session.RedmineSession.get')
+    # def test_epics(self, mock_get:MagicMock):
+    #     # setup the mock tickets
+    #     mock_get.return_value = test_utils.load_json("/epics.json")
+
+    #     check = self.tickets_mgr.get_epics()
+    #     self.assertEqual(10, len(check))
+    #     #self.assertEqual(9, len(check[0].children))
+
+
 # The integration test suite is only run if the ENV settings are configured correctly
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
 class TestIntegrationTicketManager(test_utils.RedmineTestCase):
@@ -131,6 +142,12 @@ class TestIntegrationTicketManager(test_utils.RedmineTestCase):
         self.redmine.ticket_mgr.remove(int(ticket.id))
         self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket.id)))
 
+
+    def test_epics(self):
+        check = self.tickets_mgr.get_epics()
+        self.assertEqual(10, len(check))
+        self.assertEqual(595, check[8].id)
+        self.assertEqual(8, len(check[8].children))
 
 
 if __name__ == '__main__':

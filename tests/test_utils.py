@@ -88,9 +88,14 @@ def create_test_user(user_mgr:UserManager, tag:str):
 
 
 def mock_ticket(**kwargs) -> Ticket:
-    with open('data/test-ticket.json', "r", encoding="utf-8") as ticket_file:
+    #return json_ticket('test-ticket.json', **kwargs)
+    return json_ticket('issues/595.json', **kwargs)
+
+
+def json_ticket(file:str, **kwargs) -> Ticket:
+    with open('data/' + file, "r", encoding="utf-8") as ticket_file:
         data = json.load(ticket_file)
-        ticket = Ticket(**data)
+        ticket = Ticket(**data['issue'])
         ticket.id = random.randint(10000,99999)
 
         for key, value in kwargs.items():
