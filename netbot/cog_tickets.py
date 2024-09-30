@@ -364,7 +364,7 @@ class TicketsCog(commands.Cog):
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
             updated = self.redmine.ticket_mgr.resolve(ticket_id, user.login)
-            ticket_link = self.bot.formatter.format_link(ticket)
+            ticket_link = self.bot.formatter.redmine_link(ticket)
             await ctx.respond(
                 f"Updated {ticket_link}, status: {ticket.status} -> {updated.status}",
                 embed=self.bot.formatter.ticket_embed(ctx, updated))
@@ -391,7 +391,7 @@ class TicketsCog(commands.Cog):
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
             updated = self.redmine.progress_ticket(ticket_id, user.login)
-            ticket_link = self.bot.formatter.format_link(ticket)
+            ticket_link = self.bot.formatter.redmine_link(ticket)
             await ctx.respond(
                 f"Updated {ticket_link}, owner: {updated.assigned}, status: {updated.status}",
                 embed=self.bot.formatter.ticket_embed(ctx, updated))
@@ -488,7 +488,7 @@ class TicketsCog(commands.Cog):
             await self.thread(ctx, ticket.id)
             await self.bot.formatter.print_ticket(ticket, ctx)
 
-            ticket_link = self.bot.formatter.format_link(ticket)
+            ticket_link = self.bot.formatter.redmine_link(ticket)
             await ctx.respond(
                 f"Created ticket {ticket_link}",
                 embed=self.bot.formatter.ticket_embed(ctx, ticket))
@@ -523,7 +523,7 @@ class TicketsCog(commands.Cog):
     async def thread(self, ctx: discord.ApplicationContext, ticket_id:int):
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
-            ticket_link = self.bot.formatter.format_link(ticket)
+            ticket_link = self.bot.formatter.redmine_link(ticket)
 
             # check if sync data exists for a different channel
             synced = ticket.get_sync_record()
@@ -559,7 +559,7 @@ class TicketsCog(commands.Cog):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
-            ticket_link = self.bot.formatter.format_link(ticket)
+            ticket_link = self.bot.formatter.redmine_link(ticket)
 
             # look up the tracker string
             tracker_rec = self.bot.lookup_tracker(tracker)
@@ -594,7 +594,7 @@ class TicketsCog(commands.Cog):
             }
             updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
 
-            ticket_link = self.bot.formatter.format_link(ticket)
+            ticket_link = self.bot.formatter.redmine_link(ticket)
             await ctx.respond(
                 f"Updated priority of {ticket_link}: {ticket.priority} -> {updated.priority}",
                 embed=self.bot.formatter.ticket_embed(ctx, updated))
@@ -621,7 +621,7 @@ class TicketsCog(commands.Cog):
         }
         updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
 
-        ticket_link = self.bot.formatter.format_link(ticket)
+        ticket_link = self.bot.formatter.redmine_link(ticket)
         await ctx.respond(
             f"Updated subject of {ticket_link} to: {updated.subject}",
             embed=self.bot.formatter.ticket_embed(ctx, updated))

@@ -214,7 +214,20 @@ class TicketManager():
 
         response = self.session.get(query)
         if response:
-            return Ticket(**response['issue'])
+            ticket = Ticket(**response['issue'])
+
+            # check for special case: the SubTickets in the
+            # response (if requested at all) don't container enough info
+            # if there are children, make a seperate query for
+            # "all the children of ticket X"
+            # check to replace placeholder child tickets
+            #if "include" in params and "children" in params["include"]:
+            if ticket.children and len(ticket.children) > 0:
+                children = self.tickets(parent_id=ticket.id, status_id="*")
+                if children and len(children) > 0:
+                    ticket.children = children
+
+            return ticket
         else:
             log.debug(f"Unknown ticket number: {ticket_id}, params:{params}")
             return None

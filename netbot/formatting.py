@@ -5,7 +5,7 @@
 import logging
 import discord
 
-from redmine.model import NamedId, Ticket, SubTicket, User
+from redmine.model import NamedId, Ticket, User
 from redmine import synctime
 
 log = logging.getLogger(__name__)
@@ -140,14 +140,23 @@ class DiscordFormatter():
 
     # noting for future: https://docs.python.org/3/library/string.html#string.Template
 
-    def format_link(self, ticket:Ticket) -> str: ## to Ticket.link(base_url)?
+
+    def redmine_link(self, ticket:Ticket) -> str:
         return f"[`#{ticket.id}`]({self.base_url}/issues/{ticket.id})"
+
+
+    def discord_link(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
+        thread = ctx.bot.find_ticket_thread(ticket.id)
+        if thread:
+            return thread.jump_url
+
 
     def format_tracker(self, tracker:NamedId|None) -> str:
         if tracker:
             return f"{get_emoji(tracker.name)} {tracker.name}"
         else:
             return ""
+
 
     def format_icon(self, value:NamedId|None) -> str:
         if value and value.name:
@@ -161,8 +170,9 @@ class DiscordFormatter():
         else:
             return ""
 
+
     def format_ticket_row(self, ticket:Ticket) -> str:
-        link = self.format_link(ticket)
+        link = self.redmine_link(ticket)
         # link is mostly hidden, so we can't use the length to format.
         # but the length of the ticket id can be used
         link_padding = ' ' * (5 - len(str(ticket.id))) # field width = 6
@@ -174,13 +184,18 @@ class DiscordFormatter():
         return f"`{link_padding}`{link}` {status} {priority}  {age:<10} {assigned:<18} `{ticket.subject[:60]}"
 
 
-    def format_subticket(self, ticket:Ticket) -> str:
+    def format_subticket(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
         if ticket.status and ticket.status.is_closed:
             # if the ticket is closed, remove the link and add strikeout
             return f"~~{ticket.id} - {ticket.subject}~~"
         else:
-            # TODO: What is the ticket thread in Discord?
-            return f"[{ticket.id}]({self.base_url}/issues/{ticket.id}) - {ticket.subject}"
+            thread_url = self.discord_link(ctx, ticket)
+            if thread_url:
+                return thread_url
+            else:
+                log.info(f"No Discord thread for {ticket}")
+                return f"[{ticket.id}]({self.base_url}/issues/{ticket.id}) - {ticket.subject}"
+
 
 
     def format_discord_note(self, note) -> str:
@@ -190,7 +205,7 @@ class DiscordFormatter():
 
 
     def format_ticket(self, ticket:Ticket) -> str:
-        link = self.format_link(ticket)
+        link = self.redmine_link(ticket)
         status = f"{get_emoji(ticket.status.name)} {ticket.status.name}"
         priority = f"{get_emoji(ticket.priority.name)} {ticket.priority.name}"
         assigned = ticket.assigned_to.name if ticket.assigned_to else ""
@@ -198,7 +213,7 @@ class DiscordFormatter():
 
 
     def format_ticket_details(self, ticket:Ticket) -> str:
-        link = self.format_link(ticket)
+        link = self.redmine_link(ticket)
         # link is mostly hidden, so we can't use the length to format.
         # but the length of the ticket id can be used
         # layout, based on redmine:
@@ -240,12 +255,12 @@ class DiscordFormatter():
         # ⚠️
         # [icon] **Alert** [Ticket x](link) will expire in x hours, as xyz.
         ids_str = ["@" + id for id in discord_ids]
-        return f"ALERT: Expiring ticket: {self.format_link(ticket)} {' '.join(ids_str)}"
+        return f"ALERT: Expiring ticket: {self.redmine_link(ticket)} {' '.join(ids_str)}"
 
 
     def format_ticket_alert(self, ticket: Ticket, discord_ids: list[str], msg: str) -> str:
         ids_str = ["@" + id for id in discord_ids]
-        return f"ALERT #{self.format_link(ticket)} {' '.join(ids_str)}: {msg}"
+        return f"ALERT #{self.redmine_link(ticket)} {' '.join(ids_str)}: {msg}"
 
 
     def ticket_color(self, ticket:Ticket) -> discord.Color:
@@ -302,14 +317,12 @@ class DiscordFormatter():
         if ticket.children:
             buff = ""
             for child in ticket.children:
-                buff += "- " + self.format_subticket(child) + "\n"
+                buff += "- " + self.format_subticket(ctx, child) + "\n"
             embed.add_field(name="Tickets", value=buff, inline=False)
 
         # thread & redmine links
-        thread = ctx.bot.find_ticket_thread(ticket.id)
-        if thread:
-            embed.add_field(name="Thread", value=thread.jump_url)
-        embed.add_field(name="Redmine", value=self.format_link(ticket))
+        embed.add_field(name="Thread", value=self.discord_link(ctx, ticket))
+        embed.add_field(name="Redmine", value=self.redmine_link(ticket))
 
         return embed
 
@@ -332,13 +345,20 @@ class DiscordFormatter():
                 embed.add_field(name="Owner", value=self.get_user_id(ctx, epic))
             embed.add_field(name="Tracker", value=self.format_tracker(epic.tracker))
             embed.add_field(name="Age", value=epic.age_str)
-            embed.add_field(name="Redmine", value=self.format_link(epic))
+            embed.add_field(name="Redmine", value=self.redmine_link(epic))
 
             if epic.children:
                 buff = ""
                 for child in epic.children:
-                    buff += "- " + self.format_subticket(child) + "\n"
+                    buff += "- " + self.format_subticket(ctx, child) + "\n"
                 embed.add_field(name="", value=buff, inline=False)
+
+            # thread & redmine links
+            jump_url = self.discord_link(ctx, epic)
+            if jump_url:
+                embed.add_field(name="Thread", value=jump_url)
+            else:
+                embed.add_field(name="Redmine", value=self.redmine_link(epic))
 
             # truncing approach:
             # 1 message, 10 embeds, 6000 chars max
