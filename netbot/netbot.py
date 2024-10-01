@@ -183,7 +183,7 @@ class NetBot(commands.Bot):
         if user:
             # format the note
             formatted = f'"Discord":{message.jump_url}: {message.content}'
-            self.ticket_mgr.append_message(ticket.id, user.login, formatted)
+            self.redmine.ticket_mgr.append_message(ticket.id, user.login, formatted)
         else:
             # no user mapping
             log.debug(f"SYNC unknown Discord user: {message.author.name}")

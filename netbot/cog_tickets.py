@@ -286,7 +286,7 @@ class TicketsCog(commands.Cog):
                 term = "me"
 
         if term == "me":
-            results = self.redmine.my_tickets(user.login)
+            results = self.redmine.ticket_mgr.my_tickets(user.login)
         else:
             results = self.resolve_query_term(term)
 
