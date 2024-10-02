@@ -76,8 +76,6 @@ class NetBot(commands.Bot):
         self.ticket_locks = {}
 
         self.formatter = DiscordFormatter(client.url)
-        self.trackers: dict[str,NamedId] = {}
-        self.priorities: dict[str,NamedId] = {}
 
         self.redmine = client
         #guilds = os.getenv('DISCORD_GUILDS').split(', ')
@@ -93,28 +91,10 @@ class NetBot(commands.Bot):
         #    debug_guilds = guilds
         )
 
-    # note to self: this is in netbot because it bridges channels and trackers.
-    def initialize_tracker_mapping(self):
-        # load the priorities, indexed by name
-        self.priorities = self.redmine.ticket_mgr.load_priorities()
-
-        # load the trackers, indexed by tracker name
-        self.trackers = self.redmine.ticket_mgr.load_trackers()
-
-        # update to include each mapping in
-        for channel_name, tracker_name in CHANNEL_MAPPING.items():
-            if tracker_name in self.trackers:
-                self.trackers[channel_name] = self.trackers[tracker_name]
-            else:
-                log.debug(f"unmapped tracker: {tracker_name}")
-
 
     def run_bot(self):
         """start netbot"""
         log.info(f"starting {self}")
-
-        self.initialize_tracker_mapping()
-
         super().run(os.getenv('DISCORD_TOKEN'))
 
     async def on_ready(self):

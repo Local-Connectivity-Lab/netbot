@@ -4,13 +4,9 @@
 import os
 import re
 import logging
-import datetime as dt
 
-from dotenv import load_dotenv
-
-from redmine.synctime import SyncRecord, parse_str
 from redmine.session import RedmineSession
-from redmine.model import Message, Ticket, User, Team
+from redmine.model import Message, Ticket, User
 from redmine.users import UserManager
 from redmine.tickets import TicketManager, SCN_PROJECT_ID
 

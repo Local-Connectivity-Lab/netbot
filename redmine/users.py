@@ -131,6 +131,8 @@ class UserManager():
         self.session = session
         self.cache = UserCache()
 
+        self.reindex()
+
     def get_all(self) -> list[User]:
         jresp = self.session.get(f"{USER_RESOURCE}?status=1,2&limit=100")
         if jresp:
@@ -482,7 +484,7 @@ class UserManager():
         all_teams = self.get_all_teams()
         if all_teams and len(all_teams) > 0:
             self.cache.teams = all_teams # replace all the cached teams
-            log.debug(f"indexed {len(all_teams)} teams")
+            log.debug(f"TEAMs {self.cache.teams}")
         else:
             log.warning("No teams to index")
 
