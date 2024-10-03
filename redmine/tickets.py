@@ -21,6 +21,7 @@ DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
 SCN_PROJECT_ID = "1"  # could lookup scn in projects
 INTAKE_TEAM = "ticket-intake"
 INTAKE_TEAM_ID = 19 # FIXME
+EPIC_PRIORITY_NAME = "EPIC"
 
 
 TICKET_MAX_AGE = 4 * 7 # 4 weeks; 28 days
@@ -261,9 +262,14 @@ class TicketManager():
     def get_epics(self) -> list[Ticket]:
         """Get all the open epics, organized by tracker"""
         # query tickets pri = epic
-        epic_priority = self.get_priority("EPIC")
+        epic_priority = self.get_priority(EPIC_PRIORITY_NAME)
 
-        #response = self.session.get(f"/issues.json?priority_id={epic_priority_id}&include=children&limit=10&sort={DEFAULT_SORT}")
+        if not epic_priority:
+            # very unexpected
+            log.error(f"Cannot find expected {EPIC_PRIORITY_NAME} priority! Can't find epics!")
+            log.debug(f"known priorities: {self.priorities}")
+            return []
+
         epics = self.tickets(priority_id=epic_priority.id, limit=10, sort=DEFAULT_SORT)
         for epic in epics:
             # get the sub-tickets for the epic (both open and closed)

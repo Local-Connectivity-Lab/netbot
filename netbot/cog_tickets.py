@@ -245,7 +245,7 @@ class TicketsCog(commands.Cog):
             # note: fall thru for empty result from team query.
 
         if term in CHANNEL_MAPPING:
-            tracker = self.bot.lookup_tracker(CHANNEL_MAPPING[term])
+            tracker = self.bot.redmine.ticket_mgr.get_tracker(CHANNEL_MAPPING[term])
             if tracker:
                 result = self.redmine.ticket_mgr.tickets(tracker_id=tracker.id)
                 log.debug(f"QQQ<: {result}")
@@ -474,7 +474,7 @@ class TicketsCog(commands.Cog):
             # ticket created, set tracker
             # set tracker
             # TODO: search up all parents in hierarchy?
-            tracker = self.bot.lookup_tracker(channel_name)
+            tracker = self.bot.redmine.ticket_mgr.get_tracker(channel_name)
             if tracker:
                 log.debug(f"found {channel_name} => {tracker}")
                 params = {
@@ -562,7 +562,7 @@ class TicketsCog(commands.Cog):
             ticket_link = self.bot.formatter.redmine_link(ticket)
 
             # look up the tracker string
-            tracker_rec = self.bot.lookup_tracker(tracker)
+            tracker_rec = self.bot.redmine.ticket_mgr.get_tracker(tracker)
             fields = {
                 "tracker_id": tracker_rec.id,
             }
@@ -583,7 +583,7 @@ class TicketsCog(commands.Cog):
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
             # look up the priority
-            priority = self.bot.lookup_priority(priority_str)
+            priority = self.bot.redmine.ticket_mgr.get_priority(priority_str)
             if priority is None:
                 log.error(f"Unknown priority: {priority_str}")
                 await ctx.respond(f"Unknown priority: {priority_str}")

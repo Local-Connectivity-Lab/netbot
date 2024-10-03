@@ -391,14 +391,6 @@ class NetBot(commands.Bot):
         self.expire_expired_tickets()
 
 
-    def lookup_tracker(self, tracker:str) -> NamedId:
-        return self.trackers.get(tracker, None)
-
-
-    def lookup_priority(self, priority:str) -> NamedId:
-        return self.priorities.get(priority, None)
-
-
     def find_ticket_thread(self, ticket_id:int) -> discord.Thread|None:
         """Search thru thread titles looking for a matching ticket ID"""
         # search thru all threads for:

@@ -216,7 +216,7 @@ class SCNCog(commands.Cog):
                     ticket = self.redmine.ticket_mgr.create(user, message)
                     # set tracker
                     # TODO: search up all parents in hierarchy?
-                    tracker = self.bot.lookup_tracker(thread.parent.name)
+                    tracker = self.bot.redmine.ticket_mgr.get_tracker(thread.parent.name)
                     if tracker:
                         log.debug(f"found {thread.parent.name} => {tracker}")
                         params = {
