@@ -345,7 +345,6 @@ class DiscordFormatter():
                 embed.add_field(name="Owner", value=self.get_user_id(ctx, epic))
             embed.add_field(name="Tracker", value=self.format_tracker(epic.tracker))
             embed.add_field(name="Age", value=epic.age_str)
-            embed.add_field(name="Redmine", value=self.redmine_link(epic))
 
             if epic.children:
                 buff = ""
