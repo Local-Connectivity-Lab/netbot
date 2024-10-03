@@ -321,8 +321,11 @@ class DiscordFormatter():
             embed.add_field(name="Tickets", value=buff, inline=False)
 
         # thread & redmine links
-        embed.add_field(name="Thread", value=self.discord_link(ctx, ticket))
-        embed.add_field(name="Redmine", value=self.redmine_link(ticket))
+        jump_url = self.discord_link(ctx, ticket)
+        if jump_url:
+            embed.add_field(name="Thread", value=jump_url)
+        else:
+            embed.add_field(name="Redmine", value=self.redmine_link(ticket))
 
         return embed
 
