@@ -179,7 +179,15 @@ class SCNCog(commands.Cog):
 
         user = self.redmine.user_mgr.find(discord_id.name)
         if user:
-            await ctx.respond(f"Discord user: {discord_id.name} is already configured as redmine user: {user.login}")
+            # check the
+            id_from_user = user.discord_id
+            if id_from_user.id > 0:
+                # a valid
+                await ctx.respond(f"Discord user: {discord_id} is fully configured as redmine user: {user.login}")
+            else:
+                # need to update
+                self.redmine.user_mgr.create_discord_mapping(user, discord_id.id, discord_id.name)
+                await ctx.respond(f"Discord user: {discord_id.id},{discord_id.name} has been paired with redmine user: {redmine_login}")
         else:
             user = self.redmine.user_mgr.find(redmine_login)
             if user and self.is_admin(ctx.user):
