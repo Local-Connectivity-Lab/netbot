@@ -403,7 +403,7 @@ class NetBot(commands.Bot):
         return None # not found
 
 
-    def extract_ids_from_ticket(self, ticket: Ticket) -> set[str]:
+    def extract_ids_from_ticket(self, ticket: Ticket) -> set[int]:
         """Extract the Discord IDs from users interested in a ticket,
            using owner and collaborators"""
          # owner and watchers
@@ -419,7 +419,7 @@ class NetBot(commands.Bot):
             user = self.redmine.user_mgr.cache.get(named.id) #expected to be cached
             if user:
                 if user.discord_id:
-                    discord_ids.add(user.discord_id)
+                    discord_ids.add(user.discord_id.id)
                 else:
                     log.info(f"No Discord ID for {named}")
             else:

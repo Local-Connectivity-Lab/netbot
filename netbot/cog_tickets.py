@@ -496,9 +496,10 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Error creating ticket with title={title}")
 
 
-    @ticket.command(name="alert", description="Alert collaborators on a ticket")
-    @option("ticket_id", description="ID of ticket to alert", autocomplete=basic_autocomplete(default_ticket))
-    async def alert_ticket(self, ctx: discord.ApplicationContext, ticket_id:int):
+    @ticket.command(name="notify", description="Notify collaborators on a ticket")
+    @option("message", description="Message to send with notification")
+    async def notify(self, ctx: discord.ApplicationContext, message:str = ""):
+        ticket_id = self.bot.parse_thread_title(ctx.channel.name)
         ticket = self.redmine.ticket_mgr.get(ticket_id, include="watchers") # inclde the option watchers/collaborators field
         if ticket:
             # * notify owner and collaborators of *notable* (not all) status changes of a ticket
@@ -511,8 +512,9 @@ class TicketsCog(commands.Cog):
             if not thread:
                 await ctx.respond(f"ERROR: No thread for ticket ID: {ticket_id}, assign a fall-back") ## TODO
                 return
-            msg = f"Ticket {ticket.id} is about will expire soon."
-            await thread.send(self.bot.formatter.format_ticket_alert(ticket, discord_ids, msg))
+            if message == "":
+                message = f"Ticket {ticket.id} is about will expire soon."
+            await thread.send(self.bot.formatter.format_ticket_alert(ticket, discord_ids, message))
             await ctx.respond("Alert sent.")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") ## TODO format error message

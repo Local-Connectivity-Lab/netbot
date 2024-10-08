@@ -258,10 +258,10 @@ class DiscordFormatter():
         return f"ALERT: Expiring ticket: {self.redmine_link(ticket)} {' '.join(ids_str)}"
 
 
-    def format_ticket_alert(self, ticket: Ticket, discord_ids: list[str], msg: str) -> str:
-        ids_str = ["<@" + id + ">" for id in discord_ids]
+    def format_ticket_alert(self, ticket: Ticket, discord_ids: set[int], msg: str) -> str:
+        ids_str = [f"<@{id}>" for id in discord_ids]
         log.debug(f"ids_str={ids_str}, discord_ids={discord_ids}")
-        return f"ALERT #{self.redmine_link(ticket)} {' '.join(ids_str)}: {msg}"
+        return f"⚠️ {self.redmine_link(ticket)} {' '.join(ids_str)}: {msg}"
 
 
     def ticket_color(self, ticket:Ticket) -> discord.Color:
