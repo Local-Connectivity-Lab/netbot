@@ -403,7 +403,7 @@ class NetBot(commands.Bot):
         return None # not found
 
 
-    def extract_ids_from_ticket(self, ticket: Ticket) -> list[str]:
+    def extract_ids_from_ticket(self, ticket: Ticket) -> set[str]:
         """Extract the Discord IDs from users interested in a ticket,
            using owner and collaborators"""
          # owner and watchers
@@ -412,15 +412,20 @@ class NetBot(commands.Bot):
             interested.append(ticket.assigned_to)
         interested.extend(ticket.watchers)
 
-        discord_ids: list[str] = []
+        log.debug(f"INTERESTED: {interested}")
+
+        discord_ids = set()
         for named in interested:
-            user = self.redmine.user_mgr.get(named.id)
+            user = self.redmine.user_mgr.cache.get(named.id) #expected to be cached
             if user:
-                discord_ids.append(user.discord_id)
+                if user.discord_id:
+                    discord_ids.add(user.discord_id)
+                else:
+                    log.info(f"No Discord ID for {named}")
             else:
                 log.info(f"ERROR: user ID {named} not found")
 
-        return []
+        return discord_ids
 
 
     def is_admin(self, user: discord.Member) -> bool:

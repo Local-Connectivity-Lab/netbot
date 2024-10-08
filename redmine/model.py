@@ -99,6 +99,16 @@ class NamedId():
         else:
             return str(self.id)
 
+    def as_token(self) -> str:
+        return f"{self.id}|{self.name}"
+
+    @classmethod
+    def from_token(cls, token: str):
+        vals = token.split("|")
+        discord_id = int(vals[0])
+        name = vals[1]
+        return cls(id=discord_id, name=name)
+
 
 @dataclass
 class TicketStatus(NamedId):
@@ -180,9 +190,11 @@ class User():
     status: int = 0
     custom_fields: list[CustomField]
 
+
     def __post_init__(self):
         self.custom_fields = [CustomField(**field) for field in self.custom_fields]
-        self.discord_id = self.get_custom_field(DISCORD_ID_FIELD)
+        self.discord_id = self.parse_discord_custom_field()
+
 
     def get_custom_field(self, name: str) -> str:
         for field in self.custom_fields:
@@ -190,6 +202,38 @@ class User():
                 return field.value
 
         return None
+
+
+    def set_custom_field(self, field_id: int, name: str, value: str) -> str:
+        for field in self.custom_fields:
+            if field.name == name:
+                old = field.value # old value
+                field.value = value
+                return old
+        # not found, add new
+        self.custom_fields.append(CustomField(field_id, name, value))
+        return None
+
+
+    def parse_discord_custom_field(self) -> NamedId:
+        id_str = self.get_custom_field(DISCORD_ID_FIELD)
+        if id_str and len(id_str) > 0:
+            if '|' in id_str:
+                try:
+                    return NamedId.from_token(id_str)
+                except Exception:
+                    log.error(f"Unable to parse custom field for discord ID: {id_str}")
+            else:
+                # no id. assume old style
+                return NamedId(-1, id_str)
+        else:
+            return None
+
+
+    @property
+    def discord(self) -> str:
+        if self.discord_id:
+            return self.discord_id.name
 
     @property
     def name(self) -> str:
@@ -205,6 +249,9 @@ class User():
     def set_field(self, fieldname:str, value):
         setattr(self, fieldname, value)
         log.debug(f"@{self.login}: {fieldname} <= {value}")
+
+    def asdict(self):
+        return dataclasses.asdict(self)
 
 
 @dataclass

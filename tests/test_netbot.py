@@ -47,7 +47,7 @@ class TestNetbot(test_utils.BotTestCase):
         message = unittest.mock.AsyncMock(discord.Message)
         message.content = f"This is a new note about ticket #{ticket.id} for test {self.tag}"
         message.author = unittest.mock.AsyncMock(discord.Member)
-        message.author.name = self.user.discord_id
+        message.author.name = self.user.discord_id.name
 
         thread = unittest.mock.AsyncMock(discord.Thread)
         thread.name = f"Ticket #{ticket.id}"
@@ -83,7 +83,7 @@ class TestNetbot(test_utils.BotTestCase):
         message = unittest.mock.AsyncMock(discord.Message)
         message.content = f"This is a new note about ticket #{ticket.id} for test {self.tag}"
         message.author = unittest.mock.AsyncMock(discord.Member)
-        message.author.name = self.user.discord_id
+        message.author.name = self.user.discord_id.name
 
         thread = unittest.mock.AsyncMock(discord.Thread)
         thread.name = f"Ticket #{ticket.id}"

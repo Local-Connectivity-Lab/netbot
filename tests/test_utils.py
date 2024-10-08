@@ -57,6 +57,11 @@ def randstr(length:int=12) -> str:
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
 
+def randint(maxval:int=9999999) -> int:
+    minval = 999 if maxval > 1000 else 0
+    return random.randint(minval, maxval)
+
+
 def load_json(filename:str):
     #with open(os.path.join(TEST_DATA, filename), 'r', encoding="utf-8") as file:
     with open(TEST_DATA + filename, 'r', encoding="utf-8") as file:
@@ -80,8 +85,9 @@ def create_test_user(user_mgr:UserManager, tag:str):
 
     # create temp discord mapping with redmine api, assert
     # create_discord_mapping will cache the new user
+    discord_id = random.randint(1000000,9999999)
     discord_user = "discord-" + tag ### <--
-    user_mgr.create_discord_mapping(user, discord_user)
+    user_mgr.create_discord_mapping(user, discord_id, discord_user)
 
     # lookup based on login
     return user_mgr.get_by_name(user.login)
@@ -106,10 +112,11 @@ def json_ticket(file:str, **kwargs) -> Ticket:
 
 def mock_user(tag: str) -> User:
     return User(
-        id=5,
+        id=random.randint(1000, 9999),
         login=f'test-{tag}',
         mail=f'{tag}@example.org',
-        custom_fields=[ {"id": 2, "name":'Discord ID', "value":f'discord-{tag}'} ],
+        #custom_fields=[ {"id": 2, "name":'Discord ID', "value":f'discord-{tag}'} ],
+        custom_fields=[],
         admin=False,
         firstname='Test',
         lastname=tag,
@@ -235,7 +242,7 @@ class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
         ctx = mock.AsyncMock(ApplicationContext)
         ctx.bot = mock.AsyncMock(NetBot)
         ctx.user = mock.AsyncMock(discord.Member)
-        ctx.user.name = self.user.discord_id
+        ctx.user.name = self.user.discord_id.name
         ctx.command = mock.AsyncMock(discord.ApplicationCommand)
         ctx.command.name = unittest.TestCase.id(self)
         log.debug(f"created ctx with {self.user.discord_id}: {ctx}")

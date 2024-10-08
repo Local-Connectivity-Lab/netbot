@@ -89,7 +89,7 @@ class DiscordFormatter():
     def format_registered_users(self, users: list[User]) -> str:
         msg = ""
         for user in users:
-            msg = msg + f"{user.discord_id} -> {user.login} {user.name}, {user.mail}\n"
+            msg = msg + f"{user.discord} -> {user.login} {user.name}, {user.mail}\n"
         msg = msg.strip()
 
         if len(msg) > MAX_MESSAGE_LEN:
@@ -259,7 +259,8 @@ class DiscordFormatter():
 
 
     def format_ticket_alert(self, ticket: Ticket, discord_ids: list[str], msg: str) -> str:
-        ids_str = ["@" + id for id in discord_ids]
+        ids_str = ["<@" + id + ">" for id in discord_ids]
+        log.debug(f"ids_str={ids_str}, discord_ids={discord_ids}")
         return f"ALERT #{self.redmine_link(ticket)} {' '.join(ids_str)}: {msg}"
 
 

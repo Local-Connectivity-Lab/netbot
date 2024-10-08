@@ -99,7 +99,7 @@ class ApproveUserView(discord.ui.View):
 
         # Add buttons by rows
         for user in users:
-            self.add_item(ApproveButton(self.bot, label=user.discord_id))
+            self.add_item(ApproveButton(self.bot, label=user.discord))
 
 
     async def button_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -172,19 +172,19 @@ class SCNCog(commands.Cog):
     @option("member", description="Discord member collaborating with ticket", optional=True)
     async def add(self, ctx:discord.ApplicationContext, redmine_login:str, member:discord.Member=None):
         """add a Discord user to the Redmine ticketing integration"""
-        discord_name = ctx.user.name # by default, assume current user
+        discord_id = ctx.user # by default, assume current user
         if member:
             log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
-            discord_name = member.name
+            discord_id = member
 
-        user = self.redmine.user_mgr.find(discord_name)
+        user = self.redmine.user_mgr.find(discord_id.name)
         if user:
-            await ctx.respond(f"Discord user: {discord_name} is already configured as redmine user: {user.login}")
+            await ctx.respond(f"Discord user: {discord_id.name} is already configured as redmine user: {user.login}")
         else:
             user = self.redmine.user_mgr.find(redmine_login)
             if user and self.is_admin(ctx.user):
-                self.redmine.user_mgr.create_discord_mapping(user, discord_name)
-                await ctx.respond(f"Discord user: {discord_name} has been paired with redmine user: {redmine_login}")
+                self.redmine.user_mgr.create_discord_mapping(user, discord_id.id, discord_id.name)
+                await ctx.respond(f"Discord user: {discord_id.name} has been paired with redmine user: {redmine_login}")
             else:
                 # case: unknown redmine_login -> new user request: register new user
                 modal = NewUserModal(self.redmine, redmine_login, title="Register new user")

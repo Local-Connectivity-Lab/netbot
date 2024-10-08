@@ -17,7 +17,6 @@ log = logging.getLogger(__name__)
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
 TIMEOUT = 10 # seconds
 SYNC_FIELD_NAME = "syncdata"
-DISCORD_ID_FIELD = "Discord ID"
 BLOCKED_TEAM_NAME = "blocked"
 STATUS_REJECT = 5 # could to status lookup, based on "reject"
 

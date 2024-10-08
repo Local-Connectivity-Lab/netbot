@@ -512,7 +512,7 @@ class TicketsCog(commands.Cog):
                 await ctx.respond(f"ERROR: No thread for ticket ID: {ticket_id}, assign a fall-back") ## TODO
                 return
             msg = f"Ticket {ticket.id} is about will expire soon."
-            await thread.send(self.bot.formatter.format_ticket_alert(ticket.id, discord_ids, msg))
+            await thread.send(self.bot.formatter.format_ticket_alert(ticket, discord_ids, msg))
             await ctx.respond("Alert sent.")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}") ## TODO format error message

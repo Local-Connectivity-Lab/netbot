@@ -6,7 +6,7 @@ import logging
 import json
 
 
-from redmine.model import Team, User, UserResult
+from redmine.model import Team, User, UserResult, NamedId
 from redmine.session import RedmineSession, RedmineException
 
 
@@ -44,7 +44,7 @@ class UserCache():
         self.users[user.login] = user.id
         self.user_emails[user.mail] = user.id
         if user.discord_id:
-            self.discord_ids[user.discord_id] = user.id
+            self.discord_ids[user.discord_id.name] = user.id
 
 
     def cache_team(self, team: Team) -> None:
@@ -172,16 +172,13 @@ class UserManager():
         data = {}
         data['user'] = fields
 
-        response = self.session.put(f"/users/{user.id}.json", json.dumps(data))
+        # put the updated date
+        self.session.put(f"/users/{user.id}.json", json.dumps(data))
 
-        # check status
-        if response:
-            # get and return the updated user
-            user = self.get(user.id)
-            log.debug(f"updated id={user.id}: user: {user}")
-            return user
-        else:
-            return None
+        # get and return the updated user
+        user = self.get(user.id)
+        log.debug(f"updated id={user.id}: user: {user}")
+        return user
 
 
     def get_by_name(self, username:str) -> User:
@@ -311,14 +308,18 @@ class UserManager():
             log.info(f"deleted user {user.id}")
 
 
-    def create_discord_mapping(self, user:User, discord_name:str) -> User:
+    def create_discord_mapping(self, user:User, discord_id: int, discord_name:str) -> User:
         field_id = 2 ## FIXME "Discord ID"search for me in cached custom fields
+        named = NamedId(id=discord_id, name=discord_name)
         fields = {
             "custom_fields": [
-                { "id": field_id, "value": discord_name } # cf_4, custom field syncdata
+                { "id": field_id, "value": named.as_token() }
             ]
         }
-        return self.update(user, fields)
+        updated = self.update(user, fields)
+        # cache updated user, based on now-or-changed discord id.
+        self.cache.cache_user(updated)
+        return updated
 
     # for testing
     def remove_discord_mapping(self, user:User) -> User:

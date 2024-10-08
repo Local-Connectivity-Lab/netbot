@@ -37,7 +37,7 @@ class TestSCNCog(test_utils.BotTestCase):
     async def test_add_self(self):
         # invoke "add" to add a discord mapping for the test user.
         # setup: remove existing mapping
-        discord_id = self.user.discord_id
+        discord_id = self.user.discord_id.name
         self.user_mgr.remove_discord_mapping(self.user)
         self.user_mgr.reindex_users() # to remove the discord ID from the cache
 
@@ -179,7 +179,7 @@ class TestSCNCog(test_utils.BotTestCase):
         message = unittest.mock.AsyncMock(discord.Message)
         message.content = f"This is a new note about ticket #{ticket.id} for test {self.tag}"
         message.author = unittest.mock.AsyncMock(discord.Member)
-        message.author.name = self.user.discord_id
+        message.author.name = self.user.discord_id.name
 
         thread = unittest.mock.AsyncMock(discord.Thread)
         thread.name = f"Ticket #{ticket.id}: {ticket.subject}"
