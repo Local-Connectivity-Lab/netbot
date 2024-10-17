@@ -3,16 +3,19 @@
 """encapsulate Discord ticket functions"""
 
 import logging
+import datetime as dt
 
 import discord
-
 from discord.commands import option, SlashCommandGroup
-
 from discord.ext import commands
 from discord.enums import InputTextStyle
 from discord.ui.item import Item, V
 from discord.utils import basic_autocomplete
+
+import dateparser
+
 from redmine.model import Message, Ticket
+from redmine import synctime
 from redmine.redmine import Client
 from netbot.netbot import NetBot, TEAM_MAPPING, CHANNEL_MAPPING, default_ticket
 
@@ -627,6 +630,38 @@ class TicketsCog(commands.Cog):
         await ctx.respond(
             f"Updated subject of {ticket_link} to: {updated.subject}",
             embed=self.bot.formatter.ticket_embed(ctx, updated))
+
+
+    @ticket.command(name="due", description="Set a due date for the ticket")
+    @option("date", description="New ticket due date")
+    async def due(self, ctx: discord.ApplicationContext, date_str:str):
+        # automatiuc date conversion?
+        # get the ticket ID from the thread:
+        ticket_id = ctx.bot.parse_thread_title(ctx.channel.name)
+        if ticket_id:
+            # got a valid ticket, update it
+            # standard date string, date format, etc.
+            due_date = dateparser.parse(date_str)
+            if due_date:
+                due_str = synctime.date_str(due_date)
+                ticket = self.redmine.ticket_mgr.update(ticket_id, {"due_date": due_str})
+                if ticket:
+                    # valid ticket, create an event
+                    event_name = f"Ticket {ticket.id} Due"
+                    event = await ctx.guild.create_scheduled_event(
+                        name = event_name,
+                        description = ticket.subject,
+                        start_time = due_date,
+                        end_time = due_date + dt.timedelta(minutes=10),
+                        location = ctx.channel.name)
+                    await ctx.respond(f"Updated due date on {ticket_id} to {due_str}, scheduled event {event}.")
+                else:
+                    await ctx.respond(f"Problem updating ticket {ticket_id}, unknown ticket ID.")
+            else:
+                await ctx.respond(f"Invalid date value entered. Unable to parse `{date_str}`")
+        else:
+            # no ticket available.
+            await ctx.respond("Command only valid in ticket thread. No ticket info found in this thread.")
 
 
     @ticket.command(name="help", description="Display hepl about ticket management")

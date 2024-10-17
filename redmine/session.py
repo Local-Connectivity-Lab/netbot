@@ -95,6 +95,7 @@ class RedmineSession():
         if r.ok:
             log.debug(f"PUT {resource}: {data}")
         else:
+            log.warning(f"Request: {data}, impersonate_id={impersonate_id}")
             raise RedmineException(f"PUT {resource} by {impersonate_id} failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
 
 

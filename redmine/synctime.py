@@ -10,8 +10,11 @@ import humanize
 log = logging.getLogger(__name__)
 
 
+# 2014-01-02
+DATE_FORMAT = "%Y-%m-%d"
+
 # 2014-01-02T08:12:32Z
-ZULU_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+ZULU_FORMAT = DATE_FORMAT + "T%H:%M:%SZ"
 
 
 def now() -> dt.datetime:
@@ -45,6 +48,11 @@ def age(time:dt.datetime) -> dt.timedelta:
 
 def age_str(time:dt.datetime) -> str:
     return humanize.naturaldelta(age(time))
+
+
+def date_str(timestamp:dt.datetime) -> str:
+    """convert a datetime to the UTC Zulu string redmine expects"""
+    return timestamp.strftime(DATE_FORMAT)
 
 
 def zulu(timestamp:dt.datetime) -> str:
