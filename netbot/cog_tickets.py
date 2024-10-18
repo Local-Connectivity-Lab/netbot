@@ -6,6 +6,7 @@ import logging
 import datetime as dt
 
 import discord
+from discord import ScheduledEvent
 from discord.commands import option, SlashCommandGroup
 from discord.ext import commands
 from discord.enums import InputTextStyle
@@ -218,6 +219,7 @@ class TicketsCog(commands.Cog):
     def __init__(self, bot:NetBot):
         self.bot:NetBot = bot
         self.redmine: Client = bot.redmine
+
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
     ticket = SlashCommandGroup("ticket",  "ticket commands")
@@ -632,6 +634,13 @@ class TicketsCog(commands.Cog):
             embed=self.bot.formatter.ticket_embed(ctx, updated))
 
 
+    async def find_event_for_ticket(self, ctx: discord.ApplicationContext, ticket_id:int) -> ScheduledEvent:
+        title_prefix = f"Ticket #{ticket_id}"
+        for event in await ctx.guild.fetch_scheduled_events():
+            if event.name.startswith(title_prefix):
+                return event
+
+
     @ticket.command(name="due", description="Set a due date for the ticket")
     @option("date", description="New ticket due date")
     async def due(self, ctx: discord.ApplicationContext, date_str:str):
@@ -641,20 +650,38 @@ class TicketsCog(commands.Cog):
         if ticket_id:
             # got a valid ticket, update it
             # standard date string, date format, etc.
-            due_date = dateparser.parse(date_str)
+            due_date = dateparser.parse(date_str, settings={
+                'RETURN_AS_TIMEZONE_AWARE': True,
+                'PREFER_DATES_FROM': 'future',
+                'REQUIRE_PARTS': ['day', 'month', 'year']})
             if due_date:
                 due_str = synctime.date_str(due_date)
                 ticket = self.redmine.ticket_mgr.update(ticket_id, {"due_date": due_str})
                 if ticket:
                     # valid ticket, create an event
-                    event_name = f"Ticket {ticket.id} Due"
-                    event = await ctx.guild.create_scheduled_event(
-                        name = event_name,
-                        description = ticket.subject,
-                        start_time = due_date,
-                        end_time = due_date + dt.timedelta(minutes=10),
-                        location = ctx.channel.name)
-                    await ctx.respond(f"Updated due date on {ticket_id} to {due_str}, scheduled event {event}.")
+                    # check for time, default to 9am if 0
+                    if due_date.hour == 0:
+                        due_date.hour = 9 # DEFAULT "meeting" time, 9am local time (for the bot)
+
+                    event_name = f"Ticket #{ticket.id} Due"
+
+                    # check for existing event
+                    existing = await self.find_event_for_ticket(ctx, ticket.id)
+                    if existing:
+                        await existing.edit(
+                            start_time = due_date,
+                            end_time = due_date + dt.timedelta(hours=1)) # DEFAULT "meeting" length, one hour)
+                        log.info(f"Updated existing DUE event: {existing.name}")
+                        await ctx.respond(f"Updated due date on {ticket_id} to {due_date.strftime(synctime.DATETIME_FORMAT)}")
+                    else:
+                        event = await ctx.guild.create_scheduled_event(
+                            name = event_name,
+                            description = ticket.subject,
+                            start_time = due_date,
+                            end_time = due_date + dt.timedelta(hours=1), # DEFAULT "meeting" length, one hour
+                            location = ctx.channel.name)
+                        log.info(f"created event {event} for ticket={ticket.id}")
+                        await ctx.send(f"Updated due date on ticket #{ticket_id} to {due_date}.")
                 else:
                     await ctx.respond(f"Problem updating ticket {ticket_id}, unknown ticket ID.")
             else:

@@ -12,6 +12,7 @@ log = logging.getLogger(__name__)
 
 # 2014-01-02
 DATE_FORMAT = "%Y-%m-%d"
+DATETIME_FORMAT = DATE_FORMAT + " %H:%M"
 
 # 2014-01-02T08:12:32Z
 ZULU_FORMAT = DATE_FORMAT + "T%H:%M:%SZ"
