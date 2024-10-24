@@ -1,5 +1,78 @@
 ## Development Log
 
+## 2024-10-24
+
+After finding some significant bugs in the latest release, decided to get more rigious with a test-driven-development approach. For this project that means:
+1. Identify the missing or buggy behavior.
+2. Code one or more test cases that check the expected behavior.
+3. Fail those tests until...
+4. Write valid working code to provide the correct behavior.
+5. Add those tests to the automated test suite.
+6. Run the test suite before each change to the `main` or any shared branch.
+
+Today, the first step will be building a tests around a minimal "sane" state after initialization to confirm that all expected *external* resources have been loaded correctly. Specifically, the loaded, parsed and cached data for:
+- users
+- teams
+- priorities (the problem this time)
+- trackers
+- custom fields
+
+**Approach**: The last step of initialization before giving an "all ready" signal, the bot will run a sanity check to make sure that each of the resources mentioned above is available, non-zero and contain any referenced keys, like:
+```
+INTAKE_TEAM = "ticket-intake"
+INTAKE_TEAM_ID = 19 # FIXME
+EPIC_PRIORITY_NAME = "EPIC"
+BLOCKED_TEAM_NAME = "blocked"
+CHANNEL_MAPPING
+TEAM_MAPPING
+```
+
+Design: The top-level `Netbot` and any sub-components will implement a `sanity_check() -> dict[str,bool]` to describe it's expected states (with a true or false to indicate if that's working as expected). Sub-system results are aggreagated and returned (using dotted name strings: "netbot.redmine.user_mgr.teams"). Info log at bot startup will show passing state, or the bot sill fail to startup.
+
+Note: Looking over the date return for `/enumerations/issue_priorities.json`, there is no indication of the priority ordering other than the oder in the list (from low to high). Noting that Python 3.7 and later maintain insertion order, so a dict-iterator should work as well as a list iterator, *as long as the key-value pairs as inserted in the correct (reverse!) order* to put the higest priority first whenever iterating.
+```
+{
+  "issue_priorities": [
+    {
+      "id": 1,
+      "name": "Low",
+      "is_default": false,
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "Normal",
+      "is_default": true,
+      "active": true
+    },
+    {
+      "id": 3,
+      "name": "High",
+      "is_default": false,
+      "active": true
+    },
+    {
+      "id": 14,
+      "name": "EPIC",
+      "is_default": false,
+      "active": true
+    },
+    {
+      "id": 4,
+      "name": "Urgent",
+      "is_default": false,
+      "active": true
+    },
+    {
+      "id": 5,
+      "name": "Immediate",
+      "is_default": false,
+      "active": true
+    }
+  ]
+}
+```
+
 ### 2024-09-24
 
 Starting work on ticket 1207, to add admin overrides for all actions that default to self.

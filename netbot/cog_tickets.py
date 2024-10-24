@@ -31,16 +31,18 @@ def setup(bot:NetBot):
 
 def get_trackers(ctx: discord.AutocompleteContext):
     """Returns a list of trackers that begin with the characters entered so far."""
-    trackers = ctx.bot.redmine.get_trackers() # this is expected to be cached IT'S NOT!!!
+    trackers = ctx.bot.redmine.ticket_mgr.get_trackers() # this is expected to be cached
     # .lower() is used to make the autocomplete match case-insensitive
-    return [tracker['name'] for tracker in trackers if tracker['name'].lower().startswith(ctx.value.lower())]
+    return [tracker for tracker in trackers.keys() if tracker.lower().startswith(ctx.value.lower())]
 
 
 def get_priorities(ctx: discord.AutocompleteContext):
     """Returns a list of priorities that begin with the characters entered so far."""
-    priorities = ctx.bot.redmine.get_priorities() # this is expected to be cached
+    priorities = ctx.bot.redmine.ticket_mgr.get_priorities() # this is expected to be cached
     # .lower() is used to make the autocomplete match case-insensitive
-    return [priority.name for priority in priorities if priority.name.lower().startswith(ctx.value.lower())]
+    rtn = [priority for priority in priorities.keys() if priority.lower().startswith(ctx.value.lower())]
+    log.warning(f"PRIORITIES: {rtn}")
+    return rtn
 
 
 class PrioritySelect(discord.ui.Select):
@@ -52,7 +54,7 @@ class PrioritySelect(discord.ui.Select):
 
         # Get the possible priorities
         options = []
-        for priority in self.bot.redmine.get_priorities():
+        for priority in self.bot.redmine.ticket_mgr.get_priorities():
             options.append(discord.SelectOption(label=priority['name'], default=priority['is_default']))
 
         # The placeholder is what will be shown when no option is selected.
@@ -84,7 +86,7 @@ class TrackerSelect(discord.ui.Select):
 
         # Get the possible trackers
         options = []
-        for tracker in self.bot.redmine.get_trackers():
+        for tracker in self.bot.redmine.ticket_mgr.get_trackers():
             options.append(discord.SelectOption(label=tracker['name']))
 
         # The placeholder is what will be shown when no option is selected.
@@ -118,7 +120,7 @@ class SubjectEdit(discord.ui.InputText, Item[V]):
 
         # Get the possible trackers
         options = []
-        for tracker in self.bot.redmine.get_trackers():
+        for tracker in self.bot.redmine.ticket_mgr.get_trackers():
             options.append(discord.SelectOption(label=tracker['name']))
 
         # The placeholder is what will be shown when no option is selected.
@@ -585,19 +587,19 @@ class TicketsCog(commands.Cog):
     @ticket.command(name="priority", description="Update the tracker of a ticket")
     @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
     @option("priority", description="Priority to assign to ticket", autocomplete=get_priorities)
-    async def priority(self, ctx: discord.ApplicationContext, ticket_id:int, priority_str:str):
+    async def priority(self, ctx: discord.ApplicationContext, ticket_id:int, priority:str):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
             # look up the priority
-            priority = self.bot.redmine.ticket_mgr.get_priority(priority_str)
-            if priority is None:
-                log.error(f"Unknown priority: {priority_str}")
-                await ctx.respond(f"Unknown priority: {priority_str}")
+            pri = self.bot.redmine.ticket_mgr.get_priority(priority)
+            if pri is None:
+                log.error(f"Unknown priority: {priority}")
+                await ctx.respond(f"Unknown priority: {priority}")
                 return
 
             fields = {
-                "priority_id": priority.id,
+                "priority_id": pri.id,
             }
             updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
 

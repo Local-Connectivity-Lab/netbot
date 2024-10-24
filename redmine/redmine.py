@@ -36,6 +36,9 @@ class Client():
         self.user_mgr = user_mgr
         self.ticket_mgr = ticket_mgr
 
+        # sanity check
+        self.validate_sanity() # FATAL if not
+
 
     @classmethod
     def from_session(cls, session:RedmineSession, default_project:int):
@@ -55,7 +58,7 @@ class Client():
         if token is None:
             raise RedmineException("Unable to load REDMINE_TOKEN")
 
-        default_project = os.getenv("DEFAULT_PROJECT_ID", default=SCN_PROJECT_ID)
+        default_project = int(os.getenv("DEFAULT_PROJECT_ID", default=str(SCN_PROJECT_ID)))
 
         return cls.from_session(RedmineSession(url, token), default_project)
 
@@ -63,6 +66,18 @@ class Client():
     def reindex(self):
         self.ticket_mgr.reindex() # re-load enumerations (priority, tracker, etc)
         self.user_mgr.reindex() # rebuild the user cache
+
+
+    def sanity_check(self) -> dict[str, bool]:
+        sanity = self.ticket_mgr.sanity_check()
+        return sanity
+
+    def validate_sanity(self):
+        for subsystem, good in self.sanity_check().items():
+            log.info(f"- {subsystem}: {good}")
+            if not good:
+                #log.critical(f"Subsystem {subsystem} not loading correctly.")
+                raise RedmineException(f"Subsystem {subsystem} not loading correctly.")
 
 
     def create_ticket(self, user:User, message:Message) -> Ticket:

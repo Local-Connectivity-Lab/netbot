@@ -4,12 +4,13 @@
 import unittest
 import logging
 import re
+from unittest.mock import MagicMock, patch
 
 import discord
 from dotenv import load_dotenv
 
 from netbot.netbot import NetBot
-from netbot.cog_tickets import TicketsCog
+from netbot.cog_tickets import TicketsCog, get_priorities, get_trackers
 from tests import test_utils
 
 
@@ -239,6 +240,30 @@ class TestTicketsCog(test_utils.BotTestCase):
         await self.cog.create_new_ticket(ctx, "test title")
         self.assertIn(test_name, ctx.respond.call_args.args[0])
         self.assertIn("/scn add", ctx.respond.call_args.args[0])
+
+
+    async def test_get_trackers(self):
+        ctx = MagicMock(discord.AutocompleteContext)
+        ctx.bot = self.bot
+        ctx.value = ""
+        trackers = get_trackers(ctx)
+        self.assertTrue("Software-Dev" in trackers)
+
+        ctx.value = "Ext"
+        trackers = get_trackers(ctx)
+        self.assertTrue("External-Comms-Intake" in trackers)
+
+
+    async def test_get_priorities(self):
+        ctx = MagicMock(discord.AutocompleteContext)
+        ctx.bot = self.bot
+        ctx.value = ""
+        priorities = get_priorities(ctx)
+        self.assertTrue("EPIC" in priorities)
+
+        ctx.value = "Lo"
+        priorities = get_priorities(ctx)
+        self.assertTrue("Low" in priorities)
 
 
 if __name__ == '__main__':

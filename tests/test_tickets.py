@@ -71,7 +71,7 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
         mock_post.assert_called_once()
         self.assertEqual(4242, check.parent.id)
 
-    # needs to pathc 10 calls to GET
+    # needs to patch 10 calls to GET
     # @patch('redmine.session.RedmineSession.get')
     # def test_epics(self, mock_get:MagicMock):
     #     # setup the mock tickets
@@ -145,6 +145,8 @@ class TestIntegrationTicketManager(test_utils.RedmineTestCase):
 
     def test_epics(self):
         check = self.tickets_mgr.get_epics()
+        #for e in check:
+        #    print(e)
         self.assertEqual(10, len(check))
         self.assertEqual(595, check[8].id)
         self.assertEqual(8, len(check[8].children))

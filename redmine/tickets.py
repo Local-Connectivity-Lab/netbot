@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 ISSUES_RESOURCE="/issues.json"
 ISSUE_RESOURCE="/issues/"
 DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
-SCN_PROJECT_ID = "1"  # could lookup scn in projects
+SCN_PROJECT_ID = 1 # could lookup scn in projects
 INTAKE_TEAM = "ticket-intake"
 INTAKE_TEAM_ID = 19 # FIXME
 EPIC_PRIORITY_NAME = "EPIC"
@@ -30,12 +30,12 @@ TICKET_EXPIRE_NOTIFY = TICKET_MAX_AGE - 1 # 27 days, one day shorter than MAX_AG
 
 class TicketManager():
     """manage redmine tickets"""
-    def __init__(self, session: RedmineSession, default_project):
+    def __init__(self, session: RedmineSession, default_project:int):
         self.session: RedmineSession = session
-        self.priorities = []
+        self.priorities = {}
         self.trackers = {}
         self.custom_fields = {}
-        self.default_project = default_project
+        self.default_project:int = default_project
 
         self.reindex()
 
@@ -44,6 +44,17 @@ class TicketManager():
         self.priorities = self.load_priorities()
         self.trackers = self.load_trackers()
         self.custom_fields = self.load_custom_fields()
+
+
+    def sanity_check(self) -> dict[str, bool]:
+        subsystems: dict[str, bool] = {}
+
+        subsystems['default_project'] = self.default_project > 0
+        subsystems['priorities'] = self.get_priority(EPIC_PRIORITY_NAME) is not None
+        # todo trackers
+        # todo custom fields
+
+        return subsystems
 
 
     def load_custom_fields(self) -> dict[str,NamedId]:
@@ -62,21 +73,26 @@ class TicketManager():
         return self.custom_fields.get(name, None)
 
 
-    def load_priorities(self) -> list[NamedId]:
-        """get all active priorities"""
+    def load_priorities(self) -> dict[str,NamedId]:
+        """load active priorities"""
+
+        # Note: This relies on py3.7 insertion-ordered hashtables
+        priorities: dict[str,NamedId] = {}
+
         resp = self.session.get("/enumerations/issue_priorities.json")
-        priorities = resp['issue_priorities'] # get specific dictionary in response
-        priorities = [NamedId(priority['id'], priority['name']) for priority in priorities]
-        # reverse the list, so higest is first
-        return reversed(priorities)
+        for priority in reversed(resp['issue_priorities']):
+            if priority.get('active', False):
+                priorities[priority['name']] = NamedId(priority['id'], priority['name'])
+
+        return priorities
 
 
     def get_priority(self, name:str) -> NamedId | None:
-        # search
-        for priority in self.priorities:
-            if priority.name == name:
-                return priority
-        return None
+        return self.priorities.get(name, None)
+
+
+    def get_priorities(self) -> dict[str,NamedId]:
+        return self.priorities
 
 
     def load_trackers(self) -> dict[str,NamedId]:
@@ -88,11 +104,15 @@ class TicketManager():
                 trackers[item['name']] = NamedId(id=item['id'], name=item['name'])
             return trackers
         else:
-            log.warning("No reackers to load")
+            log.warning("No trackers to load")
 
 
     def get_tracker(self, name:str) -> NamedId | None:
         return self.trackers.get(name, None)
+
+
+    def get_trackers(self) -> dict[str,NamedId]:
+        return self.trackers
 
 
     def create(self, user: User, message: Message, project_id: int = None, **params) -> Ticket:

@@ -456,6 +456,9 @@ def main():
     bot.load_extension("netbot.cog_scn")
     bot.load_extension("netbot.cog_tickets")
 
+    # sanity check!
+    client.sanity_check()
+
     # run the bot
     bot.run_bot()
 
