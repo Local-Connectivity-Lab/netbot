@@ -12,10 +12,6 @@ from redmine import session
 from tests import test_utils
 
 
-
-logging.getLogger().setLevel(logging.ERROR)
-
-
 log = logging.getLogger(__name__)
 
 
@@ -55,12 +51,15 @@ class TestRedmineIntegration(test_utils.RedmineTestCase):
     def test_blocked_create_ticket(self):
         # block
         self.user_mgr.block(self.user)
+        log.debug(f"blocked user: {self.user}")
+
         self.assertTrue(self.user_mgr.is_blocked(self.user))
 
         # create ticket for blocked
-        ticket = self.create_test_ticket()
+        # test specific implementation of Client.create_ticket
+        ticket = self.redmine.create_ticket(self.user, self.create_test_message())
         self.assertIsNotNone(ticket)
-        log.info(f"ticket: {ticket}")
+        log.debug(f"ticket: {ticket}")
         self.assertEqual("Reject", ticket.status.name)
 
         # remove the ticket and unbluck the user
@@ -95,10 +94,3 @@ class TestRedmineIntegration(test_utils.RedmineTestCase):
 
         # clean up
         self.redmine.ticket_mgr.remove(ticket.id)
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-
-    unittest.main()

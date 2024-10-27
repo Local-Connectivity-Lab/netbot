@@ -1,5 +1,64 @@
 ## Development Log
 
+## 2024-10-27
+
+Got blocked yesterday debugging a single last test failure in `tests.test_redmine.TestRedmineIntegration.test_blocked_create_ticket`, but couldn't find logs. Spent far too long working out:
+```
+if __name__ == '__main__':
+    if '-v' in sys.argv:
+        setup_logging(logging.DEBUG)
+    else:
+        setup_logging(logging.ERROR)
+
+    unittest.main(module=None)
+```
+Notes:
+1. This is in the `__main__.py` in the `tests` module.
+2. Scans the command line ARGV array to see it it contains the verbose flag for `unittest`
+3. If so, load and apply logs setting to enable DEBUG (but not too much)
+4. Invoke the main `unittest` module with `module=None` to force standard discorery.
+
+This allows running full test suites with no output (except test metadata, which can be turned off), to enabling debug logs for all or a specific test:
+
+    python -m tests -v -k somes_test_name
+
+This will run specified tests (it's a test-name glob) with DEBUG logging.
+
+In summary: New epic-based sub-ticket creation tests, test cleanup and refactor to show logging.
+
+## 2024-10-26
+
+Added the sanity checks and better testing around loading those resources on startup. That's deployed.
+
+Started adding comprehensive testing around epics and creating sub-tickets and found a problem: Redmine was getting the right data to assign a ticket parent on creation, but was failing to do so. The ticket was created, but without the parent field.
+
+Ug.
+
+So I need more testing to figure out what's different, or add a new approach (/ticket parent). Or both.
+
+Starting with a trivial main to see if I can reproduce in context of redmine module.
+
+By writing increasing lower-level test cases and a test code that stands outside of everything else to isolate code called, I was able to reproduce to "sometimes the parent ID is set correctly" and "sometimes it is not". The varient was *user ID*:
+* Admin user and my personal user (also an admin) create parent id correctly
+* Unregistered/unknown users are rejected (422, unauthorized)
+* Test users, created for the integration test suit to behave like every-day users, **fail to set the parent ID quietly** with the only way to tell inspecting the respose JSON and see "parent" missing from the "issue" dictionary.
+
+Conclusion: There's yet another fine-grain edit permission ("set parent ticket") that is not set correctly. Need to find it.
+
+Found: For each role (`/roles`), there is a specific permission for:
+> Permissions
+> > Ticket Tracking
+> > > [ ] Manage subtickets
+
+Without this check-box marked, the user in that role cannot add a parent ticket, and adding a parent ticket on create fails.
+
+![page of fine-grain role permission settings with "Manage subtickets" cicrled in red"](manage-subtickets.png)
+
+For everyday users to be able to create sub-tickets, this setting will be needed. In the SCN, that normal role is "User".
+
+Updating the specific integration tests to use an admin user in test cases for epics. This will require some test code to confirm that the test-admin exists.
+
+
 ## 2024-10-24
 
 After finding some significant bugs in the latest release, decided to get more rigious with a test-driven-development approach. For this project that means:

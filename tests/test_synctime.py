@@ -55,12 +55,3 @@ class TestTime(test_utils.RedmineTestCase):
         self.assertEqual(2024, date2.year)
         self.assertEqual(3, date2.month)
         self.assertEqual(14, date2.day)
-
-
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-
-    unittest.main()

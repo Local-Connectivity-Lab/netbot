@@ -13,9 +13,6 @@ from netbot.formatting import MAX_MESSAGE_LEN
 from tests import test_utils
 
 
-logging.getLogger().setLevel(logging.ERROR)
-
-
 log = logging.getLogger(__name__)
 
 
@@ -107,14 +104,3 @@ class TestNetbot(test_utils.BotTestCase):
         wrapper.__cause__ = error
         await self.bot.on_application_command_error(ctx, wrapper)
         self.assertIn(self.tag, ctx.respond.call_args.args[0])
-
-
-
-
-if __name__ == '__main__':
-    # when running this main, turn on DEBUG
-    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-    logging.getLogger("asyncio").setLevel(logging.ERROR)
-
-    unittest.main()

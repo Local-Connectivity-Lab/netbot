@@ -4,7 +4,7 @@
 import unittest
 import logging
 import re
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import discord
 from dotenv import load_dotenv
@@ -12,9 +12,6 @@ from dotenv import load_dotenv
 from netbot.netbot import NetBot
 from netbot.cog_tickets import TicketsCog, get_priorities, get_trackers
 from tests import test_utils
-
-
-logging.getLogger().setLevel(logging.ERROR)
 
 
 log = logging.getLogger(__name__)
@@ -266,9 +263,51 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.assertTrue("Low" in priorities)
 
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-    logging.getLogger("asyncio").setLevel(logging.ERROR)
+    async def test_new_epic_use_case(self):
+        #setup_logging()
 
-    unittest.main()
+        # build the context
+        ctx = self.build_context()
+        ctx.channel = unittest.mock.AsyncMock(discord.TextChannel)
+        ctx.channel.name = f"channel-{self.tag}"
+        ctx.channel.id = 4242
+
+        # create a new epic
+        await self.cog.create_new_ticket(ctx, f"test_new_epic_use_case {self.tag}")
+        response_str = ctx.respond.call_args.args[0]
+
+        ticket_id, url = self.parse_markdown_link(response_str)
+        log.debug(f"created ticket: {ticket_id}, {url}")
+
+        # set the priority
+        await self.cog.priority(ctx, ticket_id, "EPIC")
+
+        # get the ticket and validate priority
+        check = self.redmine.ticket_mgr.get(int(ticket_id))
+        self.assertIsNotNone(check)
+        self.assertEqual(check.priority.name, "EPIC")
+
+        # create ticket thread context
+        ctx2 = self.build_context()
+        ctx2.channel = unittest.mock.AsyncMock(discord.TextChannel)
+        ctx2.channel.name = f"Ticket #{ticket_id}"
+        ctx2.channel.id = 4242
+
+        # create a sub-ticket
+        await self.cog.create_new_ticket(ctx2, f"sub1 test_new_epic_use_case {self.tag}")
+        response_str = ctx2.respond.call_args.args[0]
+        sub1_id, url = self.parse_markdown_link(response_str)
+        log.debug(f"created sub-ticket of ticket {ticket_id}: {sub1_id}, {url}")
+
+        # confirm the parent
+        check2 = self.redmine.ticket_mgr.get(int(sub1_id))
+        self.assertIsNotNone(check2)
+        self.assertIsNotNone(check2.parent, f"Ticket #{check2.id} has no parent.")
+        self.assertEqual(check2.parent.id, int(ticket_id))
+
+        # delete all the tickets
+        self.redmine.ticket_mgr.remove(int(ticket_id))
+        #self.redmine.ticket_mgr.remove(int(sub1_id))
+        # check they've been removed
+        self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket_id)))
+        self.assertIsNone(self.redmine.ticket_mgr.get(int(sub1_id)))

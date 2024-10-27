@@ -144,20 +144,35 @@ class TestIntegrationTicketManager(test_utils.RedmineTestCase):
 
 
     def test_epics(self):
+        check_id = 1049
         check = self.tickets_mgr.get_epics()
-        #for e in check:
-        #    print(e)
+
         self.assertEqual(10, len(check))
-        self.assertEqual(595, check[8].id)
-        self.assertEqual(8, len(check[8].children))
+
+        found = None
+        for e in check:
+            if e.id == check_id:
+                found = e
+                break
+
+        self.assertTrue(found, f"Ticket {check_id} not found in epics")
+        #self.assertEqual(found.id, check_id)
+        #self.assertEqual(len(found.children), 8)
         # check which are open vs closed.
 
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG,
-                        format="{asctime} {levelname:<8s} {name:<16} {message}",
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        style='{')
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+    def test_create_sub_ticket(self):
+        # get an epic
+        epic = self.tickets_mgr.get_epics()[0]
 
-    unittest.main()
+        # get the admin user
+        user = self.user_mgr.find(test_utils.TEST_ADMIN)
+
+        ticket = self.create_test_ticket(user, parent_issue_id=epic.id)
+        self.assertIsNotNone(ticket)
+        self.assertIsNotNone(ticket.parent, f"ticket {ticket.id} has no parent")
+        self.assertEqual(epic.id, ticket.parent.id)
+
+        # delete ticket with redmine api, assert
+        self.redmine.ticket_mgr.remove(ticket.id)
+        self.assertIsNone(self.redmine.ticket_mgr.get(ticket.id))

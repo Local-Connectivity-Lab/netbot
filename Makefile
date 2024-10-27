@@ -24,14 +24,14 @@ $(VENV)/bin/activate: requirements.txt
 	$(PIP) install -r requirements.txt
 
 test: $(VENV)/bin/activate
-	$(PYTHON) -m unittest
+	$(PYTHON) -m tests
 
 coverage: $(VENV)/bin/activate
-	$(PYTHON) -m coverage run -m unittest tests/test_*.py
+	$(PYTHON) -m coverage run -m tests
 	$(PYTHON) -m coverage report
 
 htmlcov: $(VENV)/bin/activate
-	$(PYTHON) -m coverage run -m unittest
+	$(PYTHON) -m coverage run -m tests
 	$(PYTHON) -m coverage html
 
 lint: $(VENV)/bin/activate

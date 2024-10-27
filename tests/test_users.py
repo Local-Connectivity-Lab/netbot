@@ -48,13 +48,3 @@ class TestUserManager(test_utils.MockRedmineTestCase):
         self.assertEqual(discord_name, updated.discord_id.name)
 
         mock_get.assert_called_once()
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG,
-                        format="{asctime} {levelname:<8s} {name:<16} {message}",
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        style='{')
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-
-    unittest.main()

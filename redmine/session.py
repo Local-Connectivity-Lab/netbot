@@ -100,6 +100,8 @@ class RedmineSession():
 
 
     def post(self, resource: str, data:str, user_login: str|None = None, files: list|None = None) -> dict|None:
+        log.debug(f"POST {resource} : {data}")
+
         r = self.session.post(f"{self.url}{resource}",
                               data=data,
                               files=files,

@@ -155,7 +155,6 @@ class TicketManager():
                 })
 
         response = self.session.post(ISSUES_RESOURCE, json.dumps(data), user.login)
-        #log.debug(f"POST response: {response}")
 
         # check status
         if response:
@@ -610,32 +609,3 @@ class TicketManager():
                     return str(ticket.get_field(fieldname))
         except AttributeError:
             return None
-
-
-
-def main():
-    ticket_mgr = TicketManager(RedmineSession.fromenv(), SCN_PROJECT_ID)
-
-    #ticket_mgr.expire_expired_tickets()
-    #for ticket in ticket_mgr.older_than(7): #ticket_mgr.expired_tickets():
-    #    print(synctime.age_str(ticket.updated_on), ticket)
-    #print(ticket_mgr.get(105, include_children=True).json_str())
-    #print(json.dumps(ticket_mgr.load_custom_fields(), indent=4, default=vars))
-
-    for epic in ticket_mgr.get_epics():
-        if epic.children is None:
-            log.info(f"Epic {epic.id}, no children")
-        else:
-            for ticket in epic.children:
-                log.info(f"Epic {epic.id}, sub-ticket {ticket.id}, status: {ticket.status}")
-
-
-# for testing the redmine
-if __name__ == '__main__':
-    # load credentials
-    from dotenv import load_dotenv
-    load_dotenv()
-    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
-
-    main()

@@ -28,6 +28,8 @@ log = logging.getLogger(__name__)
 
 TEST_DATA = "data" # dir with test data
 
+TEST_ADMIN = "test-admin"
+
 
 # from https://github.com/tonyseek/python-base36/blob/master/base36.py
 def dumps(num:int)-> str:
@@ -156,18 +158,45 @@ class MockSession(RedmineSession):
     """Magic session handling for test"""
     def __init__(self, token:str):
         super().__init__("http://example.com", token)
+        self.test_cache = {}
 
 
     def get(self, query:str, impersonate_id:str|None=None):
         log.info(f"GET {query}, id={impersonate_id}")
         try:
             path = urlparse(query).path
+            # check for cache?
+
             return load_json(path)
         except FileNotFoundError:
             return super().get(query, impersonate_id)
         except Exception as ex:
             log.error(f"{ex}")
             return None
+
+
+    # def put(self, resource: str, data:str, impersonate_id:str|None=None) -> None:
+    #     log.info(f"PUT {resource}, data={data} id={impersonate_id}")
+    #     # UDATE!
+    #     path = urlparse(resource).path
+    #     self.test_cache[path] = data
+    #     #raise RedmineException(f"PUT {resource} by {impersonate_id} failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
+
+
+    # def post(self, resource: str, data:str, user_login: str|None = None, files: list|None = None) -> dict|None:
+    #     log.info(f"POST {resource}, data={data} user_login={user_login}")
+    #     path = urlparse(resource).path
+    #     # NEED A NEW ID!
+    #     self.test_cache[path] = data
+    #     #raise RedmineException(f"POST failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
+
+
+    # def delete(self, resource: str) -> None:
+    #     log.info(f"DELETE {resource}")
+    #     path = urlparse(resource).path
+    #     if path in self.test_cache:
+    #         log.debug(f"deleted {path}")
+    #         del self.test_cache[path]
 
 
 class MockRedmineTestCase(unittest.TestCase):
@@ -225,14 +254,21 @@ class RedmineTestCase(unittest.TestCase):
             log.info(f"TEARDOWN removed test user: {cls.user}")
 
 
-    def create_test_ticket(self) -> Ticket:
+    def create_test_message(self) -> Message:
         subject = f"TEST {self.tag} {unittest.TestCase.id(self)}"
         text = f"This is a ticket for {unittest.TestCase.id(self)} with {self.tag}."
         message = Message(self.user.mail, subject, f"to-{self.tag}@example.com", f"cc-{self.tag}@example.com")
         message.set_note(text)
 
-        ticket = self.redmine.create_ticket(self.user, message)
-        return ticket
+        return message
+
+
+    def create_test_ticket(self, user:User = None, **params) -> Ticket:
+        if user is None:
+            user = self.user
+
+        message = self.create_test_message()
+        return self.redmine.ticket_mgr.create(user, message, **params)
 
 
 class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
@@ -266,13 +302,11 @@ def audit_expected_values():
     log.info("Audit complete.")
 
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
     # when running this main, turn on DEBUG
-    logging.basicConfig(level=logging.INFO, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 
     # load credentials
-    load_dotenv()
+    #load_dotenv()
 
     # construct the client and run the email check
     #client = RedmineSession.fromenv()

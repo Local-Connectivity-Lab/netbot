@@ -495,16 +495,3 @@ class UserManager():
         self.reindex_users()
         self.reindex_teams()
         log.info(f"reindex took {dt.datetime.now() - start}")
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-
-    # load credentials
-    from dotenv import load_dotenv
-    load_dotenv()
-    #users = UserManager(RedmineSession.fromenv())
-    #for teamname in users.get_all_teams():
-    #    team = users.get_team_by_name(teamname)
-    #    print(team)

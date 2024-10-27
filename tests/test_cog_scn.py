@@ -12,8 +12,6 @@ from netbot.cog_scn import SCNCog
 
 from tests import test_utils
 
-logging.getLogger().setLevel(logging.ERROR)
-
 
 log = logging.getLogger(__name__)
 
@@ -205,12 +203,3 @@ class TestSCNCog(test_utils.BotTestCase):
         # clean up
         del self.bot.ticket_locks[ticket.id]
         self.redmine.ticket_mgr.remove(ticket.id)
-
-
-if __name__ == '__main__':
-    # when running this main, turn on DEBUG
-    logging.basicConfig(level=logging.DEBUG, format="{asctime} {levelname:<8s} {name:<16} {message}", style='{')
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-    logging.getLogger("asyncio").setLevel(logging.ERROR)
-
-    unittest.main()

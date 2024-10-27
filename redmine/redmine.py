@@ -81,6 +81,8 @@ class Client():
 
 
     def create_ticket(self, user:User, message:Message) -> Ticket:
+        """This is a special case of ticket creation that manages blocked users."""
+
         # NOTE to self re "projects": TicketManager.create supports a project ID
         # Need to find a way to pass it in.
         ticket = self.ticket_mgr.create(user, message)

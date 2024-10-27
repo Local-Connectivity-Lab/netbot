@@ -32,17 +32,15 @@ def setup(bot:NetBot):
 def get_trackers(ctx: discord.AutocompleteContext):
     """Returns a list of trackers that begin with the characters entered so far."""
     trackers = ctx.bot.redmine.ticket_mgr.get_trackers() # this is expected to be cached
-    # .lower() is used to make the autocomplete match case-insensitive
+    # .lower() is used to make the autocomplete case-insensitive
     return [tracker for tracker in trackers.keys() if tracker.lower().startswith(ctx.value.lower())]
 
 
 def get_priorities(ctx: discord.AutocompleteContext):
     """Returns a list of priorities that begin with the characters entered so far."""
     priorities = ctx.bot.redmine.ticket_mgr.get_priorities() # this is expected to be cached
-    # .lower() is used to make the autocomplete match case-insensitive
-    rtn = [priority for priority in priorities.keys() if priority.lower().startswith(ctx.value.lower())]
-    log.warning(f"PRIORITIES: {rtn}")
-    return rtn
+    # .lower() is used to make the autocomplete case-insensitive
+    return [priority for priority in priorities.keys() if priority.lower().startswith(ctx.value.lower())]
 
 
 class PrioritySelect(discord.ui.Select):
@@ -467,10 +465,12 @@ class TicketsCog(commands.Cog):
 
         ticket: Ticket = None
         ticket_id = self.bot.parse_thread_title(channel_name)
+        log.debug(f">>> {channel_name} --> {ticket_id}")
         if ticket_id:
             # check if it's an epic
             epic = self.redmine.ticket_mgr.get(ticket_id)
             if epic and epic.priority.name == "EPIC":
+                log.debug(f">>> {ticket_id} is an EPIC!")
                 ticket = self.redmine.ticket_mgr.create(user, message, parent_issue_id=ticket_id)
             else:
                 ticket = self.redmine.ticket_mgr.create(user, message)
@@ -584,7 +584,7 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
 
 
-    @ticket.command(name="priority", description="Update the tracker of a ticket")
+    @ticket.command(name="priority", description="Update the priority of a ticket")
     @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
     @option("priority", description="Priority to assign to ticket", autocomplete=get_priorities)
     async def priority(self, ctx: discord.ApplicationContext, ticket_id:int, priority:str):
