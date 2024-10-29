@@ -68,18 +68,6 @@ class TestRedmineIntegration(test_utils.RedmineTestCase):
         self.assertFalse(self.user_mgr.is_blocked(self.user))
 
 
-    @unittest.skip("takes too long and fills the log with junk")
-    def test_client_timeout(self):
-        # construct an invalid client to try to get a timeout
-        try:
-            bad_session = session.RedmineSession("http://192.168.1.42/", "bad-token")
-            client = redmine.Client.from_session(bad_session, default_project=1)
-            self.assertIsNotNone(client)
-            #log.info(client)
-        except Exception:
-            self.fail("Got unexpected timeout")
-
-
     def test_ticket_query(self):
         # create a ticket with the tag in the body, not the subject
         ticket = self.create_test_ticket()

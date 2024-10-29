@@ -197,7 +197,7 @@ class Client(): ## imap.Client()
         if user is None:
             log.debug(f"Unknown email address, no user found: {addr}, {message.from_address}")
             # create new user
-            user = self.redmine.user_mgr.create(addr, first, last)
+            user = self.redmine.user_mgr.create(addr, first, last, user_login=None)
             log.info(f"Unknow user: {addr}, created new account.")
 
         #  upload any attachments

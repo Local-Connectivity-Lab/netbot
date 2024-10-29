@@ -123,34 +123,46 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket_id)))
 
 
-    @unittest.skip
     async def test_ticket_unassign(self):
         ticket = self.create_test_ticket()
 
         # unassign the ticket
         ctx = self.build_context()
         await self.cog.unassign(ctx, ticket.id)
-        response_str = ctx.respond.call_args.args[0]
-        self.assertIn(str(ticket.id), response_str)
+        embed = ctx.respond.call_args.kwargs['embed']
+        self.assertIn(str(ticket.id), embed.title)
+        self.assertIn(ticket.subject, embed.title)
+        found = False
+        for field in embed.fields:
+            if field.name == "Status":
+                self.assertTrue(field.value.endswith(" New"))
+                found = True
+            if field.name == "Owner":
+                self.fail("Owner name specified in epic for unassigned ticket")
+        self.assertTrue(found, "Status field not found in embed")
 
         # delete ticket with redmine api, assert
-        self.redmine.ticket_mgr.remove(int(ticket.id))
-        self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket.id)))
+        self.redmine.ticket_mgr.remove(ticket.id)
+        self.assertIsNone(self.redmine.ticket_mgr.get(ticket.id))
 
 
-    @unittest.skip
     async def test_ticket_collaborate(self):
         ticket = self.create_test_ticket()
 
         # add a collaborator
         ctx = self.build_context()
         await self.cog.collaborate(ctx, ticket.id)
-        response_str = ctx.respond.call_args.args[0]
-        self.assertIn(str(ticket.id), response_str)
+        embed = ctx.respond.call_args.kwargs['embed']
+        self.assertIn(str(ticket.id), embed.title)
+        self.assertIn(ticket.subject, embed.title)
+
+        # TODO Add check for list of collaborators,
+        # which is not currently displayed in embeds, see ticket 1262.
 
         # delete ticket with redmine api, assert
         self.redmine.ticket_mgr.remove(ticket.id)
         self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket.id)))
+
 
     # create thread/sync
     async def test_thread_sync(self):
