@@ -11,8 +11,6 @@ import unittest
 from urllib.parse import urlparse
 from unittest import mock
 
-from dotenv import load_dotenv
-
 import discord
 from discord import ApplicationContext
 from redmine.users import UserManager
@@ -28,7 +26,9 @@ log = logging.getLogger(__name__)
 
 TEST_DATA = "data" # dir with test data
 
+
 TEST_ADMIN = "test-admin"
+TEST_USER = "test-user"
 
 
 # from https://github.com/tonyseek/python-base36/blob/master/base36.py
@@ -73,6 +73,13 @@ def load_json(filename:str):
 def load_file(filename:str):
     with open(os.path.join(TEST_DATA, filename), 'r', encoding="utf-8") as file:
         return file.read()
+
+
+def lookup_test_user(user_mgr:UserManager) -> User:
+    user = user_mgr.find(TEST_USER)
+    if not user:
+        log.critical("No test user found! Name unknown: %s", TEST_USER)
+    return user
 
 
 def create_test_user(user_mgr:UserManager, tag:str):
@@ -243,15 +250,9 @@ class RedmineTestCase(unittest.TestCase):
         cls.user_mgr = cls.redmine.user_mgr
         cls.tickets_mgr = cls.redmine.ticket_mgr
         cls.tag:str = tagstr()
-        cls.user:User = create_test_user(cls.user_mgr, cls.tag)
+        cls.user:User = lookup_test_user(cls.user_mgr)
         cls.user_mgr.cache.cache_user(cls.user)
-        log.info(f"SETUP created test user: {cls.user}")
-
-    @classmethod
-    def tearDownClass(cls):
-        if cls.user:
-            cls.user_mgr.remove(cls.user)
-            log.info(f"TEARDOWN removed test user: {cls.user}")
+        log.info("SETUP complete.")
 
 
     def create_test_message(self) -> Message:
@@ -277,6 +278,7 @@ class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
     def build_context(self) -> ApplicationContext:
         ctx = mock.AsyncMock(ApplicationContext)
         ctx.bot = mock.AsyncMock(NetBot)
+        ctx.bot.redmine = self.redmine
         ctx.user = mock.AsyncMock(discord.Member)
         ctx.user.name = self.user.discord_id.name
         ctx.command = mock.AsyncMock(discord.ApplicationCommand)

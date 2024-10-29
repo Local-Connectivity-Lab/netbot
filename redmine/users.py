@@ -67,19 +67,20 @@ class UserCache():
         # check the indicies
         if name in self.user_emails:
             return self.get(self.user_emails[name])
-        elif name in self.users:
+        if name in self.users:
             return self.get(self.users[name])
-        elif name in self.discord_ids:
+        if name in self.discord_ids:
             return self.get(self.discord_ids[name])
-        elif name in self.teams:
+        if name in self.teams:
             return self.teams[name] #ugly. put groups in user collection?
-        else:
-            return None
+
+        return None
 
 
     def get_team_by_name(self, name:str) -> Team:
         if name in self.teams:
             return self.teams[name]
+        return None
 
 
     def find_discord_user(self, discord_user_id:str) -> User:
@@ -90,17 +91,12 @@ class UserCache():
         if discord_user_id in self.discord_ids:
             user_id = self.discord_ids[discord_user_id]
             return self.user_ids[user_id]
-        else:
-            return None
+
+        return None
 
 
     def is_user_or_group(self, name:str) -> bool:
-        if name in self.users:
-            return True
-        elif name in self.teams:
-            return True
-        else:
-            return False
+        return name in self.users or name in self.teams
 
 
     def get_teams(self) -> list[Team]:
@@ -153,18 +149,17 @@ class UserManager():
                     offset += next_result.limit
 
             return user_buffer
-        else:
-            log.warning("No users from get_all_users")
-            return []
+        log.warning("No users from get_all_users")
+        return []
 
     def get_registered(self) -> list[User]:
         resp = self.session.get(f"{USER_RESOURCE}?status=2") # NOTE: 2 is the "registered" status
         if resp:
             user_result = UserResult(**resp)
             return user_result.users
-        else:
-            log.debug("no pending registered users")
-            return []
+
+        log.debug("no pending registered users")
+        return []
 
     def update(self, user:User, fields:dict) -> User:
         """update a user record in redmine"""
@@ -194,12 +189,13 @@ class UserManager():
 
             if result.total_count == 1:
                 return result.users[0]
-            elif result.total_count > 1:
+            if result.total_count > 1:
                 log.warning(f"Too many results for {username}: {result.users}")
                 return result.users[0]
-            else:
-                log.debug(f"Unknown user: {username}")
-                return None
+
+            log.debug(f"Unknown user: {username}")
+            return None
+        return None
 
 
     def create(self, email:str, first:str, last:str, user_login:str|None) -> User:

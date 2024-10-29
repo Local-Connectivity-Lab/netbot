@@ -90,7 +90,7 @@ class TestNetbot(test_utils.BotTestCase):
 
         # assert method send called on mock thread, with the correct values
         #log.debug(f"### call args: {thread.send.call_args}")
-        self.assertIn(self.tag, thread.send.call_args.args[0])
+        self.assertIn(self.user.name, thread.send.call_args.args[0])
         self.assertLessEqual(len(thread.send.call_args.args[0]), MAX_MESSAGE_LEN, "Message sent to Discord is too long")
 
         # clean up

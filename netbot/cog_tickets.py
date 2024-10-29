@@ -395,7 +395,7 @@ class TicketsCog(commands.Cog):
 
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
-            updated = self.redmine.progress_ticket(ticket_id, user.login)
+            updated = self.redmine.ticket_mgr.progress_ticket(ticket_id, user.login)
             ticket_link = self.bot.formatter.redmine_link(ticket)
             await ctx.respond(
                 f"Updated {ticket_link}, owner: {updated.assigned}, status: {updated.status}",
@@ -421,7 +421,7 @@ class TicketsCog(commands.Cog):
 
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
-            self.redmine.ticket_mgr.assign_ticket(ticket_id, user.login)
+            self.redmine.ticket_mgr.assign_ticket(ticket_id, user)
             await self.bot.formatter.print_ticket(self.redmine.ticket_mgr.get(ticket_id), ctx)
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error

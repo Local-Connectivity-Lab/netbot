@@ -3,13 +3,9 @@
 
 import unittest
 import logging
-import json
 from unittest.mock import MagicMock, patch
 
-from dotenv import load_dotenv
-
-from redmine.model import NamedId, DISCORD_ID_FIELD
-
+from redmine import model
 from tests import test_utils
 
 
@@ -27,7 +23,7 @@ class TestUserManager(test_utils.MockRedmineTestCase):
         # add discord details
         discord_id = test_utils.randint()
         discord_name = test_utils.randstr()
-        user.set_custom_field(2, DISCORD_ID_FIELD, f"{discord_id}|{discord_name}")
+        user.set_custom_field(2, model.DISCORD_ID_FIELD, f"{discord_id}|{discord_name}")
 
         # set up mock get return with the updated user
         mock_get.return_value = { "user": user.asdict() }

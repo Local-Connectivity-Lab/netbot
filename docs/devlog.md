@@ -1,4 +1,82 @@
-## Development Log
+# Netbot Development Log
+
+## 2024-10-29
+
+Response from the Redmine post:
+```
+* To be able to assign issues to a user, the designated assignee must have a role in the project which has the "Assign issues to this role" flag enabled.
+* The editing user must have the "Edit issues" permission via a role. Note that you can further restrict the view/edit/delete issues permissions per tracker on the bottom of the role edit screen. Check that the editing user has the required permissions
+* To be able to set a status, the editing user must be allowed to change the issue in its current tracker and status to the new status. This is defined in Administration -> Workflows.
+```
+
+Examination of settings on my test server reveal:
+* Assign issues to the role: Check (user, admin)
+* Role's "Edit issues" enabled: Check (user, admin)
+* editing user must be allowed to change the issue in its current tracker...
+
+That's the issue: User role didn't have workflow permissions to check status on issues.
+
+Added the following permissions for `User`
+* New -> In Progress
+* In Progress -> New
+* In Progress -> Resolved
+* Resolved -> New (reject solution)
+
+Gave User "owner" and "author" of ticket full status permissions for New, In Progress, Resolved, Reject.
+
+That fixed the related test cases. Moving on to others.
+
+Found a problem in `test_new_ticket` that used test `tag` to query, but alway got more than one. That's a suite-leve tag, not per test. Updated the test to use a new random str.
+
+All tests working. 6 tests still skipped. Current coverage:
+```
+Name                    Stmts   Miss  Cover
+-------------------------------------------
+netbot/__init__.py          0      0   100%
+netbot/cog_scn.py         225    146    35%
+netbot/cog_tickets.py     373    171    54%
+netbot/formatting.py      207    109    47%
+netbot/netbot.py          227    122    46%
+redmine/__init__.py         0      0   100%
+redmine/model.py          358     42    88%
+redmine/redmine.py         67      7    90%
+redmine/session.py         80     15    81%
+redmine/synctime.py        54     10    81%
+redmine/tickets.py        305     89    71%
+redmine/users.py          265     72    73%
+tests/__init__.py           0      0   100%
+tests/__main__.py          14      1    93%
+threader/__init__.py        0      0   100%
+threader/imap.py          154     41    73%
+-------------------------------------------
+TOTAL                    2329    825    65%
+```
+
+Before moving on to un-skipping more tests, make sure the DB is being cleaned up correctly after a run.
+
+Added cleanup to several tests. All tests run and pass, all integration cruft cleaned up correctly.
+
+Now, to lint!
+
+## 2024-10-28
+
+Starting on "description". Wrote a ticket 1386: http://172.16.20.20//issues/1386
+
+Noticed `/ticket progress` was broken. First step: Add test to reproduce!
+
+Found an existing test, `test_new_ticket`, that had been disabled. Let's make it work.
+
+    python -m tests -v -k test_new_ticket
+
+Updated `test_new_ticket` and added `test_ticket_progress`: Progress is not working. Need to figure out why.
+
+I am able to `progress` and `unassign` with my admin user, so it looks like a test user auth issue.
+
+Confirmed it's a test user auth issue. Refactored base integration test to remove automatic user-per-run creation and replace it with a standard test user that had the expected permissions. Compared with results from using the test-admin user. One fails, one passes.
+
+So the standard user permissions aren't correct.
+
+Still haven't figured out the settings. Posted to the Redmine Forum for support: https://www.redmine.org/boards/2/topics/70293
 
 ## 2024-10-27
 

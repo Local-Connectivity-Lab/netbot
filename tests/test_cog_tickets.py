@@ -14,6 +14,7 @@ from netbot.cog_tickets import TicketsCog, get_priorities, get_trackers
 from tests import test_utils
 
 
+
 log = logging.getLogger(__name__)
 
 
@@ -38,10 +39,10 @@ class TestTicketsCog(test_utils.BotTestCase):
         return ticket_id, url
 
 
-    @unittest.skip
     async def test_new_ticket(self):
         # create ticket with discord user, assert
-        test_title = f"This is a test ticket {self.tag}"
+        rand_str = test_utils.randstr(36)
+        test_title = f"{rand_str} TEST {rand_str}"
         ctx = self.build_context()
         ctx.channel = unittest.mock.AsyncMock(discord.TextChannel)
         ctx.channel.name = f"channel-{self.tag}"
@@ -55,46 +56,72 @@ class TestTicketsCog(test_utils.BotTestCase):
 
         # get the ticket using id
         ctx = self.build_context()
-        await self.cog.query(ctx, ticket_id)
-        response_str = ctx.respond.call_args.args[0]
-        self.assertIn(ticket_id, response_str)
-        self.assertIn(url, response_str)
 
-        # get the ticket using tag
+        await self.cog.query(ctx, ticket_id)
+        title = ctx.respond.call_args.kwargs['embed'].title
+        self.assertIn(ticket_id, title)
+        self.assertIn(test_title, title)
+
+        # get the ticket using subject
         ctx = self.build_context()
-        await self.cog.query(ctx, self.tag)
-        response_str = ctx.respond.call_args.args[0]
-        self.assertIn(ticket_id, response_str)
-        self.assertIn(url, response_str)
+        await self.cog.query(ctx, test_title)
+        title = ctx.respond.call_args.kwargs['embed'].title
+        self.assertIn(ticket_id, title)
+        self.assertIn(test_title, title)
 
         # assign the ticket
         ctx = self.build_context()
         await self.cog.assign(ctx, ticket_id)
-        response_str = ctx.respond.call_args.args[0]
-        self.assertIn(ticket_id, response_str)
-        self.assertIn(url, response_str)
-        self.assertIn(test_title, response_str)
+        embed = ctx.respond.call_args.kwargs['embed']
+        self.assertIn(ticket_id, embed.title)
+        self.assertIn(test_title, embed.title)
+        found = False
+        for field in embed.fields:
+            if field.name == "Status":
+                self.assertTrue(field.value.endswith(" New"))
+                found = True
+            if field.name == "Owner":
+                self.assertEqual(field.value, self.user.name)
+                found = True
+        self.assertTrue(found, "Owner field not found in embed")
 
         # "progress" the ticket, setting it in-progress and assigning it to "me"
         ctx = self.build_context()
         await self.cog.progress(ctx, ticket_id)
-        response_str = ctx.respond.call_args.args[0]
-        self.assertIn(ticket_id, response_str)
-        self.assertIn(url, response_str)
-        self.assertIn(test_title, response_str)
+        embed: discord.embed.Embed = ctx.respond.call_args.kwargs['embed']
+        self.assertIn(ticket_id, embed.title)
+        self.assertIn(test_title, embed.title)
+        found = False
+        for field in embed.fields:
+            if field.name == "Status":
+                self.assertTrue(field.value.endswith(" In Progress"))
+                found = True
+            if field.name == "Owner":
+                self.assertEqual(field.value, self.user.name)
+                found = True
+        self.assertTrue(found, "Owner field not found in embed")
 
         # resolve the ticket
         ctx = self.build_context()
         await self.cog.resolve(ctx, ticket_id)
-        response_str = ctx.respond.call_args.args[0]
-        self.assertIn(ticket_id, response_str)
-        self.assertIn(url, response_str)
-        self.assertIn(test_title, response_str)
+        embed: discord.embed.Embed = ctx.respond.call_args.kwargs['embed']
+        self.assertIn(ticket_id, embed.title)
+        self.assertIn(test_title, embed.title)
+        found = False
+        for field in embed.fields:
+            if field.name == "Status":
+                self.assertTrue(field.value.endswith(" Resolved"))
+                found = True
+            if field.name == "Owner":
+                self.assertEqual(field.value, self.user.name)
+                found = True
+        self.assertTrue(found, "Owner field not found in embed")
 
         # delete ticket with redmine api, assert
         self.redmine.ticket_mgr.remove(int(ticket_id))
         # check that the ticket has been removed
         self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket_id)))
+
 
     @unittest.skip
     async def test_ticket_unassign(self):
@@ -192,6 +219,10 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.assertIn(test_name, ctx.respond.call_args.args[0])
         self.assertIn("/scn add", ctx.respond.call_args.args[0])
 
+        # delete the ticket and confirm
+        self.redmine.ticket_mgr.remove(ticket.id)
+        self.assertIsNone(self.redmine.ticket_mgr.get(ticket.id))
+
 
     async def test_unassign_invalid_discord_user(self):
         ticket = self.create_test_ticket()
@@ -203,6 +234,10 @@ class TestTicketsCog(test_utils.BotTestCase):
         await self.cog.unassign(ctx, ticket.id)
         self.assertIn(test_name, ctx.respond.call_args.args[0])
         self.assertIn("/scn add", ctx.respond.call_args.args[0])
+
+        # delete the ticket and confirm
+        self.redmine.ticket_mgr.remove(ticket.id)
+        self.assertIsNone(self.redmine.ticket_mgr.get(ticket.id))
 
 
     async def test_progress_invalid_discord_user(self):
@@ -216,6 +251,10 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.assertIn(test_name, ctx.respond.call_args.args[0])
         self.assertIn("/scn add", ctx.respond.call_args.args[0])
 
+        # delete the ticket and confirm
+        self.redmine.ticket_mgr.remove(ticket.id)
+        self.assertIsNone(self.redmine.ticket_mgr.get(ticket.id))
+
 
     async def test_assign_invalid_discord_user(self):
         ticket = self.create_test_ticket()
@@ -227,6 +266,10 @@ class TestTicketsCog(test_utils.BotTestCase):
         await self.cog.assign(ctx, ticket.id)
         self.assertIn(test_name, ctx.respond.call_args.args[0])
         self.assertIn("/scn add", ctx.respond.call_args.args[0])
+
+        # delete the ticket and confirm
+        self.redmine.ticket_mgr.remove(ticket.id)
+        self.assertIsNone(self.redmine.ticket_mgr.get(ticket.id))
 
 
     async def test_create_invalid_discord_user(self):

@@ -128,6 +128,21 @@ class TestIntegrationTicketManager(test_utils.RedmineTestCase):
         self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket.id)))
 
 
+    def test_ticket_progress(self):
+        ticket = self.create_test_ticket()
+
+        #print(">>>>> ", self.tickets_mgr.)
+
+        # progress the ticket
+        check = self.tickets_mgr.progress_ticket(ticket.id, self.user.login)
+        self.assertEqual(check.assigned_to.id, self.user.id)
+        self.assertEqual(check.status.name, "In Progress")
+
+        # delete ticket with redmine api, assert
+        self.redmine.ticket_mgr.remove(ticket.id)
+        self.assertIsNone(self.redmine.ticket_mgr.get(ticket.id))
+
+
     def test_ticket_collaborate(self):
         ticket = self.create_test_ticket()
 
