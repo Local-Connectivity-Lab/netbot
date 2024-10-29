@@ -170,35 +170,32 @@ class EditSubjectAndDescModal(discord.ui.Modal):
         await interaction.response.send_message(embeds=[embed])
 
 
-# REMOVE unused
-# class EditView(discord.ui.View):
-#     """View to allow ticket editing"""
-#     # to build, need:
-#     # - list of trackers
-#     # - list or priorities
-#     # - ticket subject
-#     # - from email
-#     # build intake view
-#     # 1. Assign: (popup with potential assignments)
-#     # 2. Priority: (popup with priorities)
-#     # 3. (Reject) Subject
-#     # 4. (Block) email-addr
-#     def __init__(self, bot_: discord.Bot) -> None:
-#         self.bot = bot_
-#         super().__init__()
+class EditDescriptionModal(discord.ui.Modal):
+    """modal dialog to edit the ticket subject and description"""
+    def __init__(self, redmine: Client, ticket: Ticket, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.redmine = redmine
+        self.ticket = ticket
+        self.add_item(discord.ui.InputText(label="Description",
+                                           value=ticket.description,
+                                           style=InputTextStyle.paragraph))
 
-#         # Adds the dropdown to our View object
-#         self.add_item(PrioritySelect(self.bot))
-#         self.add_item(TrackerSelect(self.bot))
 
-#         self.add_item(discord.ui.Button(label="Done", row=4))
-#         self.add_item(discord.ui.Button(label="Edit Subject & Description", row=4))
+    async def callback(self, interaction: discord.Interaction):
+        description = self.children[0].value
+        log.debug(f"callback: {description}")
 
-#     async def select_callback(self, select, interaction): # the function called when the user is done selecting options
-#         await interaction.response.send_message(f"EditView.select_callback() selected: {select.values[0]}")
+        user = self.redmine.user_mgr.find_discord_user(interaction.user.name)
 
-#     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f"EditView.callback() {interaction.data}")
+        fields = {
+            "description": description,
+        }
+        ticket = self.redmine.ticket_mgr.update(self.ticket.id, fields, user.login)
+
+        embed = discord.Embed(title=f"Updated ticket {ticket.id} description")
+        embed.add_field(name="Description", value=ticket.description)
+
+        await interaction.response.send_message(embeds=[embed])
 
 
 # distinct from above. takes app-context
@@ -691,6 +688,18 @@ class TicketsCog(commands.Cog):
         else:
             # no ticket available.
             await ctx.respond("Command only valid in ticket thread. No ticket info found in this thread.")
+
+
+    @ticket.command(name="description", description="Edit the description of a ticket")
+    async def edit_description(self, ctx: discord.ApplicationContext):
+        # pop the the edit description embed
+        ticket_id = ctx.bot.parse_thread_title(ctx.channel.name)
+        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        if ticket:
+            modal = EditDescriptionModal(self.redmine, ticket, title=ticket.subject)
+            await ctx.send_modal(modal)
+        else:
+            await ctx.respond(f"Cannot find ticket for {ctx.channel}")
 
 
     @ticket.command(name="help", description="Display hepl about ticket management")
