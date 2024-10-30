@@ -174,8 +174,10 @@ class EditDescriptionModal(discord.ui.Modal):
     """modal dialog to edit the ticket subject and description"""
     def __init__(self, redmine: Client, ticket: Ticket, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        # Note: redmine must be available in callback, as the bot is not
+        # available thru the Interaction.
         self.redmine = redmine
-        self.ticket = ticket
+        self.ticket_id = ticket.id
         self.add_item(discord.ui.InputText(label="Description",
                                            value=ticket.description,
                                            style=InputTextStyle.paragraph))
@@ -190,7 +192,7 @@ class EditDescriptionModal(discord.ui.Modal):
         fields = {
             "description": description,
         }
-        ticket = self.redmine.ticket_mgr.update(self.ticket.id, fields, user.login)
+        ticket = self.redmine.ticket_mgr.update(self.ticket_id, fields, user.login)
 
         embed = discord.Embed(title=f"Updated ticket {ticket.id} description")
         embed.add_field(name="Description", value=ticket.description)
@@ -202,7 +204,7 @@ class EditDescriptionModal(discord.ui.Modal):
 def default_term(ctx: discord.ApplicationContext) -> str:
     # examine the thread
     ch_name = ctx.channel.name
-    ticket_id = ctx.bot.parse_thread_title(ch_name)
+    ticket_id = NetBot.parse_thread_title(ch_name)
     if ticket_id:
         return str(ticket_id)
     elif ch_name in TEAM_MAPPING:
@@ -461,7 +463,7 @@ class TicketsCog(commands.Cog):
         message.set_note(text)
 
         ticket: Ticket = None
-        ticket_id = self.bot.parse_thread_title(channel_name)
+        ticket_id = NetBot.parse_thread_title(channel_name)
         log.debug(f">>> {channel_name} --> {ticket_id}")
         if ticket_id:
             # check if it's an epic
@@ -503,7 +505,7 @@ class TicketsCog(commands.Cog):
     @ticket.command(name="notify", description="Notify collaborators on a ticket")
     @option("message", description="Message to send with notification")
     async def notify(self, ctx: discord.ApplicationContext, message:str = ""):
-        ticket_id = self.bot.parse_thread_title(ctx.channel.name)
+        ticket_id = NetBot.parse_thread_title(ctx.channel.name)
         ticket = self.redmine.ticket_mgr.get(ticket_id, include="watchers") # inclde the option watchers/collaborators field
         if ticket:
             # * notify owner and collaborators of *notable* (not all) status changes of a ticket
@@ -645,7 +647,7 @@ class TicketsCog(commands.Cog):
     async def due(self, ctx: discord.ApplicationContext, date_str:str):
         # automatiuc date conversion?
         # get the ticket ID from the thread:
-        ticket_id = ctx.bot.parse_thread_title(ctx.channel.name)
+        ticket_id = NetBot.parse_thread_title(ctx.channel.name)
         if ticket_id:
             # got a valid ticket, update it
             # standard date string, date format, etc.
@@ -693,10 +695,10 @@ class TicketsCog(commands.Cog):
     @ticket.command(name="description", description="Edit the description of a ticket")
     async def edit_description(self, ctx: discord.ApplicationContext):
         # pop the the edit description embed
-        ticket_id = ctx.bot.parse_thread_title(ctx.channel.name)
+        ticket_id = NetBot.parse_thread_title(ctx.channel.name)
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
-            modal = EditDescriptionModal(self.redmine, ticket, title=ticket.subject)
+            modal = EditDescriptionModal(self.redmine, ticket, title=f"Editing ticket #{ticket.id}")
             await ctx.send_modal(modal)
         else:
             await ctx.respond(f"Cannot find ticket for {ctx.channel}")

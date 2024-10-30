@@ -11,7 +11,7 @@ from discord.utils import basic_autocomplete
 from redmine.model import Message, User
 from redmine.redmine import Client, BLOCKED_TEAM_NAME
 
-from netbot.netbot import default_ticket
+from netbot.netbot import NetBot, default_ticket
 
 log = logging.getLogger(__name__)
 
@@ -212,7 +212,7 @@ class SCNCog(commands.Cog):
                 await ctx.respond(f"SYNC ticket {ticket.id} to thread: {thread.name} complete")
             else:
                 # double-check thread name
-                ticket_id = self.bot.parse_thread_title(thread.name)
+                ticket_id = NetBot.parse_thread_title(thread.name)
                 if ticket_id:
                     await ctx.respond(f"No ticket (#{ticket_id}) found for thread named: {thread.name}")
                 else:

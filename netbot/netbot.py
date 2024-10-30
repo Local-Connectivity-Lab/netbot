@@ -53,7 +53,7 @@ TEAM_MAPPING = {
 # TODO could be moved to NetBot
 def default_ticket(ctx: discord.AutocompleteContext) -> list[int]:
     # examine the thread
-    ticket_id = ctx.bot.parse_thread_title(ctx.interaction.channel.name)
+    ticket_id = NetBot.parse_thread_title(ctx.interaction.channel.name)
     if ticket_id:
         return [ticket_id]
     else:
@@ -114,7 +114,7 @@ class NetBot(commands.Bot):
             # not the bot user
             if isinstance(message.channel, discord.Thread):
                 # IS a thread, check the name
-                ticket_id = self.parse_thread_title(message.channel.name)
+                ticket_id = NetBot.parse_thread_title(message.channel.name)
                 if ticket_id:
                     user = self.redmine.user_mgr.find(message.author.name)
                     if user:
@@ -125,7 +125,8 @@ class NetBot(commands.Bot):
                         await message.reply(f"User {message.author.name} not mapped to redmine. Use `/scn add` to create the mapping.")
 
 
-    def parse_thread_title(self, title: str) -> int:
+    @staticmethod
+    def parse_thread_title(title: str) -> int:
         """parse the thread title to get the ticket number"""
         match = re.match(r'^Ticket #(\d+)', title)
         if match:
@@ -257,7 +258,7 @@ class NetBot(commands.Bot):
     async def sync_thread(self, thread:discord.Thread):
         """syncronize an existing ticket thread with redmine"""
         # get the ticket id from the thread name
-        ticket_id = self.parse_thread_title(thread.name)
+        ticket_id = NetBot.parse_thread_title(thread.name)
 
         ticket = self.redmine.ticket_mgr.get(ticket_id, include="journals")
         if ticket:

@@ -4,13 +4,13 @@
 import unittest
 import logging
 import re
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 
 import discord
 from dotenv import load_dotenv
 
 from netbot.netbot import NetBot
-from netbot.cog_tickets import TicketsCog, get_priorities, get_trackers
+from netbot.cog_tickets import TicketsCog, get_priorities, get_trackers, EditDescriptionModal
 from tests import test_utils
 
 
@@ -366,3 +366,27 @@ class TestTicketsCog(test_utils.BotTestCase):
         # check they've been removed
         self.assertIsNone(self.redmine.ticket_mgr.get(int(ticket_id)))
         self.assertIsNone(self.redmine.ticket_mgr.get(int(sub1_id)))
+
+
+    async def test_description_modal_init(self):
+        try:
+            # build the context, including ticket
+            ticket = self.create_test_ticket()
+            ctx = self.build_context()
+            ctx.channel = AsyncMock(discord.TextChannel)
+            ctx.channel.name = f"Ticket #{ticket.id}"
+            ctx.channel.id = test_utils.randint()
+            ctx.send_modal = AsyncMock()
+            await self.cog.edit_description(ctx)
+
+            # scrape the model object from the mock context
+            modal: EditDescriptionModal = ctx.send_modal.call_args[0][0]
+
+            self.assertIn(str(ticket.id), modal.title)
+            self.assertIsNotNone(modal.redmine)
+            self.assertEqual(modal.children[0].value, ticket.description)
+        finally:
+            if ticket:
+                # delete the ticket and confirm
+                self.redmine.ticket_mgr.remove(ticket.id)
+                self.assertIsNone(self.redmine.ticket_mgr.get(ticket.id))

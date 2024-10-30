@@ -2,6 +2,24 @@
 
 ## 2024-10-29
 
+After deploying the latest, found a bug in the the description modal:
+```
+  File "/usr/src/app/netbot/cog_tickets.py", line 699, in edit_description
+    modal = EditDescriptionModal(self.redmine, ticket, title=ticket.subject)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/src/app/netbot/cog_tickets.py", line 176, in __init__
+    super().__init__(*args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/discord/ui/modal.py", line 61, in __init__
+    raise ValueError("title must be 45 characters or fewer")
+ValueError: title must be 45 characters or fewer
+```
+
+Updated code. Added test case `test_description_modal_init` to test that the modal dialog is initialize correctly.
+
+
+
+## 2024-10-29
+
 Response from the Redmine post:
 ```
 * To be able to assign issues to a user, the designated assignee must have a role in the project which has the "Assign issues to this role" flag enabled.
