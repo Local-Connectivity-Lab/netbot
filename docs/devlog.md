@@ -1,6 +1,32 @@
 # Netbot Development Log
 
-## 2024-10-29
+## 2024-10-31
+
+Updated `requirements.txt` using https://github.com/simion/pip-upgrader, but immediately noticed problems with:
+```
+TypeError: object MagicMock can't be used in 'await' expression
+```
+any time there was a test call into the discord framework, `pycord`.
+
+Rolled back to the version that worked `py-cord==2.4.1` and support libs: `aiohttp==3.8.6, async-timeout==4.0.3`
+
+With this change, all tests pass with 66% coverage.
+
+Back to ticket 1262.
+
+Added method to format a Discord ID from a redmine user record (using the compound discord id), used it to render the collaborators that have discord ids. (full name from redmine if not). Updated tests to check that collaborator is shown with valid value when avilable.
+
+NOTE: "watchers" (as they're called in the redmine API) are not in a standard ticket-get query. When the collaborator details are necessary, the call to `user_mgr.get()` must contain the parameter `include='watchers'`:
+```
+client = redmine.Client.from_env()
+ticket = client.ticket_mgr.get(ticket_id, include="watchers")
+# OR, as used for epics:
+ticket = client.ticket_mgr.get(ticket_id, include="watchers,children")
+```
+
+Tests look good. Committing.
+
+## 2024-10-30
 
 After deploying the latest, found a bug in the the description modal:
 ```
@@ -15,7 +41,6 @@ ValueError: title must be 45 characters or fewer
 ```
 
 Updated code. Added test case `test_description_modal_init` to test that the modal dialog is initialize correctly.
-
 
 
 ## 2024-10-29

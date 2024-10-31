@@ -82,26 +82,6 @@ def lookup_test_user(user_mgr:UserManager) -> User:
     return user
 
 
-def create_test_user(user_mgr:UserManager, tag:str):
-    # create new test user name: test-12345@example.com, login test-12345
-    first = "test-" + tag
-    last = "Testy"
-    #fullname = f"{first} {last}" ### <--
-    email = first + "@example.com"
-
-    # create new redmine user, using redmine api
-    user = user_mgr.create(email, first, last, None)
-
-    # create temp discord mapping with redmine api, assert
-    # create_discord_mapping will cache the new user
-    discord_id = random.randint(1000000,9999999)
-    discord_user = "discord-" + tag ### <--
-    user_mgr.create_discord_mapping(user, discord_id, discord_user)
-
-    # lookup based on login
-    return user_mgr.get_by_name(user.login)
-
-
 def mock_ticket(**kwargs) -> Ticket:
     #return json_ticket('test-ticket.json', **kwargs)
     return json_ticket('issues/595.json', **kwargs)
@@ -281,9 +261,9 @@ class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
         ctx.bot.redmine = self.redmine
         ctx.user = mock.AsyncMock(discord.Member)
         ctx.user.name = self.user.discord_id.name
+        ctx.user.id = self.user.discord_id.id
         ctx.command = mock.AsyncMock(discord.ApplicationCommand)
         ctx.command.name = unittest.TestCase.id(self)
-        log.debug(f"created ctx with {self.user.discord_id}: {ctx}")
         return ctx
 
 

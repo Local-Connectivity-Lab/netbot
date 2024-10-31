@@ -306,7 +306,7 @@ class TicketsCog(commands.Cog):
     async def details(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
         #log.debug(f"found user mapping for {ctx.user.name}: {user}")
-        ticket = self.redmine.ticket_mgr.get(ticket_id, include="children")
+        ticket = self.redmine.ticket_mgr.get(ticket_id, include="children,watchers")
         if ticket:
             await self.bot.formatter.print_ticket(ticket, ctx)
         else:
@@ -332,7 +332,8 @@ class TicketsCog(commands.Cog):
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
             self.redmine.ticket_mgr.collaborate(ticket.id, user)
-            await self.bot.formatter.print_ticket(self.redmine.ticket_mgr.get(ticket.id), ctx)
+            updated = self.redmine.ticket_mgr.get(ticket.id, include="watchers")
+            await self.bot.formatter.print_ticket(updated, ctx)
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 

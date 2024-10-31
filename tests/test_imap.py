@@ -130,7 +130,7 @@ class TestMessages(test_utils.RedmineTestCase):
     def test_subject_search(self):
         # create a new ticket with unique subject
         tag = test_utils.tagstr()
-        user = self.redmine.user_mgr.get_by_name("admin") # FIXME: create_test_user in test_utils
+        user = self.redmine.user_mgr.get_by_name("test-user")
         self.assertIsNotNone(user)
         subject = f"Test {tag} {tag} {tag}"
         message = Message(user.mail, subject, f"to-{tag}@example.com", f"cc-{tag}@example.com")

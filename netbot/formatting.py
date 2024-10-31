@@ -52,10 +52,6 @@ COLOR = {
     'EPIC': discord.Color.dark_gray(),
 }
 
-#EPIC_TAG = "[EPIC] "
-#def strip_epic_tag(subject:str) -> str:
-#     return subject[len(EPIC_TAG):] if subject.startswith(EPIC_TAG) else subject
-
 
 class DiscordFormatter():
     """
@@ -79,11 +75,6 @@ class DiscordFormatter():
 
     async def print_ticket(self, ticket, ctx:discord.ApplicationContext):
         await ctx.respond(embed=self.ticket_embed(ctx, ticket))
-        #msg = self.format_ticket_details(ticket)
-        #if len(msg) > MAX_MESSAGE_LEN:
-        #    log.warning("message over {MAX_MESSAGE_LEN} chars. truncing.")
-        #    msg = msg[:MAX_MESSAGE_LEN]
-        #await ctx.respond(msg)
 
 
     def format_registered_users(self, users: list[User]) -> str:
@@ -284,13 +275,29 @@ class DiscordFormatter():
         if ticket is None or ticket.assigned_to is None:
             return ""
 
-        user = ctx.bot.redmine.user_mgr.get(ticket.assigned_to.id)
-        if user and user.discord_id:
-            member = self.lookup_discord_user(ctx, user.discord_id)
-            if member:
-                return f"<@!{member.id}>"
+        user_str = self.format_discord_member(ctx, ticket.assigned_to.id)
+        if not user_str:
+            user_str = ticket.assigned_to.name
 
-        return ticket.assigned
+        return user_str
+
+
+    def format_discord_member(self, ctx: discord.ApplicationContext, user_id:int) -> str:
+        user = ctx.bot.redmine.user_mgr.get(user_id) # call to cache
+        if user and user.discord_id:
+            return f"<@!{user.discord_id.id}>"
+        if user:
+            return user.name
+        return ""
+
+
+    def format_collaborators(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
+        if not ticket.watchers:
+            return ""
+        if len(ticket.watchers) > 1:
+            return ",".join([self.format_discord_member(ctx, watcher.id) for watcher in ticket.watchers])
+
+        return self.format_discord_member(ctx, ticket.watchers[0].id)
 
 
     def ticket_embed(self, ctx: discord.ApplicationContext, ticket:Ticket) -> discord.Embed:
@@ -313,6 +320,9 @@ class DiscordFormatter():
 
         if ticket.assigned_to:
             embed.add_field(name="Owner", value=self.get_user_id(ctx, ticket))
+
+        if ticket.watchers:
+            embed.add_field(name="Collaborators", value=self.format_collaborators(ctx, ticket))
 
         # list the sub-tickets
         if ticket.children:

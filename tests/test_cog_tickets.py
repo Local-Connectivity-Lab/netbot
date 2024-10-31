@@ -81,7 +81,7 @@ class TestTicketsCog(test_utils.BotTestCase):
                 self.assertTrue(field.value.endswith(" New"))
                 found = True
             if field.name == "Owner":
-                self.assertEqual(field.value, self.user.name)
+                self.assertIn(str(self.user.discord_id.id), field.value)
                 found = True
         self.assertTrue(found, "Owner field not found in embed")
 
@@ -97,7 +97,7 @@ class TestTicketsCog(test_utils.BotTestCase):
                 self.assertTrue(field.value.endswith(" In Progress"))
                 found = True
             if field.name == "Owner":
-                self.assertEqual(field.value, self.user.name)
+                self.assertIn(str(self.user.discord_id.id), field.value)
                 found = True
         self.assertTrue(found, "Owner field not found in embed")
 
@@ -113,7 +113,7 @@ class TestTicketsCog(test_utils.BotTestCase):
                 self.assertTrue(field.value.endswith(" Resolved"))
                 found = True
             if field.name == "Owner":
-                self.assertEqual(field.value, self.user.name)
+                self.assertIn(str(self.user.discord_id.id), field.value)
                 found = True
         self.assertTrue(found, "Owner field not found in embed")
 
@@ -148,6 +148,7 @@ class TestTicketsCog(test_utils.BotTestCase):
 
     async def test_ticket_collaborate(self):
         ticket = self.create_test_ticket()
+        discord_id = self.user.discord_id.id
 
         # add a collaborator
         ctx = self.build_context()
@@ -156,8 +157,13 @@ class TestTicketsCog(test_utils.BotTestCase):
         self.assertIn(str(ticket.id), embed.title)
         self.assertIn(ticket.subject, embed.title)
 
-        # TODO Add check for list of collaborators,
-        # which is not currently displayed in embeds, see ticket 1262.
+        # Check for list of collaborators
+        found = False
+        for field in embed.fields:
+            if field.name == "Collaborators":
+                self.assertIn(str(discord_id), field.value)
+                found = True
+        self.assertTrue(found, "Collaborators field not found in embed")
 
         # delete ticket with redmine api, assert
         self.redmine.ticket_mgr.remove(ticket.id)

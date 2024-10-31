@@ -225,7 +225,7 @@ class User():
                     log.error(f"Unable to parse custom field for discord ID: {id_str}")
             else:
                 # no id. assume old style
-                return NamedId(-1, id_str)
+                return NamedId(0, id_str)
         else:
             return None
 
