@@ -52,7 +52,7 @@ def age_str(time:dt.datetime) -> str:
 
 
 def date_str(timestamp:dt.datetime) -> str:
-    """convert a datetime to the UTC Zulu string redmine expects"""
+    """convert a datetime to the string redmine expects"""
     return timestamp.strftime(DATE_FORMAT)
 
 

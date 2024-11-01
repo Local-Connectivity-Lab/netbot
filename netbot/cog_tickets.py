@@ -651,15 +651,15 @@ class TicketsCog(commands.Cog):
                 'REQUIRE_PARTS': ['day', 'month', 'year']})
 
     @ticket.command(name="due", description="Set a due date for the ticket")
-    @option("date", description="New ticket due date")
-    async def due(self, ctx: discord.ApplicationContext, date_str:str):
+    @option("date", description="Due date, in a supported format: 2024-11-01, 11/1/24, next week , 2 months, in 5 days")
+    async def due(self, ctx: discord.ApplicationContext, date:str):
         # automatiuc date conversion?
         # get the ticket ID from the thread:
         ticket_id = NetBot.parse_thread_title(ctx.channel.name)
         if ticket_id:
             # got a valid ticket, update it
             # standard date string, date format, etc.
-            due_date = TicketsCog.parse_human_date(date_str)
+            due_date = TicketsCog.parse_human_date(date)
             if due_date:
                 # format in redmine-expected format
                 # API design note: update interface calls for a string, but string must
@@ -681,8 +681,9 @@ class TicketsCog(commands.Cog):
                             start_time = due_date,
                             end_time = due_date + dt.timedelta(hours=1)) # DEFAULT "meeting" length, one hour)
                         log.info(f"Updated existing DUE event: {existing.name}")
-                        await ctx.respond(f"Updated due date on {ticket_id} to {due_date.strftime(synctime.DATETIME_FORMAT)}")
+                        await ctx.respond(f"Updated due date on {ticket_id} to {synctime.date_str(due_date)}")
                     else:
+                        await ctx.respond(f"Updated due date on ticket #{ticket_id} to {synctime.date_str(due_date)}, scheduling event.")
                         event = await ctx.guild.create_scheduled_event(
                             name = event_name,
                             description = ticket.subject,
@@ -690,11 +691,11 @@ class TicketsCog(commands.Cog):
                             end_time = due_date + dt.timedelta(hours=1), # DEFAULT "meeting" length, one hour
                             location = ctx.channel.name)
                         log.info(f"created event {event} for ticket={ticket.id}")
-                        await ctx.send(f"Updated due date on ticket #{ticket_id} to {due_date}.")
+                        await ctx.send(f"Scheduled due event for ticket #{ticket_id} on {synctime.date_str(due_date)}.")
                 else:
                     await ctx.respond(f"Problem updating ticket {ticket_id}, unknown ticket ID.")
             else:
-                await ctx.respond(f"Invalid date value entered. Unable to parse `{date_str}`")
+                await ctx.respond(f"Invalid date value entered. Unable to parse `{date}`")
         else:
             # no ticket available.
             await ctx.respond("Command only valid in ticket thread. No ticket info found in this thread.")

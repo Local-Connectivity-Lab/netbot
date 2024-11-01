@@ -4,7 +4,8 @@
 import unittest
 import logging
 import re
-from unittest.mock import MagicMock, AsyncMock
+import datetime as dt
+from unittest.mock import AsyncMock
 
 import discord
 from dotenv import load_dotenv
@@ -19,16 +20,38 @@ log = logging.getLogger(__name__)
 
 class TestTicketCogUnitTests(unittest.TestCase):
     """Unit tests for TicketsCog"""
+
+    @staticmethod
+    def add_months(d: dt.date, months:int) -> dt.date:
+        return d.replace(
+            month = (d.month + months) % 12,
+            year = d.year + (d.month + months) // 12)
+
+
     def test_human_dates(self):
+        today = dt.date.today()
         expected_results = [
-            # input, expected
-            ["10/31/2025", "2025-10-31"],
-            # FIXME add more patterns, figure out how to test relative
+            # input, expected-date
+            ["10/31/2025", dt.date.fromisoformat("2025-10-31")],
+            ["invalid-date", ""],
+            ["next week", today + dt.timedelta(weeks=1)],
+            ["tomorrow", today + dt.timedelta(days=1)],
+            ["2 months", TestTicketCogUnitTests.add_months(today, 2)],
+            ["1/1/25", dt.date.fromisoformat("2025-01-01")],
+            ["2/1/25", dt.date.fromisoformat("2025-02-01")],
+            ["in 5 days", today + dt.timedelta(days=5)],
+            ["April 1, 2025", dt.date.fromisoformat("2025-04-01")],
         ]
 
         for check in expected_results:
-            result = synctime.date_str(TicketsCog.parse_human_date(check[0]))
-            self.assertEqual(check[1], result)
+            result = TicketsCog.parse_human_date(check[0])
+            expected = check[1]
+            if expected:
+                log.debug(f">>> parse_human_date: {result} --> {expected}")
+                self.assertEqual(synctime.date_str(expected), synctime.date_str(result))
+            else:
+                # invalid result
+                self.assertIsNone(result, "Invalid dates expected to return empty result")
 
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
@@ -314,7 +337,7 @@ class TestTicketsCog(test_utils.BotTestCase):
 
 
     async def test_get_trackers(self):
-        ctx = MagicMock(discord.AutocompleteContext)
+        ctx = AsyncMock(discord.AutocompleteContext)
         ctx.bot = self.bot
         ctx.value = ""
         trackers = get_trackers(ctx)
@@ -326,7 +349,7 @@ class TestTicketsCog(test_utils.BotTestCase):
 
 
     async def test_get_priorities(self):
-        ctx = MagicMock(discord.AutocompleteContext)
+        ctx = AsyncMock(discord.AutocompleteContext)
         ctx.bot = self.bot
         ctx.value = ""
         priorities = get_priorities(ctx)
@@ -404,6 +427,68 @@ class TestTicketsCog(test_utils.BotTestCase):
             self.assertIn(str(ticket.id), modal.title)
             self.assertIsNotNone(modal.redmine)
             self.assertEqual(modal.children[0].value, ticket.description)
+        finally:
+            if ticket:
+                # delete the ticket and confirm
+                self.redmine.ticket_mgr.remove(ticket.id)
+                self.assertIsNone(self.redmine.ticket_mgr.get(ticket.id))
+
+
+    async def test_due_command(self):
+        try:
+            # create a ticket
+            # set an invalid due date
+            # check for error
+            # set a valid dute date
+            # check for valid due
+            # check for discord callback...
+
+            ticket = self.create_test_ticket()
+            invalid_date = "blah blah blah"
+            valid_date = "next week" # week + 7 days
+            due_date = dt.date.today() + dt.timedelta(weeks=1)
+            due_str = synctime.date_str(due_date)
+
+            # A. build the context without ticket. should fail
+            ctx = self.build_context()
+            ctx.channel = AsyncMock(discord.TextChannel)
+            ctx.channel.name = "Invalid Channel Name"
+            await self.cog.due(ctx, valid_date)
+            self.assertIn("Command only valid in ticket thread.", ctx.respond.call_args.args[0])
+
+            # B. build the context including ticket, use invalid date
+            ctx2 = self.build_context()
+            ctx2.channel = AsyncMock(discord.TextChannel)
+            ctx2.channel.name = f"Ticket #{ticket.id}"
+            ctx2.channel.id = test_utils.randint()
+            await self.cog.due(ctx2, invalid_date)
+            response_str = ctx2.respond.call_args.args[0]
+            self.assertIn(invalid_date, response_str)
+            self.assertIn("Invalid date", response_str)
+
+            # C. build a context using ticket, and valid date
+            ctx3 = self.build_context()
+            ctx3.channel = AsyncMock(discord.TextChannel)
+            ctx3.channel.name = f"Ticket #{ticket.id}"
+            ctx3.channel.id = test_utils.randint()
+            ctx3.guild = AsyncMock(discord.Guild)
+            ctx3.guild.fetch_scheduled_events.return_value = AsyncMock(list[discord.ScheduledEvent])
+
+            await self.cog.due(ctx3, valid_date)
+            response_3 = ctx3.respond.call_args.args[0]
+
+            self.assertIn(due_str, response_3)
+            self.assertIn("Updated due date", response_3)
+            self.assertIn(str(ticket.id), response_3)
+
+            # confirm create_scheduled_event TODO with correct date
+            self.assertTrue(await ctx3.guild.create_scheduled_event.called_once())
+
+            # check the ticket
+            updated = self.tickets_mgr.get(ticket.id)
+            self.assertIsNotNone(updated)
+            self.assertIsNotNone(updated.due_date)
+            self.assertEqual(due_date, updated.due_date.date())
         finally:
             if ticket:
                 # delete the ticket and confirm

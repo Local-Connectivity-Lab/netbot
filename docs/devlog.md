@@ -6,6 +6,20 @@ Looking at due date parsing, after someone raised a question about format.
 
 There's currently no testing. I vaguely remember writing some, but I can't find it. The date parsing is only in the cog_tickets, and only in the `due` command. I will move it to it's own method, then write tests for that and the `due` command.
 
+Added comprehensive `test_due_command`. Added `test_human_dates` command.
+
+Adding more dates to `test_human_dates`.
+
+ref: https://dateparser.readthedocs.io/en/latest/
+
+Intended use of `/ticket due [date]`:
+* standard date format: yyyy-mm-dd, `2024-11-01`
+* US date formate: mm/dd/yy, `11/1/24`
+* relative date format: `tomorrow`, `next week`, `2 months`, `in 5 days`
+* by day and month: `April 1, 2025`
+
+Finally, updated the help for `/ticket due`. Cleaned up the output as well.
+
 
 ## 2024-10-31
 

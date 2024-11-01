@@ -362,7 +362,6 @@ class SCNCog(commands.Cog):
 
     @scn.command(name="force-notify", description="Force ticket notifications")
     async def force_notify(self, ctx: discord.ApplicationContext):
-        log.debug(ctx)
         await self.bot.notify_expiring_tickets()
 
 

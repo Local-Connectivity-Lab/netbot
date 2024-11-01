@@ -376,7 +376,6 @@ class NetBot(commands.Bot):
 
     @commands.slash_command(name="notify", description="Force ticket notifications")
     async def force_notify(self, ctx: discord.ApplicationContext):
-        log.debug(ctx)
         await self.notify_expiring_tickets()
 
 

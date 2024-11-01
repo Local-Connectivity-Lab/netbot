@@ -96,6 +96,7 @@ class TestMessages(test_utils.RedmineTestCase):
     def test_new_account_from_email(self):
         # make sure neither the email or subject exist
         # note: these are designed to fail-fast, because trying to manage the user and subject as part of the test failed.
+        tickets = []
         try:
             test_email = "philion@acmerocket.com"
             user = self.redmine.user_mgr.get_by_name(test_email)
@@ -120,11 +121,12 @@ class TestMessages(test_utils.RedmineTestCase):
             self.assertTrue(tickets[0].subject.endswith(subject))
             self.assertEqual(user.id, tickets[0].author.id)
         finally:
-            # remove the ticket
-            self.redmine.ticket_mgr.remove(tickets[0].id)
-
-            # remove the user after the test
-            self.redmine.user_mgr.remove(user)
+            if tickets:
+                # remove the ticket
+                self.redmine.ticket_mgr.remove(tickets[0].id)
+            if user:
+                # remove the user after the test
+                self.redmine.user_mgr.remove(user)
 
 
     def test_subject_search(self):
