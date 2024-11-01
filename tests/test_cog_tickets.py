@@ -9,18 +9,31 @@ from unittest.mock import MagicMock, AsyncMock
 import discord
 from dotenv import load_dotenv
 
+from redmine import synctime
 from netbot.netbot import NetBot
 from netbot.cog_tickets import TicketsCog, get_priorities, get_trackers, EditDescriptionModal
 from tests import test_utils
 
 
-
 log = logging.getLogger(__name__)
+
+class TestTicketCogUnitTests(unittest.TestCase):
+    """Unit tests for TicketsCog"""
+    def test_human_dates(self):
+        expected_results = [
+            # input, expected
+            ["10/31/2025", "2025-10-31"],
+            # FIXME add more patterns, figure out how to test relative
+        ]
+
+        for check in expected_results:
+            result = synctime.date_str(TicketsCog.parse_human_date(check[0]))
+            self.assertEqual(check[1], result)
 
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
 class TestTicketsCog(test_utils.BotTestCase):
-    """Test suite for TicketsCog"""
+    """Integration test suite for TicketsCog"""
 
     def setUp(self):
         super().setUp()

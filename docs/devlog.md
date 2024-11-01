@@ -1,5 +1,12 @@
 # Netbot Development Log
 
+## 2024-11-01
+
+Looking at due date parsing, after someone raised a question about format.
+
+There's currently no testing. I vaguely remember writing some, but I can't find it. The date parsing is only in the cog_tickets, and only in the `due` command. I will move it to it's own method, then write tests for that and the `due` command.
+
+
 ## 2024-10-31
 
 Updated `requirements.txt` using https://github.com/simion/pip-upgrader, but immediately noticed problems with:

@@ -642,6 +642,13 @@ class TicketsCog(commands.Cog):
             if event.name.startswith(title_prefix):
                 return event
 
+    @staticmethod
+    def parse_human_date(date_str: str) -> dt.date:
+        # should the parser be cached?
+        return dateparser.parse(date_str, settings={
+                'RETURN_AS_TIMEZONE_AWARE': True,
+                'PREFER_DATES_FROM': 'future',
+                'REQUIRE_PARTS': ['day', 'month', 'year']})
 
     @ticket.command(name="due", description="Set a due date for the ticket")
     @option("date", description="New ticket due date")
@@ -652,11 +659,11 @@ class TicketsCog(commands.Cog):
         if ticket_id:
             # got a valid ticket, update it
             # standard date string, date format, etc.
-            due_date = dateparser.parse(date_str, settings={
-                'RETURN_AS_TIMEZONE_AWARE': True,
-                'PREFER_DATES_FROM': 'future',
-                'REQUIRE_PARTS': ['day', 'month', 'year']})
+            due_date = TicketsCog.parse_human_date(date_str)
             if due_date:
+                # format in redmine-expected format
+                # API design note: update interface calls for a string, but string must
+                # in redmine-expected format.
                 due_str = synctime.date_str(due_date)
                 ticket = self.redmine.ticket_mgr.update(ticket_id, {"due_date": due_str})
                 if ticket:
