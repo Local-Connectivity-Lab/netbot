@@ -20,6 +20,8 @@ Intended use of `/ticket due [date]`:
 
 Finally, updated the help for `/ticket due`. Cleaned up the output as well.
 
+Fixed a timeout problem if creating the due-event takes too long, by sending a message back to Discord before creating the new event.
+
 
 ## 2024-10-31
 
