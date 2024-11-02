@@ -669,8 +669,8 @@ class TicketsCog(commands.Cog):
                 if ticket:
                     # valid ticket, create an event
                     # check for time, default to 9am if 0
-                    if due_date.hour == 0:
-                        due_date.hour = 9 # DEFAULT "meeting" time, 9am local time (for the bot)
+                    #if due_date.hour == 0:
+                    #    due_date.hour = 9 # DEFAULT "meeting" time, 9am local time (for the bot)
 
                     event_name = f"Ticket #{ticket.id} Due"
 
