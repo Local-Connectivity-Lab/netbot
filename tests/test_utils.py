@@ -236,7 +236,7 @@ class RedmineTestCase(unittest.TestCase):
 
 
     def create_test_message(self) -> Message:
-        subject = f"TEST {self.tag} {unittest.TestCase.id(self)}"
+        subject = f"TEST {self.tag} {unittest.TestCase.id(self)} {randint()}"
         text = f"This is a ticket for {unittest.TestCase.id(self)} with {self.tag}."
         message = Message(self.user.mail, subject, f"to-{self.tag}@example.com", f"cc-{self.tag}@example.com")
         message.set_note(text)

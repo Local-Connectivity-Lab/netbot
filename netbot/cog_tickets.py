@@ -642,6 +642,7 @@ class TicketsCog(commands.Cog):
             if event.name.startswith(title_prefix):
                 return event
 
+
     @staticmethod
     def parse_human_date(date_str: str) -> dt.date:
         # should the parser be cached?
@@ -649,6 +650,7 @@ class TicketsCog(commands.Cog):
                 'RETURN_AS_TIMEZONE_AWARE': True,
                 'PREFER_DATES_FROM': 'future',
                 'REQUIRE_PARTS': ['day', 'month', 'year']})
+
 
     @ticket.command(name="due", description="Set a due date for the ticket")
     @option("date", description="Due date, in a supported format: 2024-11-01, 11/1/24, next week , 2 months, in 5 days")
@@ -711,6 +713,42 @@ class TicketsCog(commands.Cog):
             await ctx.send_modal(modal)
         else:
             await ctx.respond(f"Cannot find ticket for {ctx.channel}")
+
+
+    @ticket.command(name="parent", description="Set a parent ticket for ")
+    @option("parent_ticket", description="The ID of the parent ticket")
+    async def parent(self, ctx: discord.ApplicationContext, parent_ticket:int):
+        # /ticket parent 234 <- Get *this* ticket and set the parent to 234.
+
+        # get ticket Id from thread
+        ticket_id = NetBot.parse_thread_title(ctx.channel.name)
+        if not ticket_id:
+             # error - no ticket ID
+            await ctx.respond("Command only valid in ticket thread. No ticket info found in this thread.")
+            return
+
+        # validate user
+        user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
+        if not user:
+            await ctx.respond(f"ERROR: Discord user without redmine config: {ctx.user.name}. Create with `/scn add`")
+            return
+
+        # check that parent_ticket is valid
+        parent = self.redmine.ticket_mgr.get(parent_ticket)
+        if not parent:
+            await ctx.respond(f"ERROR: Unknow ticket #: {parent_ticket}")
+            return
+
+        # update the ticket
+        params = {
+            "parent_issue_id": parent_ticket,
+        }
+        updated = self.redmine.ticket_mgr.update(ticket_id, params, user.login)
+        ticket_link = self.bot.formatter.redmine_link(updated)
+        parent_link = self.bot.formatter.redmine_link(parent)
+        await ctx.respond(
+            f"Updated parent of {ticket_link} -> {parent_link}",
+            embed=self.bot.formatter.ticket_embed(ctx, updated))
 
 
     @ticket.command(name="help", description="Display hepl about ticket management")

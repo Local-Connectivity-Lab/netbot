@@ -494,3 +494,53 @@ class TestTicketsCog(test_utils.BotTestCase):
                 # delete the ticket and confirm
                 self.redmine.ticket_mgr.remove(ticket.id)
                 self.assertIsNone(self.redmine.ticket_mgr.get(ticket.id))
+
+
+    async def test_parent_command(self):
+        parent_ticket = child_ticket = None
+        try:
+            # create a parent ticket
+            # create a child ticket
+            # invoke the `parent` command
+            # validate the parent ticket has subticket child.
+            parent_ticket = self.create_test_ticket()
+            child_ticket = self.create_test_ticket()
+
+            # build the context without ticket. should fail
+            ctx = self.build_context()
+            ctx.channel = AsyncMock(discord.TextChannel)
+            ctx.channel.name = "Invalid Channel Name"
+            await self.cog.parent(ctx, parent_ticket.id)
+            self.assertIn("Command only valid in ticket thread.", ctx.respond.call_args.args[0])
+
+            # build the context including ticket, use invalid date
+            ctx2 = self.build_context()
+            ctx2.channel = AsyncMock(discord.TextChannel)
+            ctx2.channel.name = f"Ticket #{child_ticket.id}"
+            ctx2.channel.id = test_utils.randint()
+            await self.cog.parent(ctx2, parent_ticket.id)
+            embed = ctx2.respond.call_args.kwargs['embed']
+            self.assertIn(str(child_ticket.id), embed.title)
+            # This checks the field in the embed, BUT it's not mocked correctly in the context
+            # found = False
+            # for field in embed.fields:
+            #     if field.name == "Parent":
+            #         print(f"---------- {field.value}")
+            #         self.assertTrue(field.value.endswith(parent_ticket.id))
+            #         found = True
+            # self.assertTrue(found, "Parent field not found in embed")
+
+            # validate the ticket
+            check = self.redmine.ticket_mgr.get(child_ticket.id)
+            self.assertIsNotNone(check.parent)
+            self.assertEqual(parent_ticket.id, check.parent.id)
+
+        finally:
+            if child_ticket:
+                # delete the ticket and confirm
+                self.redmine.ticket_mgr.remove(child_ticket.id)
+                self.assertIsNone(self.redmine.ticket_mgr.get(child_ticket.id))
+            if parent_ticket:
+                # delete the ticket and confirm
+                self.redmine.ticket_mgr.remove(parent_ticket.id)
+                self.assertIsNone(self.redmine.ticket_mgr.get(parent_ticket.id))

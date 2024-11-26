@@ -1,5 +1,20 @@
 # Netbot Development Log
 
+## 2024-11-26
+
+Starting work on ticket #1203, `/ticket parent`.
+
+Should be simple to add a new sub-command to `cog_tickets.py`.
+
+Using TDD, let's start with addind a test case, `test_parent_command`
+
+Got that test *failing*, then implemented `parent()` method.
+
+Took awhile to get everything working. Biggest issue was tracking down the name of the parameter requred to actually set the parent: `parent_issue_id`
+
+Once that was figure out, everything was working end-to-end and captured in a full integration test.
+
+
 ## 2024-11-01
 
 Looking at due date parsing, after someone raised a question about format.

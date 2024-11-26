@@ -142,6 +142,17 @@ class DiscordFormatter():
             return thread.jump_url
 
 
+    def ticket_link(self, ctx: discord.ApplicationContext, ticket_id:int) -> str:
+        """Given a ticket ID, construct a link for the ticket, first looking for related Discord thread"""
+        # handle none context gracefully
+        if ctx:
+            thread = ctx.bot.find_ticket_thread(ticket_id)
+            if thread:
+                return thread.jump_url
+        # didn't find context or ticket
+        return f"[`#{ticket_id}`]({self.base_url}/issues/{ticket_id})"
+
+
     def format_tracker(self, tracker:NamedId|None) -> str:
         if tracker:
             return f"{get_emoji(tracker.name)} {tracker.name}"
@@ -323,6 +334,9 @@ class DiscordFormatter():
 
         if ticket.watchers:
             embed.add_field(name="Collaborators", value=self.format_collaborators(ctx, ticket))
+
+        if ticket.parent:
+            embed.add_field(name="Parent", value=self.ticket_link(ctx, ticket.parent.id))
 
         # list the sub-tickets
         if ticket.children:
