@@ -493,12 +493,8 @@ class TicketsCog(commands.Cog):
                 log.debug(f"not tracker for {channel_name}")
             # create related discord thread
             await self.thread(ctx, ticket.id)
-            await self.bot.formatter.print_ticket(ticket, ctx)
-
-            ticket_link = self.bot.formatter.redmine_link(ticket)
-            await ctx.respond(
-                f"Created ticket {ticket_link}",
-                embed=self.bot.formatter.ticket_embed(ctx, ticket))
+            #ticket_link = self.bot.formatter.redmine_link(ticket)
+            #await ctx.respond(f"Created ticket {ticket_link}")
         else:
             await ctx.respond(f"Error creating ticket with title={title}")
 
