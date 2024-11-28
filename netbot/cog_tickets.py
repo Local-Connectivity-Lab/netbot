@@ -45,14 +45,12 @@ def get_priorities(ctx: discord.AutocompleteContext):
 
 class PrioritySelect(discord.ui.Select):
     """Popup menu to select ticket priority"""
-    def __init__(self, bot_: discord.Bot):
-        # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
-        # Alternatively you can use Interaction.client, so you don't need to pass the bot instance.
-        self.bot = bot_
+    def __init__(self, bot: NetBot):
+        self.ticket_mgr = bot.redmine.ticket_mgr
 
         # Get the possible priorities
         options = []
-        for priority in self.bot.redmine.ticket_mgr.get_priorities():
+        for priority in self.ticket_mgr.get_priorities():
             options.append(discord.SelectOption(label=priority['name'], default=priority['is_default']))
 
         # The placeholder is what will be shown when no option is selected.
@@ -77,14 +75,14 @@ class PrioritySelect(discord.ui.Select):
 
 class TrackerSelect(discord.ui.Select):
     """Popup menu to select ticket tracker"""
-    def __init__(self, bot_: discord.Bot):
+    def __init__(self, bot: NetBot):
         # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
         # Alternatively you can use Interaction.client, so you don't need to pass the bot instance.
-        self.bot = bot_
+        #self.ticket_mgr = bot.redmine.ticket_mgr
 
         # Get the possible trackers
         options = []
-        for tracker in self.bot.redmine.ticket_mgr.get_trackers():
+        for tracker in bot.ticket_mgr.get_trackers():
             options.append(discord.SelectOption(label=tracker['name']))
 
         # The placeholder is what will be shown when no option is selected.
@@ -110,15 +108,12 @@ class TrackerSelect(discord.ui.Select):
 
 class SubjectEdit(discord.ui.InputText, Item[V]):
     """Popup menu to select ticket tracker"""
-    def __init__(self, bot_: discord.Bot, ticket: Ticket):
-        # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
-        # Alternatively you can use Interaction.client, so you don't need to pass the bot instance.
-        self.bot = bot_
+    def __init__(self, bot: NetBot, ticket: Ticket):
         self.ticket = ticket
 
         # Get the possible trackers
         options = []
-        for tracker in self.bot.redmine.ticket_mgr.get_trackers():
+        for tracker in bot.ticket_mgr.get_trackers():
             options.append(discord.SelectOption(label=tracker['name']))
 
         # The placeholder is what will be shown when no option is selected.
@@ -160,23 +155,24 @@ class EditSubjectAndDescModal(discord.ui.Modal):
         embed.add_field(name="Subject", value=subject)
         embed.add_field(name="Description", value=description)
 
-        #user = self.redmine.user_mgr.create(email, first, last)
+        #user = self.user_mgr.create(email, first, last)
         # TODO Update subject and description in redmine
 
         #if user is None:
         #    log.error(f"Unable to create user from {first}, {last}, {email}, {interaction.user.name}")
         #else:
-        #    self.redmine.user_mgr.create_discord_mapping(user, interaction.user.name)
+        #    self.user_mgr.create_discord_mapping(user, interaction.user.name)
         await interaction.response.send_message(embeds=[embed])
 
 
 class EditDescriptionModal(discord.ui.Modal):
     """modal dialog to edit the ticket subject and description"""
-    def __init__(self, redmine: Client, ticket: Ticket, *args, **kwargs) -> None:
+    def __init__(self, user_mgr, ticket_mgr, ticket: Ticket, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         # Note: redmine must be available in callback, as the bot is not
         # available thru the Interaction.
-        self.redmine = redmine
+        self.user_mgr = user_mgr
+        self.ticket_mgr = ticket_mgr
         self.ticket_id = ticket.id
         self.add_item(discord.ui.InputText(label="Description",
                                            value=ticket.description,
@@ -187,12 +183,12 @@ class EditDescriptionModal(discord.ui.Modal):
         description = self.children[0].value
         log.debug(f"callback: {description}")
 
-        user = self.redmine.user_mgr.find_discord_user(interaction.user.name)
+        user = self.user_mgr.find_discord_user(interaction.user.name)
 
         fields = {
             "description": description,
         }
-        ticket = self.redmine.ticket_mgr.update(self.ticket_id, fields, user.login)
+        ticket = self.ticket_mgr.update(self.ticket_id, fields, user.login)
 
         embed = discord.Embed(title=f"Updated ticket {ticket.id} description")
         embed.add_field(name="Description", value=ticket.description)
@@ -217,8 +213,9 @@ class TicketsCog(commands.Cog):
     """encapsulate Discord ticket functions"""
     def __init__(self, bot:NetBot):
         self.bot:NetBot = bot
-        self.redmine: Client = bot.redmine
-
+        #self.redmine: Client = bot.redmine
+        self.ticket_mgr = bot.redmine.ticket_mgr
+        self.user_mgr = bot.redmine.user_mgr
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
     ticket = SlashCommandGroup("ticket",  "ticket commands")
@@ -231,7 +228,7 @@ class TicketsCog(commands.Cog):
         # special cases: ticket num and team name
         try:
             int_id = int(term)
-            ticket = self.redmine.ticket_mgr.get(int_id, include="children") # get the children
+            ticket = self.ticket_mgr.get(int_id, include="children") # get the children
             if ticket:
                 log.debug(f"QQQ<: {ticket}")
                 return [ticket]
@@ -240,18 +237,18 @@ class TicketsCog(commands.Cog):
             pass
 
         # not a numeric id, check for known user or group
-        user_team = self.redmine.user_mgr.find(term)
+        user_team = self.user_mgr.find(term)
         if user_team:
             log.debug(f"{term} -> Team-or-user:{user_team}")
-            result = self.redmine.ticket_mgr.tickets_for_team(user_team) # owner = team name assigned_to_id
+            result = self.ticket_mgr.tickets_for_team(user_team) # owner = team name assigned_to_id
             if result and len(result) > 0:
                 return result
             # note: fall thru for empty result from team query.
 
         if term in CHANNEL_MAPPING:
-            tracker = self.bot.redmine.ticket_mgr.get_tracker(CHANNEL_MAPPING[term])
+            tracker = self.ticket_mgr.get_tracker(CHANNEL_MAPPING[term])
             if tracker:
-                result = self.redmine.ticket_mgr.tickets(tracker_id=tracker.id)
+                result = self.ticket_mgr.tickets(tracker_id=tracker.id)
                 log.debug(f"QQQ<: {result}")
                 if result and len(result) > 0:
                     return result
@@ -259,7 +256,7 @@ class TicketsCog(commands.Cog):
 
         # assume a search term
         log.debug(f"QUERY {term}")
-        return self.redmine.ticket_mgr.search(term)
+        return self.ticket_mgr.search(term)
 
 
     @ticket.command(description="Query tickets")
@@ -273,7 +270,7 @@ class TicketsCog(commands.Cog):
         # add groups to users.
 
         # lookup the user
-        user = self.redmine.user_mgr.find(ctx.user.name)
+        user = self.user_mgr.find(ctx.user.name)
         if not user:
             log.info(f"Unknown user name: {ctx.user.name}")
             # TODO make this a standard error.
@@ -290,7 +287,7 @@ class TicketsCog(commands.Cog):
                 term = "me"
 
         if term == "me":
-            results = self.redmine.ticket_mgr.my_tickets(user.login)
+            results = self.ticket_mgr.my_tickets(user.login)
         else:
             results = self.resolve_query_term(term)
 
@@ -306,7 +303,7 @@ class TicketsCog(commands.Cog):
     async def details(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
         #log.debug(f"found user mapping for {ctx.user.name}: {user}")
-        ticket = self.redmine.ticket_mgr.get(ticket_id, include="children,watchers")
+        ticket = self.ticket_mgr.get(ticket_id, include="children,watchers")
         if ticket:
             await self.bot.formatter.print_ticket(ticket, ctx)
         else:
@@ -324,15 +321,15 @@ class TicketsCog(commands.Cog):
             if self.bot.is_admin(ctx.user):
                 log.info(f"ADMIN: {ctx.user.name} invoked collaborate on behalf of {member.name}")
                 user_name = member.name
-        user = self.redmine.user_mgr.find(user_name)
+        user = self.user_mgr.find(user_name)
         if not user:
             await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add [redmine-user]` to create the mapping.")
             return
 
-        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        ticket = self.ticket_mgr.get(ticket_id)
         if ticket:
-            self.redmine.ticket_mgr.collaborate(ticket.id, user)
-            updated = self.redmine.ticket_mgr.get(ticket.id, include="watchers")
+            self.ticket_mgr.collaborate(ticket.id, user)
+            updated = self.ticket_mgr.get(ticket.id, include="watchers")
             await self.bot.formatter.print_ticket(updated, ctx)
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
@@ -343,15 +340,15 @@ class TicketsCog(commands.Cog):
     async def unassign(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
         # lookup the user
-        user = self.redmine.user_mgr.find(ctx.user.name)
+        user = self.user_mgr.find(ctx.user.name)
         if not user:
             await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add` to create the mapping.") # error
             return
 
-        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        ticket = self.ticket_mgr.get(ticket_id)
         if ticket:
-            self.redmine.ticket_mgr.unassign(ticket.id, user.login)
-            await self.bot.formatter.print_ticket(self.redmine.ticket_mgr.get(ticket.id), ctx)
+            self.ticket_mgr.unassign(ticket.id, user.login)
+            await self.bot.formatter.print_ticket(self.ticket_mgr.get(ticket.id), ctx)
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 
@@ -361,14 +358,14 @@ class TicketsCog(commands.Cog):
     async def resolve(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
         # lookup the user
-        user = self.redmine.user_mgr.find(ctx.user.name)
+        user = self.user_mgr.find(ctx.user.name)
         if not user:
             await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add` to create the mapping.") # error
             return
 
-        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        ticket = self.ticket_mgr.get(ticket_id)
         if ticket:
-            updated = self.redmine.ticket_mgr.resolve(ticket_id, user.login)
+            updated = self.ticket_mgr.resolve(ticket_id, user.login)
             ticket_link = self.bot.formatter.redmine_link(ticket)
             await ctx.respond(
                 f"Updated {ticket_link}, status: {ticket.status} -> {updated.status}",
@@ -388,14 +385,14 @@ class TicketsCog(commands.Cog):
             if self.bot.is_admin(ctx.user):
                 log.info(f"ADMIN: {ctx.user.name} invoked progress on behalf of {member.name}")
                 user_name = member.name
-        user = self.redmine.user_mgr.find(user_name)
+        user = self.user_mgr.find(user_name)
         if not user:
             await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add [redmine-user]` to create the mapping.")
             return
 
-        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        ticket = self.ticket_mgr.get(ticket_id)
         if ticket:
-            updated = self.redmine.ticket_mgr.progress_ticket(ticket_id, user.login)
+            updated = self.ticket_mgr.progress_ticket(ticket_id, user.login)
             ticket_link = self.bot.formatter.redmine_link(ticket)
             await ctx.respond(
                 f"Updated {ticket_link}, owner: {updated.assigned}, status: {updated.status}",
@@ -414,15 +411,15 @@ class TicketsCog(commands.Cog):
             if self.bot.is_admin(ctx.user):
                 log.info(f"ADMIN: {ctx.user.name} invoked assign on behalf of {member.name}")
                 user_name = member.name
-        user = self.redmine.user_mgr.find(user_name)
+        user = self.user_mgr.find(user_name)
         if not user:
             await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add [redmine-user]` to create the mapping.")
             return
 
-        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        ticket = self.ticket_mgr.get(ticket_id)
         if ticket:
-            self.redmine.ticket_mgr.assign_ticket(ticket_id, user)
-            await self.bot.formatter.print_ticket(self.redmine.ticket_mgr.get(ticket_id), ctx)
+            self.ticket_mgr.assign_ticket(ticket_id, user)
+            await self.bot.formatter.print_ticket(self.ticket_mgr.get(ticket_id), ctx)
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 
@@ -433,7 +430,7 @@ class TicketsCog(commands.Cog):
     # async def edit(self, ctx:discord.ApplicationContext, ticket_id: int):
     #     """Edit the fields of a ticket"""
     #     # check team? admin?, provide reasonable error msg.
-    #     ticket = self.redmine.ticket_mgr.get(ticket_id)
+    #     ticket = self.ticket_mgr.get(ticket_id)
     #     await ctx.respond(f"EDIT #{ticket.id}", view=EditView(self.bot))
 
 
@@ -453,7 +450,7 @@ class TicketsCog(commands.Cog):
     @ticket.command(name="new", description="Create a new ticket")
     @option("title", description="Title of the new SCN ticket")
     async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str):
-        user = self.redmine.user_mgr.find(ctx.user.name)
+        user = self.user_mgr.find(ctx.user.name)
         if not user:
             await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add` to create the mapping.") # error
             return
@@ -468,27 +465,27 @@ class TicketsCog(commands.Cog):
         log.debug(f">>> {channel_name} --> {ticket_id}")
         if ticket_id:
             # check if it's an epic
-            epic = self.redmine.ticket_mgr.get(ticket_id)
+            epic = self.ticket_mgr.get(ticket_id)
             if epic and epic.priority.name == "EPIC":
                 log.debug(f">>> {ticket_id} is an EPIC!")
-                ticket = self.redmine.ticket_mgr.create(user, message, parent_issue_id=ticket_id)
+                ticket = self.ticket_mgr.create(user, message, parent_issue_id=ticket_id)
             else:
-                ticket = self.redmine.ticket_mgr.create(user, message)
+                ticket = self.ticket_mgr.create(user, message)
         else:
-            ticket = self.redmine.ticket_mgr.create(user, message)
+            ticket = self.ticket_mgr.create(user, message)
 
         if ticket:
             # ticket created, set tracker
             # set tracker
             # TODO: search up all parents in hierarchy?
-            tracker = self.bot.redmine.ticket_mgr.get_tracker(channel_name)
+            tracker = self.ticket_mgr.get_tracker(channel_name)
             if tracker:
                 log.debug(f"found {channel_name} => {tracker}")
                 params = {
                     "tracker_id": str(tracker.id),
                     "notes": f"Setting tracker based on channel name: {channel_name}"
                 }
-                self.redmine.ticket_mgr.update(ticket.id, params, user.login)
+                self.ticket_mgr.update(ticket.id, params, user.login)
             else:
                 log.debug(f"not tracker for {channel_name}")
             # create related discord thread
@@ -503,7 +500,7 @@ class TicketsCog(commands.Cog):
     @option("message", description="Message to send with notification")
     async def notify(self, ctx: discord.ApplicationContext, message:str = ""):
         ticket_id = NetBot.parse_thread_title(ctx.channel.name)
-        ticket = self.redmine.ticket_mgr.get(ticket_id, include="watchers") # inclde the option watchers/collaborators field
+        ticket = self.ticket_mgr.get(ticket_id, include="watchers") # inclde the option watchers/collaborators field
         if ticket:
             # * notify owner and collaborators of *notable* (not all) status changes of a ticket
             # * user @reference for notify
@@ -526,7 +523,7 @@ class TicketsCog(commands.Cog):
     @ticket.command(description="Thread a Redmine ticket in Discord")
     @option("ticket_id", description="ID of tick to create thread for")
     async def thread(self, ctx: discord.ApplicationContext, ticket_id:int):
-        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        ticket = self.ticket_mgr.get(ticket_id)
         if ticket:
             ticket_link = self.bot.formatter.redmine_link(ticket)
 
@@ -540,7 +537,7 @@ class TicketsCog(commands.Cog):
                 else:
                     log.info(f"Ticket {ticket_id} synced with unknown thread ID {synced.channel_id}. Recovering.")
                     # delete the sync record
-                    self.redmine.ticket_mgr.remove_sync_record(synced)
+                    self.ticket_mgr.remove_sync_record(synced)
                     # fall thru to create thread and sync
 
             # create the thread...
@@ -548,8 +545,8 @@ class TicketsCog(commands.Cog):
 
             # update the discord flag on tickets, add a note with url of thread; thread.jump_url
             note = f"Created Discord thread: {thread.name}: {thread.jump_url}"
-            user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
-            self.redmine.enable_discord_sync(ticket.id, user, note)
+            user = self.user_mgr.find_discord_user(ctx.user.name)
+            self.ticket_mgr.enable_discord_sync(ticket.id, user, note)
 
             # ticket-614: add ticket link to thread response
             await ctx.respond(f"Created new thread {thread.jump_url} for ticket {ticket_link}")
@@ -561,17 +558,17 @@ class TicketsCog(commands.Cog):
     @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
     @option("tracker", description="Track to assign to ticket", autocomplete=get_trackers)
     async def tracker(self, ctx: discord.ApplicationContext, ticket_id:int, tracker:str):
-        user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
-        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        user = self.user_mgr.find_discord_user(ctx.user.name)
+        ticket = self.ticket_mgr.get(ticket_id)
         if ticket:
             ticket_link = self.bot.formatter.redmine_link(ticket)
 
             # look up the tracker string
-            tracker_rec = self.bot.redmine.ticket_mgr.get_tracker(tracker)
+            tracker_rec = self.ticket_mgr.get_tracker(tracker)
             fields = {
                 "tracker_id": tracker_rec.id,
             }
-            updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
+            updated = self.ticket_mgr.update(ticket_id, fields, user.login)
 
             await ctx.respond(
                 f"Updated tracker of {ticket_link}: {ticket.tracker} -> {updated.tracker}",
@@ -584,11 +581,11 @@ class TicketsCog(commands.Cog):
     @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
     @option("priority", description="Priority to assign to ticket", autocomplete=get_priorities)
     async def priority(self, ctx: discord.ApplicationContext, ticket_id:int, priority:str):
-        user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
-        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        user = self.user_mgr.find_discord_user(ctx.user.name)
+        ticket = self.ticket_mgr.get(ticket_id)
         if ticket:
             # look up the priority
-            pri = self.bot.redmine.ticket_mgr.get_priority(priority)
+            pri = self.ticket_mgr.get_priority(priority)
             if pri is None:
                 log.error(f"Unknown priority: {priority}")
                 await ctx.respond(f"Unknown priority: {priority}")
@@ -597,7 +594,7 @@ class TicketsCog(commands.Cog):
             fields = {
                 "priority_id": pri.id,
             }
-            updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
+            updated = self.ticket_mgr.update(ticket_id, fields, user.login)
 
             ticket_link = self.bot.formatter.redmine_link(ticket)
             await ctx.respond(
@@ -611,12 +608,12 @@ class TicketsCog(commands.Cog):
     @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
     @option("subject", description="Updated subject")
     async def subject(self, ctx: discord.ApplicationContext, ticket_id:int, subject:str):
-        user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
+        user = self.user_mgr.find_discord_user(ctx.user.name)
         if not user:
             await ctx.respond(f"ERROR: Discord user without redmine config: {ctx.user.name}. Create with `/scn add`")
             return
 
-        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        ticket = self.ticket_mgr.get(ticket_id)
         if not ticket:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
             return
@@ -624,7 +621,7 @@ class TicketsCog(commands.Cog):
         fields = {
             "subject": subject,
         }
-        updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
+        updated = self.ticket_mgr.update(ticket_id, fields, user.login)
 
         ticket_link = self.bot.formatter.redmine_link(ticket)
         await ctx.respond(
@@ -663,7 +660,7 @@ class TicketsCog(commands.Cog):
                 # API design note: update interface calls for a string, but string must
                 # in redmine-expected format.
                 due_str = synctime.date_str(due_date)
-                ticket = self.redmine.ticket_mgr.update(ticket_id, {"due_date": due_str})
+                ticket = self.ticket_mgr.update(ticket_id, {"due_date": due_str})
                 if ticket:
                     # valid ticket, create an event
                     # check for time, default to 9am if 0
@@ -703,9 +700,9 @@ class TicketsCog(commands.Cog):
     async def edit_description(self, ctx: discord.ApplicationContext):
         # pop the the edit description embed
         ticket_id = NetBot.parse_thread_title(ctx.channel.name)
-        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        ticket = self.ticket_mgr.get(ticket_id)
         if ticket:
-            modal = EditDescriptionModal(self.redmine, ticket, title=f"Editing ticket #{ticket.id}")
+            modal = EditDescriptionModal(self.user_mgr, self.ticket_mgr, ticket, title=f"Editing ticket #{ticket.id}")
             await ctx.send_modal(modal)
         else:
             await ctx.respond(f"Cannot find ticket for {ctx.channel}")
@@ -724,13 +721,13 @@ class TicketsCog(commands.Cog):
             return
 
         # validate user
-        user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
+        user = self.user_mgr.find_discord_user(ctx.user.name)
         if not user:
             await ctx.respond(f"ERROR: Discord user without redmine config: {ctx.user.name}. Create with `/scn add`")
             return
 
         # check that parent_ticket is valid
-        parent = self.redmine.ticket_mgr.get(parent_ticket)
+        parent = self.ticket_mgr.get(parent_ticket)
         if not parent:
             await ctx.respond(f"ERROR: Unknow ticket #: {parent_ticket}")
             return
@@ -739,7 +736,7 @@ class TicketsCog(commands.Cog):
         params = {
             "parent_issue_id": parent_ticket,
         }
-        updated = self.redmine.ticket_mgr.update(ticket_id, params, user.login)
+        updated = self.ticket_mgr.update(ticket_id, params, user.login)
         ticket_link = self.bot.formatter.redmine_link(updated)
         parent_link = self.bot.formatter.redmine_link(parent)
         await ctx.respond(

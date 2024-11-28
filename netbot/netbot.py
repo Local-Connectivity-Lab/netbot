@@ -78,6 +78,9 @@ class NetBot(commands.Bot):
         self.formatter = DiscordFormatter(client.url)
 
         self.redmine = client
+        self.user_mgr = client.user_mgr
+        self.ticket_mgr = client.ticket_mgr
+
         #guilds = os.getenv('DISCORD_GUILDS').split(', ')
         #if guilds:
         #    log.info(f"setting guilds: {guilds}")

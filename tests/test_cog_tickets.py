@@ -425,7 +425,6 @@ class TestTicketsCog(test_utils.BotTestCase):
             modal: EditDescriptionModal = ctx.send_modal.call_args[0][0]
 
             self.assertIn(str(ticket.id), modal.title)
-            self.assertIsNotNone(modal.redmine)
             self.assertEqual(modal.children[0].value, ticket.description)
         finally:
             if ticket:
