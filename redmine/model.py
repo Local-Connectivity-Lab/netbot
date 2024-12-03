@@ -127,6 +127,7 @@ class TicketNote(): # https://www.redmine.org/projects/redmine/wiki/Rest_IssueJo
     id: int
     notes: str
     created_on: dt.datetime
+    updated_on: dt.datetime
     private_notes: bool
     details: list[PropertyChange]
     user: NamedId | None = None
