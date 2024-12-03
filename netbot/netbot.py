@@ -170,7 +170,7 @@ class NetBot(commands.Bot):
             log.debug(f"SYNC unknown Discord user: {message.author.name}")
             formatted = f'"Discord":{message.jump_url} user *{message.author.name}* said: {message.content}'
             # force user_login to None to use default user based on token (the admin)
-            self.ticket_mgr.append_message(ticket.id, user_login=None, note=formatted)
+            self.redmine.ticket_mgr.append_message(ticket.id, user_login=None, note=formatted)
 
 
     async def synchronize_ticket(self, ticket, thread:discord.Thread) -> bool:
