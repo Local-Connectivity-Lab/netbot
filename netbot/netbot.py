@@ -235,13 +235,22 @@ class NetBot(commands.Bot):
             del self.ticket_locks[ticket.id]
             log.debug(f"UNLOCK thread - id: {ticket.id}, thread: {thread}")
 
-    def get_channel_by_name(self, channel_name: str):
+
+    def get_channel_by_name(self, channel_name: str) -> discord.TextChannel:
         for channel in self.get_all_channels():
             if isinstance(channel, discord.TextChannel) and channel_name == channel.name:
                 return channel
 
         log.warning(f"Channel not found: {channel_name}")
         return None
+
+
+    def get_role_by_name(self, role_name: str) -> discord.Role:
+        # Noting: "guild" maps to discord server, and the API is designed to run on many "Discord servers" concurrently
+        for guild in self.guilds:
+            for role in guild.roles:
+                if role_name == role.name:
+                    return role
 
 
     async def on_application_command_error(self, context: discord.ApplicationContext,
@@ -422,6 +431,13 @@ class NetBot(commands.Bot):
                     discord_ids.add(user.discord_id.id)
                 else:
                     log.info(f"No Discord ID for {named}")
+            elif self.redmine.user_mgr.is_team(named.name):
+                # a team, look up role it.
+                team = self.get_role_by_name(named.name)
+                if team:
+                    discord_ids.add(f"&{team.id}")
+                else:
+                    log.warning(f"Team name {named} has no matching Discord role.")
             else:
                 log.info(f"ERROR: user ID {named} not found")
 

@@ -1,5 +1,23 @@
 # Netbot Development Log
 
+## 2024-12-05
+
+Working on ticket #1501: When notifying a ticket assigned to a group, notify the matching Discord role
+
+Technical details: when notifying a ticket, if that ticket is assigned to a team (not an individual), convert the team name into a role.
+
+Notifying that because notify relies deeply on how Discord functions, it's tough to test.
+
+The solution is a little hacky, but it works: The only difference between @-ing a user and roles is:
+
+    <@ID>
+
+vs
+
+    <@&ID>
+
+When the role lookup hits, it simply prepends '&' to the numerical ID before passing to the formatting code. That wraps the ID in '<@' and '>' and everything works out.
+
 ## 2024-11-26
 
 Starting work on ticket #1203, `/ticket parent`.

@@ -95,8 +95,12 @@ class UserCache():
         return None
 
 
-    def is_user_or_group(self, name:str) -> bool:
-        return name in self.users or name in self.teams
+    #def is_user_or_group(self, name:str) -> bool:
+    #    return name in self.users or name in self.teams
+
+
+    def is_team(self, name:str) -> bool:
+        return name in self.teams
 
 
     def get_teams(self) -> list[Team]:
@@ -283,8 +287,11 @@ class UserManager():
         # just a proxy
         return self.cache.find_discord_user(discord_user_id)
 
-    def is_user_or_group(self, term:str):
-        return self.cache.is_user_or_group(term)
+    #def is_user_or_group(self, term:str):
+    #    return self.cache.is_user_or_group(term)
+
+    def is_team(self, name:str):
+        return self.cache.is_team(name)
 
     def get(self, user_id:int):
         """get a user by ID, directly from redmine"""
