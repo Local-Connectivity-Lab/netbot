@@ -3,12 +3,12 @@
 
 import unittest
 import logging
-#from unittest.mock import patch
 
 from dotenv import load_dotenv
 
-from redmine import redmine
-from redmine import session
+from redmine.model import Message
+from redmine.redmine import DEFAULT_TRACKER
+
 from tests import test_utils
 
 
@@ -32,6 +32,16 @@ class TestRedmine(test_utils.MockRedmineTestCase):
 
     def test_reindex(self):
         self.redmine.reindex()
+
+    def test_find_tracker(self):
+        message = Message("test@example.com", "[Infra-Config] Test Subject")
+        message.set_note("tracker=Research")
+
+        tracker = self.redmine.find_tracker_in_message(message)
+        self.assertEqual(tracker.name, "Infra-Config")
+
+        message2 = Message("test@example.com", "[IMPORTANT] Test Subject 2")
+        self.assertEqual(self.redmine.find_tracker_in_message(message2).name, DEFAULT_TRACKER)
 
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")

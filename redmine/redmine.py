@@ -6,7 +6,7 @@ import re
 import logging
 
 from redmine.session import RedmineSession
-from redmine.model import Message, Ticket, User
+from redmine.model import Message, Ticket, User, NamedId
 from redmine.users import UserManager
 from redmine.tickets import TicketManager, SCN_PROJECT_ID
 
@@ -19,6 +19,9 @@ TIMEOUT = 10 # seconds
 SYNC_FIELD_NAME = "syncdata"
 BLOCKED_TEAM_NAME = "blocked"
 STATUS_REJECT = 5 # could to status lookup, based on "reject"
+DEFAULT_TRACKER = "External-Comms-Intake"
+#TRACKER_REGEX = re.compile(r"tracker=([\w-]+)")
+TRACKER_REGEX = re.compile(r"\s*\[([\w-]+)\]\s*")
 
 
 class RedmineException(Exception):
@@ -72,6 +75,7 @@ class Client():
         sanity = self.ticket_mgr.sanity_check()
         return sanity
 
+
     def validate_sanity(self):
         for subsystem, good in self.sanity_check().items():
             log.info(f"- {subsystem}: {good}")
@@ -80,17 +84,45 @@ class Client():
                 raise RedmineException(f"Subsystem {subsystem} not loading correctly.")
 
 
-    def create_ticket(self, user:User, message:Message) -> Ticket:
-        """This is a special case of ticket creation that manages blocked users."""
+    def find_tracker_in_message(self, message:Message) -> NamedId:
+        tracker = self.find_tracker(message.subject)
+        if tracker.name != DEFAULT_TRACKER:
+            # valid tracker found in subject. strip it.
+            message.subject = TRACKER_REGEX.sub("", message.subject)
+        return tracker
 
-        # NOTE to self re "projects": TicketManager.create supports a project ID
-        # Need to find a way to pass it in.
-        ticket = self.ticket_mgr.create(user, message)
+
+    def find_tracker(self, value:str) -> NamedId:
+        tracker_name = DEFAULT_TRACKER
+        match = TRACKER_REGEX.search(value)
+        if match:
+            tracker_name = match.group(1)
+
+        tracker = self.ticket_mgr.get_tracker(tracker_name)
+        if tracker:
+            return tracker
+        else:
+            return self.ticket_mgr.get_tracker(DEFAULT_TRACKER)
+
+
+    def create_ticket(self, user:User, message:Message) -> Ticket:
+        """
+        This is a special case of ticket creation that manages blocked users
+        and checks for tracker field in message body to set on new ticket.
+        """
+        project_id = SCN_PROJECT_ID
+        tracker = self.find_tracker_in_message(message)
+
+        log.info(f"Creating ticket with project={project_id} and tracker={tracker.id}")
+        ticket = self.ticket_mgr.create(user, message, project_id=project_id, tracker_id=tracker.id)
+
         # check user status, reject the ticket if blocked
         if self.user_mgr.is_blocked(user):
             log.debug(f"Rejecting ticket #{ticket.id} based on blocked user {user.login}")
             ticket = self.ticket_mgr.reject_ticket(ticket.id)
+
         return ticket
+
 
     def find_ticket_from_str(self, string:str) -> Ticket:
         """parse a ticket number from a string and get the associated ticket"""

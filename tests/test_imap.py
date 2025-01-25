@@ -173,6 +173,45 @@ class TestMessages(test_utils.RedmineTestCase):
         self.redmine.ticket_mgr.remove(tickets[0].id)
 
 
+    def test_find_tracker(self):
+        checks = [
+            "[Research] More of the test.",
+            "[Yoyo] All good things",
+            "[Software-Dev]    Yo!!!",
+            "[Infra-Config] This is more text.",
+            "[Admin]",
+        ]
+
+        expect = [
+            "Research",
+            "External-Comms-Intake",
+            "Software-Dev",
+            "Infra-Config",
+            "Admin",
+        ]
+
+        for i, check in enumerate(checks):
+            tracker = self.redmine.find_tracker(check)
+            self.assertEqual(tracker.name, expect[i])
+
+
+    def test_handle_message_tracker(self):
+        with open("data/with-tracker.eml", 'rb') as file:
+            message = self.imap.parse_message(file.read())
+            self.imap.handle_message(self.tag, message)
+
+            tickets = self.redmine.ticket_mgr.match_subject(message.subject)
+            self.assertIsNotNone(tickets)
+            self.assertEqual(1, len(tickets))
+            ticket = tickets[0]
+
+            # clean up
+            self.redmine.ticket_mgr.remove(ticket.id)
+
+            self.assertEqual(ticket.tracker.name, "Research")
+            self.assertEqual(ticket.subject, "test_handle_message_tracker")
+
+
     def test_to_cc(self):
         subject = f"TEST {self.tag} {unittest.TestCase.id(self)}"
         to_addr = f"to-{self.tag}@example.com"

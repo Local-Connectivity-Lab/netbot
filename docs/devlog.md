@@ -1,5 +1,18 @@
 # Netbot Development Log
 
+## 2025-01-23
+
+Ticket #1506: Stakeholder has identified need to add `tracker` field to incomming emails, so that tickets
+created from emails will have the tracker set automatically (other the the default).
+
+Two UX options offered:
+- adding [TRACKER-NAME] to the subject
+- adding `tracker=TRACKER_NAME` (as the complete line, matched with regex) anywhere to email body
+
+First step is to review the `threader/imap.py` code to check if there's a preference.
+
+
+
 ## 2024-12-05
 
 Working on ticket #1501: When notifying a ticket assigned to a group, notify the matching Discord role

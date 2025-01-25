@@ -142,7 +142,7 @@ class TicketManager():
         }
 
         if params:
-            data["issue"].update(params)
+            data['issue'].update(params)
             log.debug(f"added params to new ticket, ticket={data['issue']}")
 
         if message.attachments and len(message.attachments) > 0:

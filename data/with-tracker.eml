@@ -1,0 +1,87 @@
+Delivered-To: redmine@seattlecommunitynetwork.org
+Received: by 2002:a05:7022:1085:b0:6f:ed48:a9ba with SMTP id ep5csp18720dlb;
+        Wed, 22 Nov 2023 14:52:50 -0800 (PST)
+X-Received: by 2002:a05:690c:2e87:b0:5cc:d0bc:fc2c with SMTP id eu7-20020a05690c2e8700b005ccd0bcfc2cmr2295268ywb.24.1700693570015;
+        Wed, 22 Nov 2023 14:52:50 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1700693570; cv=none;
+        d=google.com; s=arc-20160816;
+        b=v5P4O82EhAggSQ2H6dKAJ/bOgpjWtwMvhCh+wHQlSRm60qTgK1WA7PzUa7IaFJf0Z5
+         GBeIPUp65SqVW1/9SCMA8cHCTXfuZb1tW6BtLTdoOplzE3ExRNhfWkN44LrA807Z5QZU
+         oJZjffPcNWQKpsIFwDOLSDso50dJt9HpncqtxkAiBK9ffB6QQ+mq9PaWfvOU6XJ5OTxQ
+         Oe9hBjDKQSwWfoR1PScMX1TF6K7lb5LAUKBdrz9nub52p2pB4yG4bxCWU5YOtu5fz5Ao
+         qJJSQYMqGvQ4mD/cCkHF5ISvRv7p3z+uQmc1sl4e5aFkALF3eXCKuW1B4rm8U14PvxJU
+         4QBA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=to:subject:message-id:date:from:mime-version:dkim-signature;
+        bh=X/PweuqtWSvh8hLkoAHFTJkMtgKqjNfCOcsUUDyPGP0=;
+        fh=cObzRpRwZbZldACedt8DthGUF1ndNky42n1Bnjug3pQ=;
+        b=CE3IZ/kGvEPjjE8Nsg1TON6nKfm3XG1rQFkRY0r+KmYlzwHmDQH9sQWfTV5Ak4O74v
+         YckpAXWmNEDrAZzc0lhmoendHPXwGBHV8jg7FDFv5mzv+HtW7d3QxJ8bDny6WEddLlKw
+         pGyp95tusgZ/BKgukvxBG8QUOzPMxUUumJ+h9jUWDnbxglG2Kcm2G+YmH2bZvSBJCCmT
+         9OjPCyrgPngKBQ9XhFyGFUIRvSgqH8s7cP4TPFUocwa/V/nmsSbRBNyP3uh3p9PpyBjr
+         dcdZMd2s1YFvckRJJtTJIL+yeUhRnYnYXOD7oRvFhtpCwj3YngX7fUjSuNFvnd3aVST7
+         nztg==
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20230601 header.b="Sg/qBlW+";
+       spf=pass (google.com: domain of philion@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=philion@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com
+Return-Path: <philion@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id i4-20020a816d04000000b005cc9cc5c72bsor26830ywc.12.2023.11.22.14.52.49
+        for <redmine@seattlecommunitynetwork.org>
+        (Google Transport Security);
+        Wed, 22 Nov 2023 14:52:50 -0800 (PST)
+Received-SPF: pass (google.com: domain of philion@gmail.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20230601 header.b="Sg/qBlW+";
+       spf=pass (google.com: domain of philion@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=philion@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1700693569; x=1701298369; darn=seattlecommunitynetwork.org;
+        h=to:subject:message-id:date:from:mime-version:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=X/PweuqtWSvh8hLkoAHFTJkMtgKqjNfCOcsUUDyPGP0=;
+        b=Sg/qBlW+Lvfm8fa29vtumS9i20noPDO/s22T8ppRiJFttnc+9ouF9J8wqPrwqrTTJM
+         2BwdKAe1cuXUHrWJdUDi1PpBpDwQVwgJ30EJms6qWQ8LoqP/I+VNrWdSFoaB4Wjimdro
+         F6E2FPDhL6uLG+XIgtSpFyYePWQWwF/up+r720kTclqTn2auDiH2hxEcux1PrdqjN4rq
+         FY92vDyQ5sqsqbHsv3VQEXkSOBp8ttOsewb8cYSXyBkt18UbKe/B70VJ3HFy9NlTPF8a
+         HZtVw+X4LlbZPGhiwKaHNJr+A9Z7BqySTcf3xRwAVqfkzxHqvIkHoCEci3N5JcRl4qMj
+         aLiA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1700693569; x=1701298369;
+        h=to:subject:message-id:date:from:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=X/PweuqtWSvh8hLkoAHFTJkMtgKqjNfCOcsUUDyPGP0=;
+        b=kXQ+8eNf7VOazY357dlMZgBxvbPjkIAQcSJw4PgyTz5KMreIXi4JTllx0Ir9K6Uc82
+         wnFfXcEtdbpgr9hZA6kjN8WQi4KvmeaBlgBNJGe/TplNQHvf4dG7IgMPB0JGwfVHOnL/
+         B20kMzPsFQhIRp4a0ElSlyUzy/MbsauQ7fCHLVFk5gaPlKBGbpEZCL7SkRarR1Uh9EVf
+         VQszwvxTyksRi6auSAF7+ESRS5tkQyCqk6QHd1rErgvBOh8WN1Ukb0gcPkBzuVzZjaik
+         FsFNyV2MrwOisfFqFlRsq4sDbpJklsLPmNYiCMqj2GNw8q0MMZ3qk+lTRnviz+dtyv7V
+         ElHw==
+X-Gm-Message-State: AOJu0YzUxeZOTc5AONWcu8iy/M3U3mJM2TpHAvonGcovB6TDBXFhsO6Z
+	Lc7p6KnoQMAZf5P/RFQ2SS7D5ABXKJs/f8h7gY/V7HDyd+w=
+X-Google-Smtp-Source: AGHT+IFXSBEo3pGdzHYrO5mJwlvRMVjA1FOrsoVqYd5zkseucHR6xnwvQE2HfijRWX/e0cYMZJsGKR6JhD0ep8+QL8s=
+X-Received: by 2002:a81:4f8b:0:b0:5b0:6326:75a4 with SMTP id
+ d133-20020a814f8b000000b005b0632675a4mr3808342ywb.7.1700693569509; Wed, 22
+ Nov 2023 14:52:49 -0800 (PST)
+MIME-Version: 1.0
+From: philion <philion@gmail.com>
+Date: Wed, 22 Nov 2023 14:52:38 -0800
+Message-ID: <CAADveDHuaN4E88m3NjprUpVmNDLpj-uF-8JjhiqK+dan+bzVkg@mail.gmail.com>
+Subject: [Research] test_handle_message_tracker
+To: Paul Philion <redmine@seattlecommunitynetwork.org>
+Content-Type: multipart/alternative; boundary="000000000000151d8a060ac59414"
+
+--000000000000151d8a060ac59414
+Content-Type: text/plain; charset="UTF-8"
+
+Will this work?
+
+Woo hoo!
+
+--000000000000151d8a060ac59414
+Content-Type: text/html; charset="UTF-8"
+
+<div dir="ltr">Will this work?<div><br></div><div>Woo hoo!</div></div>
+
+--000000000000151d8a060ac59414--
