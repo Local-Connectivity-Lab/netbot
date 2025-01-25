@@ -11,7 +11,9 @@ Two UX options offered:
 
 First step is to review the `threader/imap.py` code to check if there's a preference.
 
+Implemented both options using simple REGEX. Felt is was easier to remove the tracker tag from the subject. Added test cases to test.
 
+Result: Any subject that starts with a valid tracker in square braces, ie [Software-Dev], will be stripped from the subject and represented as the tracker on the created ticket.
 
 ## 2024-12-05
 
