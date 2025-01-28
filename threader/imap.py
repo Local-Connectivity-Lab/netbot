@@ -65,10 +65,13 @@ class Client(): ## imap.Client()
                 first = name
                 last = ""
             addr = m.group(2)
-        else:
-            log.error(f"Unable to parse email str: {email_addr}")
 
-        return first, last, addr
+            return first, last, addr
+        else:
+            # assume it's just email
+            #log.error(f"Unable to parse email str: {email_addr}")
+            return "", "", email_addr
+
 
 
     def is_html_doc(self, payload: str) -> bool:

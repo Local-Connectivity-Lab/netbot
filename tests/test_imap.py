@@ -79,18 +79,22 @@ class TestMessages(test_utils.RedmineTestCase):
 
     def test_email_address_parsing2(self):
         addr = 'philion <philion@gmail.com>'
-
         first, last, email = self.imap.parse_email_address(addr)
         self.assertEqual("philion", first)
         self.assertEqual("", last)
         self.assertEqual("philion@gmail.com", email)
 
         addr2 = 'Paul Philion <philion@acmerocket.com>'
-
         first, last, email = self.imap.parse_email_address(addr2)
         self.assertEqual("Paul", first)
         self.assertEqual("Philion", last)
         self.assertEqual("philion@acmerocket.com", email)
+
+        addr3 = 'no-reply@accounts.google.com'
+        first, last, email = self.imap.parse_email_address(addr3)
+        self.assertEqual("", first)
+        self.assertEqual("", last)
+        self.assertEqual(addr3, email)
 
 
     def test_new_account_from_email(self):
@@ -234,4 +238,30 @@ class TestMessages(test_utils.RedmineTestCase):
         self.assertEqual(cc_addr, ticket.cc[0])
 
         # clean up
+        self.redmine.ticket_mgr.remove(tickets[0].id)
+
+
+    def test_known_user(self):
+        # Found a problem where redmine was rejecting
+        # requests to create new tickets from email for
+        # known email addrs.
+        # This is an attempt to recreate (to fix)
+        email = "no-reply@accounts.google.com"
+
+        user = self.redmine.user_mgr.get_by_name(email)
+        self.assertIsNotNone(user, f"Couldn't find user for {email}")
+        self.assertEqual(email, user.mail)
+        log.info(f"Found user for {email}: {user}")
+
+        subject = f"{self.tag}.{unittest.TestCase.id(self)}"
+        message = Message(email, subject)
+        self.imap.handle_message(unittest.TestCase.id(self), message)
+
+        # validate the ticket created
+        tickets = self.redmine.ticket_mgr.match_subject(subject)
+        self.assertEqual(1, len(tickets))
+        self.assertEqual(subject, tickets[0].subject)
+        self.assertEqual(user.id, tickets[0].author.id)
+
+        # remove the ticket
         self.redmine.ticket_mgr.remove(tickets[0].id)

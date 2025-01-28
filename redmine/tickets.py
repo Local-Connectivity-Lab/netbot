@@ -481,7 +481,7 @@ class TicketManager():
     def match_subject(self, subject) -> list[Ticket]:
         # todo url-encode term?
         # note: sort doesn't seem to be working for search
-        query = f"/search.json?q={subject}&all_words=1&titles_only=1&open_issues=1&limit=100"
+        query = f"/search.json?q={subject}&all_words=1&titles_only=1&limit=100" #&open_issues=1
 
         response = self.session.get(query)
         if not response:
