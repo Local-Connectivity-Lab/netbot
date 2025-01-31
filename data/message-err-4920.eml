@@ -1,0 +1,246 @@
+Delivered-To: redmine@seattlecommunitynetwork.org
+Received: by 2002:a05:7022:4429:b0:92:85c5:7253 with SMTP id ca41csp2630142dlb;
+        Tue, 14 Jan 2025 13:35:00 -0800 (PST)
+X-Forwarded-Encrypted: i=4; AJvYcCXwRuIammkNV3niMRnEIRcNURqA9GPtJf/ELrddRO6X+020EKNZAu5JGE9lw1HfFEqylKom4lmL@seattlecommunitynetwork.org
+X-Received: by 2002:a05:6e02:3891:b0:3bc:be0f:edcd with SMTP id e9e14a558f8ab-3ce3a96da56mr178179355ab.11.1736890499992;
+        Tue, 14 Jan 2025 13:34:59 -0800 (PST)
+ARC-Seal: i=3; a=rsa-sha256; t=1736890499; cv=pass;
+        d=google.com; s=arc-20240605;
+        b=UPtBiXRgimpsIpvW0P6Bif13YT88ph9FP+AwCcxgvbLWspTq7MBnxD2e2CDbnwjoOH
+         lQmzOhB7SodWcNOUgRmVocwNinSiHc2ZGvklQ5+Vt/ACLAOgPuPS+8ETCpicnA9mUJnE
+         BlMHrcSTZsWz5LrfPZVwyCZMgcIf7J7AeyuqrbnemumZhuG14jge9tWHL51nQYJ48/tt
+         DH3ZF1J405AsBNEjb7RxEkkb9/36cqKYOFSx4PFnIpmWGw4TlkxPAjiSN7heJ2boDKNb
+         IPltsZOgaWn1fe0K7tE3JErsodZ5i9h+HyLhmVLW5aRX0VbEEcj9K+qFVnREu+iuKwZH
+         yEbg==
+ARC-Message-Signature: i=3; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=to:subject:message-id:date:from:in-reply-to:references:mime-version
+         :dkim-signature;
+        bh=swyKgzqdqz9HwmgVP6h6J4XQI75+ymXpMcyOMe7/YoU=;
+        fh=zW6Qo2IutjJ5pvoObzKP2wTRNqZuHAbqzOrGul0I9Qs=;
+        b=Ipz6+HSt3IL1XzV6nUPcqwejruO8KNxtNeen6WNpWMKkXW2iU/oUhXNkT/pcjXhaE0
+         HtjH8i2+wyDD7QtPs/v0uLV2v0cVX0IgXBmt5UZcyRud93LuL6dQdHHuIMDg8wXXUPNl
+         f9A42Q9dUAkl1uSQ6H6hA79pUVZ+7MX1StC3R6ULNVIHqXiDlg2ejTx9NJtRBYb3I5gx
+         FWu4iOCWpiNWjmXrr3bA18MxLauE+V8yY43XNmgNVXAkJn35NTe2eW9xaZz+vqlX2SF3
+         6iQ/b89YEUGjQSTbStlORTIy3QqEh8wIXDDPDSZjzPpDDBrL/T7B4CkRQLemkcJsP1No
+         oMpQ==;
+        dara=google.com
+ARC-Authentication-Results: i=3; mx.google.com;
+       dkim=pass header.i=@uw.edu header.s=Jan2024 header.b=E2E0pC0l;
+       arc=pass (i=2 spf=pass spfdomain=uw.edu dkim=pass dkdomain=uw.edu dmarc=pass fromdomain=uw.edu);
+       spf=pass (google.com: domain of zapbran@uw.edu designates 209.85.220.69 as permitted sender) smtp.mailfrom=zapbran@uw.edu;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=uw.edu;
+       dara=pass header.i=@seattlecommunitynetwork.org
+Return-Path: <zapbran@uw.edu>
+Received: from mail-sor-f69.google.com (mail-sor-f69.google.com. [209.85.220.69])
+        by mx.google.com with SMTPS id 8926c6da1cb9f-4ea1b6fda91sor4358694173.8.2025.01.14.13.34.59
+        for <redmine@seattlecommunitynetwork.org>
+        (Google Transport Security);
+        Tue, 14 Jan 2025 13:34:59 -0800 (PST)
+Received-SPF: pass (google.com: domain of zapbran@uw.edu designates 209.85.220.69 as permitted sender) client-ip=209.85.220.69;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@uw.edu header.s=Jan2024 header.b=E2E0pC0l;
+       arc=pass (i=2 spf=pass spfdomain=uw.edu dkim=pass dkdomain=uw.edu dmarc=pass fromdomain=uw.edu);
+       spf=pass (google.com: domain of zapbran@uw.edu designates 209.85.220.69 as permitted sender) smtp.mailfrom=zapbran@uw.edu;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=uw.edu;
+       dara=pass header.i=@seattlecommunitynetwork.org
+ARC-Seal: i=2; a=rsa-sha256; t=1736890499; cv=pass;
+        d=google.com; s=arc-20240605;
+        b=WGThuT6/7prGrbBOQWiFzeTgU4BcI0e49SxiOjeHuIcOAg9UCwJbkaYrJkim26QpzK
+         RbucFX1bYfDgRJF7YJZSeOj1T3wAHo6jMQHb5wjXa+BCXk2OCqNcntP+4TtuTJkK7fFR
+         zUUA0zCMJQFHgQB6a4hWwJaKuhbpyZ1Dx7XFATjsprzjyJh29B9gUU6sFfPIlXGnUL5s
+         RbmsPXAv8rla74FuIoEIJ/1wMHpHwp96NGDp0ECOQ8s7GHz/oln4xvaCFMaIXm72LPrl
+         z7Bql1YxClrppaGiafiSdsCVoVOPs5YSQw2vwcakGvk9BDt72K79fT5irtR5PR/BZe55
+         ulTw==
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=to:subject:message-id:date:from:in-reply-to:references:mime-version
+         :dkim-signature;
+        bh=swyKgzqdqz9HwmgVP6h6J4XQI75+ymXpMcyOMe7/YoU=;
+        fh=zW6Qo2IutjJ5pvoObzKP2wTRNqZuHAbqzOrGul0I9Qs=;
+        b=cYDoqDzDM+oDg286oiyklzAJClA6ZAj5mMs6IcrWuapO+BtgHljh11dE+IjNy5wNmp
+         u+paBo+TbzIc5Tfn/GSpGyhHhWN/T7mUk8aH9Rf4ZdB0CZjwvZ0A/n5weAyer5/cTvMR
+         vHWmsGpdxIm+w7fSMVFdLCRKCAoaX66E8hgCH52P5cZxOyIVq2GnQd5wTH/EkE0XGYGN
+         xsB/XxHgQ9y8KXQuqG283ybKyoFNVoTmTZKBJ7DS5nfRgnbwDnsT9+KqwP51clU9lK4b
+         qGdwGaXM+ieof5+M/1VjQQ542sa7ALkNndeihkV7vzybmowPY7ne6tQ3/v1TTLpb42MC
+         6xLA==;
+        dara=google.com
+ARC-Authentication-Results: i=2; mx.google.com;
+       dkim=pass header.i=@uw.edu header.s=Jan2024 header.b=E2E0pC0l;
+       spf=pass (google.com: domain of zapbran@uw.edu designates 205.220.165.146 as permitted sender) smtp.mailfrom=zapbran@uw.edu;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=uw.edu
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1736890499; x=1737495299;
+        h=to:subject:message-id:date:from:in-reply-to:references:mime-version
+         :dkim-signature:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=swyKgzqdqz9HwmgVP6h6J4XQI75+ymXpMcyOMe7/YoU=;
+        b=mbqQD+WyKcTPr/WxcXojx+GtIV+RI19avCoUPI4qv0mDZBKHKRFzcAYSDkRl2HXG+h
+         D2h4NZeuodTXjsFVti325kw1cQc8r2PB1ufQzTk7PHUBi1Y7/o29Y+O4KECkZtotnajs
+         X70Hxrxo95JGUPQIQTpX1F7JHQjy8vURK7pT91gTBkx1b5j4A9zXcc0GXG+X8MbLH3vS
+         +C3tM0tbbIFROfo2XDd7uUBfVbNs4cq2NfifR7UQ7YLGJmE4m8XLaoLxpDqu1tgE8QKz
+         mlY9AVCapKE5nsW1ykVu8KeNCFIfR4bf6tBHAm2U9xRFos3fAse7RKZWFp0xZ8Btfb7n
+         SpCg==
+X-Forwarded-Encrypted: i=2; AJvYcCVKzwrpUexxmf4OkDFA67ci3JcaBTAJbV22UCLWNflTgVaG7RgT9xzGeheeblZc8opcIM6jrOTN@seattlecommunitynetwork.org
+X-Gm-Message-State: AOJu0YwZZcKGUqFITUqAlA0MZbNOChXGSOFZCrcnzbwlIowuoHawROMN
+	Gfbv3hfF0qBVH6w+GluHc6b6PVUACbqO8Nxr1B/CwplFFPtTeUH89qYJCDst2IU72B1Lh0pGOmr
+	tKKv8WbAAEaVbS4FNhY+/0tUkTxStQkzmaHx75apow9GD4/3hviysNsxuULW56ROWKuapU9iJrb
+	MeQtWq3Kl4kZqhST/74tiBULgbkJ9GSPJsslbAs9Ch6UUptIZBrQaooivM+ZdakAfS28bd+QOdC
+	al+eFD4O5A0/SB752x3k9wU+I6bI0gaU+P7ge8xIdeD0mUWVA99VhhJTMuuZzALBDrVvVxBiu/l
+	IpTDRxi4jhM+0XZmxvvL
+X-Gm-Gg: ASbGncvfHnJ2YF8svEUPCzWQroWPrcUsnmpMwGmjIvXrbzHIC3SdiWyNnuls/IfoNaD
+	mcoFkfCnY6nLKwjTfXNv0Ar+XP2YamsS5C96nG2+wuAl79p115vCjyxA2il0WkKYQHPHYnegKCZ
+	NnqX2Xt9FkF+s0qTribZL3yELetaopknNI3Izvz9DkgGHV+0whMqb25XmdSh9H5akWlRZO3AR+W
+	GM6JVI0VKnjbkuINzW6VU/hy3WFOJKi0kYs/V1gmlT42AAFierC/89VPnIWmvbHJg8j05w6znWr
+	mSHY0mmusWvc9YTEyjE=
+X-Received: by 2002:a05:6602:6c06:b0:84f:5637:8dff with SMTP id ca18e2360f4ac-84f56378eacmr624065139f.4.1736890499230;
+        Tue, 14 Jan 2025 13:34:59 -0800 (PST)
+X-Google-Smtp-Source: AGHT+IHotjHwWeR4RDDtO21Ll30hcxCBoKoU8Tqfq3i/vP3CqeCn0drqjJwQcPO4CeviBOX9v/zw
+X-Received: by 2002:a05:6602:6c06:b0:84f:5637:8dff with SMTP id ca18e2360f4ac-84f56378eacmr624058239f.4.1736890497696;
+        Tue, 14 Jan 2025 13:34:57 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1736890497; cv=none;
+        d=google.com; s=arc-20240605;
+        b=IQy+T51A4vjBlsOLBuRHkdQ6cXckHCHaKoojQM0DUYQUGmHQ44jYOFzMssmDsY+JO2
+         kcZvoT49qPWe+ebUSBkL1IZKXXP3w9OH/jPuK1jQ7Znt9t9mMyW+gZQIgETg/sE8nbc4
+         zctJmkSTsTAQFS7s1SFBkAu27x78lRbWfKfVp6Hg2gETBCeE4nKEtnaDo8Pj64BexhQ4
+         HtZmSyGIoX/CITkS2gXjt3KXkIUjK2/o+V0u+9dJJbBMUBtgkIfqT9IaBLLESj4Uvv5U
+         tFbjO1YKMEF6j6e0SX5KxbPO+eAV0sEl2rOqdf895fhkzQx5i9hJAwX9YasXtdnhaZQL
+         uluA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=to:subject:message-id:date:from:in-reply-to:references:mime-version
+         :dkim-signature;
+        bh=swyKgzqdqz9HwmgVP6h6J4XQI75+ymXpMcyOMe7/YoU=;
+        fh=Q5SwwjqGjOm4fo1ypamq3b5lrDBlSs4UI+mH17nEIy4=;
+        b=czTVYoKIr6ySUm/W+Ksy7SsNFU7M9v6Lyxo0ePOAeNqF1pHS7NdkUQqwWRLJSShkt/
+         UKrj+jkq7K7G4ZKPQaFBHJcDyxve54lUUF1xiSpXLh0sL7Krl5592komjo7tqNZcvL3i
+         AB+J7XAdbsLCKEgr5Qd1pKXStklCQ7twRrJnLJbKxesUTJAc9EXZJk+EyQZxbk7SdDhu
+         ISw7BckubyN8bgZB5fpsJ2ii6hZjNwJkhpTR/PAVd5y/X6ezNsKn9FX/3oP/Pl683GRA
+         K66GvAhv4g12aTZfVHDqauW1N1DCwXrmXzLOgRkYOC3ibhVPtPNXecLDg6q62pCAANNe
+         8n8g==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@uw.edu header.s=Jan2024 header.b=E2E0pC0l;
+       spf=pass (google.com: domain of zapbran@uw.edu designates 205.220.165.146 as permitted sender) smtp.mailfrom=zapbran@uw.edu;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=uw.edu
+Return-Path: <zapbran@uw.edu>
+Received: from mx0a-00641c01.pphosted.com (mx0a-00641c01.pphosted.com. [205.220.165.146])
+        by mx.google.com with ESMTPS id ca18e2360f4ac-84d4fc3a393si725991339f.111.2025.01.14.13.34.57
+        for <ayabble@seattlecommunitynetwork.org>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Tue, 14 Jan 2025 13:34:57 -0800 (PST)
+Received-SPF: pass (google.com: domain of zapbran@uw.edu designates 205.220.165.146 as permitted sender) client-ip=205.220.165.146;
+Received: from pps.filterd (m0247470.ppops.net [127.0.0.1])
+	by mx0a-00641c01.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 50ELPlsb016262
+	for <ayabble@seattlecommunitynetwork.org>; Tue, 14 Jan 2025 21:34:56 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=uw.edu; h=
+	content-type:date:from:in-reply-to:message-id:mime-version
+	:references:subject:to; s=Jan2024; bh=swyKgzqdqz9HwmgVP6h6J4XQI7
+	5+ymXpMcyOMe7/YoU=; b=E2E0pC0l2l9DhHDtDKOxje5t2bPAl1Y7XwZAAgGTrh
+	LVUnxyYD2/0HLONQpQHEfD9PaFzjpHqJIjTqnb/OITEAI9AhaOV1dLpy8cEaKaks
+	FQGtqmGP7gCIPX6ud4yTWCbvSSgCk7P3OKZp8Iaxt2BGL3TPtWouS5WDdUk+SvSE
+	J6KSpURXBpjClO8zF4OvjGh73BihZ4tLP45GOtCn9FZvC1h3Ue0wfVampyNdjEjB
+	But0KfyJqGiByKeJ3P2IhK9Rix4l86nXMeR9IHH5iIlfsGyANAHwsdV9eYjbBtbY
+	BGBw6oEtqNMWpe9FxBo3HhCj1ABq3ZkUrOiaKm9D5elg==
+Received: from mxout34.s.uw.edu (mxout34.s.uw.edu [34.106.112.35])
+	by mx0a-00641c01.pphosted.com (PPS) with ESMTPS id 445xg8s11f-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT)
+	for <ayabble@seattlecommunitynetwork.org>; Tue, 14 Jan 2025 21:34:56 +0000 (GMT)
+Received: from mail-pj1-f72.google.com (mail-pj1-f72.google.com [209.85.216.72])
+	by mxout34.s.uw.edu (8.16.1+UW24.12/8.14.4+UW24.02) with ESMTPS id 50ELYtat021011
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128 verify=FAIL)
+	for <ayabble@seattlecommunitynetwork.org>; Tue, 14 Jan 2025 13:34:55 -0800
+Received: by mail-pj1-f72.google.com with SMTP id 98e67ed59e1d1-2f46b7851fcso16752941a91.1
+        for <ayabble@seattlecommunitynetwork.org>; Tue, 14 Jan 2025 13:34:55 -0800 (PST)
+X-Received: by 2002:a17:90b:538e:b0:2ee:c4f2:a76d with SMTP id 98e67ed59e1d1-2f548f59a46mr34973230a91.21.1736890494454;
+        Tue, 14 Jan 2025 13:34:54 -0800 (PST)
+X-Received: by 2002:a17:90b:538e:b0:2ee:c4f2:a76d with SMTP id
+ 98e67ed59e1d1-2f548f59a46mr34973199a91.21.1736890493956; Tue, 14 Jan 2025
+ 13:34:53 -0800 (PST)
+MIME-Version: 1.0
+References: <CALQNrk4frL8rLVweE8cENK=_U5q1yr232+_922y3MNBf7uRWow@mail.gmail.com>
+ <CAFcJ7OFxvt3XY_wYvVD1fLQMgdywO7MgSb18sobA3+5SW54eGw@mail.gmail.com>
+ <CAFLhhJmpw8pq7hwFinFOnpzmqoxfNjMM-h+0Aa9mODQ6Wnc9gA@mail.gmail.com>
+ <CAJw8T0t4XQGps1fJdE8efLdWoi0dDdm_B1ZcAbjHm8i27wiHeA@mail.gmail.com>
+ <CADGmNtu3fo9kktHDWPnjsZ0VkNk5zPAZKpDSMhggmDK-bMLyeQ@mail.gmail.com>
+ <CAFcJ7OEmHKcsCdqewQyrZ0r=aYiiy+Y_KfNh06w2B4BDDoCDCA@mail.gmail.com>
+ <CAE4k5m_Oe=nEtUKgt-Smp=-G2Cg+upr4TNS0SqG+GwG8r3LFpg@mail.gmail.com>
+ <CAFcJ7OGz9niO1u51Rby-x+G6edmH7HNDRrdT98kDQWk3HegXpg@mail.gmail.com>
+ <CAJw8T0sGgsGgONuztWsjpysL+AS0LPk25BeMxpdc7SY2qOVzXQ@mail.gmail.com>
+ <CALQNrk5nNN_rFbi038zvkTj_-HktWvvVrzRNYNX9sLo577Qasw@mail.gmail.com>
+ <CAFLhhJ=DcfUjZ2hW6jbz6g04U9T_8W8Jpxb1J81Y2E=8+5BWHQ@mail.gmail.com> <CAFcJ7OFAGxVCaGwKXjgwMzY1oDePubgZ5FLHLZ=hCP_DE+nxUg@mail.gmail.com>
+In-Reply-To: <CAFcJ7OFAGxVCaGwKXjgwMzY1oDePubgZ5FLHLZ=hCP_DE+nxUg@mail.gmail.com>
+From: Vorpal George <zapbran@uw.edu>
+Date: Tue, 14 Jan 2025 13:34:39 -0800
+X-Gm-Features: AbW1kvZdKJcOu3raMFn78dODub4x6305UpZ0VpO9uGQp-md7A9w6t5FcZbkLJ_c
+Message-ID: <CAFLhhJkNX-JGyULHGyCq12EEvN_DYW+MWdkOx=uCTHZ4MUw9kg@mail.gmail.com>
+Subject: Re: Wi-Fi Extension for The Community Garden
+To: Abby Yabble <ayabble@seattlecommunitynetwork.org>
+Content-Type: multipart/alternative; boundary="000000000000e807d2062bb154da"
+X-Proofpoint-ORIG-GUID: OML4g2FVCHbCIYFMf1tNaYS119tKMbYJ
+X-Proofpoint-GUID: OML4g2FVCHbCIYFMf1tNaYS119tKMbYJ
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1057,Hydra:6.0.680,FMLib:17.12.68.34
+ definitions=2025-01-14_07,2025-01-13_02,2024-11-22_01
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 priorityscore=1501
+ bulkscore=0 spamscore=0 lowpriorityscore=0 clxscore=1015 adultscore=0
+ malwarescore=0 phishscore=0 mlxscore=0 mlxlogscore=999 suspectscore=0
+ impostorscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.19.0-2411120000 definitions=main-2501140162
+X-Gm-Spam: 0
+X-Gm-Phishy: 0
+X-Gm-Original-To: ayabble@seattlecommunitynetwork.org
+
+--000000000000e807d2062bb154da
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+Heya, just to confirm, do you think the 4 pack is sufficient for covering
+their whole space? I see that it's 1 router and 3 access point "satellites.=
+"
+
+On Fri, Jan 10, 2025 at 3:35=E2=80=AFPM Abner Yabble <
+ayabble@seattlecommunitynetwork.org> wrote:
+
+> Hi McKane,
+> The one that Vikram had originally linked in his email looks good to me.
+>
+> https://www.bestbuy.com/site/netgear-orbi-750-series-ax5200-tri-band-mesh=
+-wi-fi-6-system-4-pack-white/6577799.p?skuId=3D6577799
+> <https://urldefense.com/v3/__https://www.bestbuy.com/site/netgear-orbi-75=
+0-series-ax5200-tri-band-mesh-wi-fi-6-system-4-pack-white/6577799.p?skuId=
+=3D6577799__;!!K-Hz7m0Vt54!h5C4zvSgGLAELceKVIirMRAqlmBevEp9thQaBD_PgKN1zCQO=
+D23uF_NOFD8-sx_WQR-X_F8tC1wXyD2tcv6RrwA-IytfKoM$>
+> is no longer needed out front, maybe we can move it to chain it from one =
+of
+> the mesh routers in the back, to give the outside better service.
+> Thanks so much,
+> <https://urldefense.com/v3/__https://keybase.io/ayabble__;!!K-Hz7m0Vt54!=
+h5C4zvSgGLAELceKVIirMRAqlmBevEp9thQaBD_PgKN1zCQOD23uF_NOFD8-sx_WQR-X_F8tC1w=
+XyD2tcv6RrwA-mhVbC40$>
+> Seattle Community Network
+> <https://urldefense.com/v3/__https://seattlecommunitynetwork.org/__;!!K-H=
+z7m0Vt54!h5C4zvSgGLAELceKVIirMRAqlmBevEp9thQaBD_PgKN1zCQOD23uF_NOFD8-sx_WQR=
+-X_F8tC1wXyD2tcv6RrwA-Br7FP2Q$>
+> Join SCN on Discord
+> <https://urldefense.com/v3/__https://discord.gg/DYckq6hTy4__;!!K-Hz7m0Vt5=
+4!h5C4zvSgGLAELceKVIirMRAqlmBevEp9thQaBD_PgKN1zCQOD23uF_NOFD8-sx_WQR-X_F8tC=
+1wXyD2tcv6RrwA-2C7B-Cw$>
+> Note: I have flexible working hours, so my emails may come at unusual
+> times. Please do not feel obligated to respond outside of your usual hour=
+s.
+> Thank you!!
+>
+>
+> On Fri, Jan 10, 2025 at 11:28=E2=80=AFAM Vorpal George <zapbran@uw.edu> =
+wrote:
+>
+>> Awesome, so on our side it seems like we can indeed fund the Orbi mesh A=
+P
+>> set through the NSF grant. It would probably be best to pay for it with
+>> grant funds directly, so Esther, could you share a link to the set you
+>> think would be best for TSTF? Once I have that I can put the order in wi=
+th
+>> our department's finance team, and then once we know the delivery date w=
+e
+>> can figure out an installation date.
+>>
+>> Best,
+>> McKane

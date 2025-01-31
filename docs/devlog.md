@@ -1,5 +1,17 @@
 # Netbot Development Log
 
+## 2025-01-30
+
+When deploying the lastest, found a problem with certain emails. The regex used to strip Fordarded emails contains the "match everything" wildcard. Except `.*` does not match new-lines.
+
+If an email address is too long in some email systems, it will wrap in the email address: `Name <` **\n** `email@example.com>`. This breaks the regex used to parse replies.
+
+Added test cases and data to reproduce. Fixed the problem by adding `re.DOTALL` and `re.IGNORECASE` flags to the regex in `imap.strip_forwards()`:
+
+    p = re.compile(r"^On .* <.*>\s+wrote:", flags=re.MULTILINE|re.DOTALL|re.IGNORECASE)
+
+The ignore-case flag is perhaps overkill, but catching that "On ... wrote" is the most robust way to capture the forwards.
+
 ## 2025-01-23
 
 Ticket #1506: Stakeholder has identified need to add `tracker` field to incomming emails, so that tickets

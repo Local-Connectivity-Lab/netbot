@@ -150,7 +150,7 @@ class Client(): ## imap.Client()
             text = text[0:idx]
 
         # search for "On ... wrote:"
-        p = re.compile(r"^On .* <.*>\s+wrote:", flags=re.MULTILINE)
+        p = re.compile(r"^On .* <.*>\s+wrote:", flags=re.MULTILINE|re.DOTALL|re.IGNORECASE)
         match = p.search(text)
         if match:
             text = text[0:match.start()]

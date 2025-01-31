@@ -23,6 +23,7 @@ class TestMessages(test_utils.RedmineTestCase):
     def setUp(self):
         self.imap: imap.Client = imap.Client()
 
+
     def test_messages_stripping(self):
         # open
         for filename in glob.glob('data/*.eml'):
@@ -31,6 +32,7 @@ class TestMessages(test_utils.RedmineTestCase):
                 self.assertNotIn("------ Forwarded message ---------", message.note)
                 self.assertNotIn("wrote:", message.note, f"Found 'wrote:' after processing {filename}")
                 self.assertNotIn("https://voice.google.com", message.note)
+
 
     def test_google_stripping(self):
         with open("data/New text message from 5551212.eml", 'rb') as file:
@@ -265,3 +267,25 @@ class TestMessages(test_utils.RedmineTestCase):
 
         # remove the ticket
         self.redmine.ticket_mgr.remove(tickets[0].id)
+
+
+    def test_strip_forwards(self):
+        with open("data/message-err-4920.eml", 'rb') as file:
+            message = self.imap.parse_message(file.read())
+            for line in message.note.splitlines():
+                self.assertFalse(line.strip().startswith(">"), "found a line that starts with '>'")
+
+
+    def test_err_4920(self):
+        with open("data/message-err-4920.eml", 'rb') as file:
+            message = self.imap.parse_message(file.read())
+
+            self.assertEqual(message.from_address, "Vorpal George <zapbran@uw.edu>")
+
+            # handle the message
+            self.imap.handle_message(unittest.TestCase.id(self), message)
+
+            tickets = self.redmine.ticket_mgr.match_subject(message.subject)
+            self.assertEqual(1, len(tickets))
+            self.assertEqual(message.subject, tickets[0].subject)
+            #self.assertEqual(user.id, tickets[0].author.id)
