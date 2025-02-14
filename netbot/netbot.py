@@ -10,7 +10,7 @@ import discord
 from dotenv import load_dotenv
 from discord.ext import commands, tasks
 
-from redmine.model import TicketNote, Ticket, NamedId
+from redmine.model import TicketNote, Ticket, NamedId, Team
 from redmine import synctime
 from redmine.redmine import Client
 
@@ -20,17 +20,8 @@ from .formatting import DiscordFormatter
 log = logging.getLogger(__name__)
 
 
-# _TRACKER_MAPPING = {
-#     "External-Comms-Intake": "admin-team",
-#     "Admin": "admin-team",
-#     "Comms": "outreach",
-#     "Infra-Config": "routing-and-infrastructure",
-#     "Infra-Field": "installs",
-#     "Software-Dev": "network-software",
-#     "Research": "uw-research-nsf",
-# }
 CHANNEL_MAPPING = {
-    "support": "External-Comms-Intake",
+    "intake": "External-Comms-Intake",
     "admin-team": "Admin",
     "outreach": "Comms",
     "routing-and-infrastructure": "Infra-Config",
@@ -40,13 +31,13 @@ CHANNEL_MAPPING = {
 }
 
 TEAM_MAPPING = {
-    #"support": "External-Comms-Intake", ## FIXME - intake is a tracker, not a team? worry later
+    "intake": "intake-team",
     "admin-team": "admin-team",
     "outreach": "comms-team",
     "routing-and-infrastructure": "infra-config-team",
     "installs": "infra-field-team",
     "network-software": "software-dev-team",
-    "uw-research-nsf": "research-team",
+    "uw-research-nsf": "uw-research-nsf-team",
 }
 
 # utility method to get a list of (one) ticket from the title of the channel, or empty list
@@ -375,12 +366,35 @@ class NetBot(commands.Bot):
             await self.expiration_notification(ticket)
 
 
-    def expire_expired_tickets(self):
-        expired = self.redmine.ticket_mgr.expired_tickets()
-        for ticket in expired:
+    def group_for_tracker(self, tracker: NamedId) -> Team:
+        """For a tracker, look up a team"""
+        for channel_name, tracker_name in CHANNEL_MAPPING.items():
+            if tracker.name == tracker_name:
+                # lookup team from channel
+                team_name = TEAM_MAPPING.get(channel_name, None)
+                if team_name:
+                    team = self.redmine.user_mgr.get_team_by_name(team_name)
+                    if team:
+                        return team
+                    else:
+                        log.error(f"Unable to find team for {tracker} and {team_name}")
+                        return None
+                else:
+                    log.error(f"Unable to find channel mapping for {tracker} and {channel_name}")
+                    return None
+
+        # fallthru: not found
+        log.error(f"Unable to find channel for {tracker}")
+        return None
+
+
+    def recycle_tickets(self):
+        recycle_list = self.redmine.ticket_mgr.tickets_to_recycle() # older than max age
+        for ticket in recycle_list:
             # notification to discord, or just note provided by expire?
             # - for now, add note to ticket with expire info, and allow sync.
-            self.redmine.ticket_mgr.expire(ticket)
+            new_owner = self.group_for_tracker(ticket.tracker)
+            self.redmine.ticket_mgr.recycle(ticket, new_owner)
 
 
     @commands.slash_command(name="notify", description="Force ticket notifications")

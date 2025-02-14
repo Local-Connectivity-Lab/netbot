@@ -24,8 +24,8 @@ INTAKE_TEAM_ID = 19 # FIXME
 EPIC_PRIORITY_NAME = "EPIC"
 
 
-TICKET_MAX_AGE = 4 * 7 # 4 weeks; 28 days
-TICKET_EXPIRE_NOTIFY = TICKET_MAX_AGE - 1 # 27 days, one day shorter than MAX_AGE
+TICKET_MAX_AGE = 7 * 3 # 3 weeks; 21 days
+#TICKET_EXPIRE_NOTIFY = TICKET_MAX_AGE - 1 # 20 days, one day shorter than MAX_AGE
 
 
 class TicketManager():
@@ -299,9 +299,9 @@ class TicketManager():
         return epics
 
 
-    def expire(self, ticket:Ticket):
-        """Expire a ticket:
-        - reassign to intake
+    def recycle(self, ticket:Ticket, team_id: int):
+        """Recycle a dusty ticket:
+        - reassign to tracker-based team
         - set status to new
         - add note to owner and collaborators
         """
@@ -310,9 +310,9 @@ class TicketManager():
         # ID can be resolved to discord-id, but not without call in user manager.
         # Ideally, this would @ the owner and collaborators.
         fields = {
-            "assigned_to_id": INTAKE_TEAM_ID,
+            "assigned_to_id": team_id,
             "status_id": "1", # New, TODO lookup using status lookup table.
-            "notes": f"Ticket automatically expired after {TICKET_MAX_AGE} days due to inactivity.",
+            "notes": f"Ticket automatically recycled after {TICKET_MAX_AGE} days due to inactivity.",
         }
         self.update(ticket.id, fields)
         log.info(f"Expired ticket {ticket.id}, {ticket.age_str}")
@@ -321,7 +321,7 @@ class TicketManager():
     def expiring_tickets(self) -> list[Ticket]:
         # tickets that are about to expire
         tickets = set()
-        tickets.update(self.older_than(TICKET_EXPIRE_NOTIFY))
+        #tickets.update(self.older_than(TICKET_EXPIRE_NOTIFY))
         tickets.update(self.due()) ### FIXME REMOVE
         return tickets
 

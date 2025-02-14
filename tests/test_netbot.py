@@ -34,6 +34,16 @@ class TestNetbot(test_utils.BotTestCase):
 #- add trivial test for on_application_command_error
 
 
+    SKIP_TRACKERS = ["Test-Reject"]
+
+    def test_group_for_tracker(self):
+        trackers = self.bot.redmine.ticket_mgr.get_trackers()
+        for tracker in trackers.values():
+            if tracker.name not in TestNetbot.SKIP_TRACKERS:
+                team = self.bot.group_for_tracker(tracker)
+                self.assertIsNotNone(team)
+
+
     async def test_synchronize_ticket(self):
         # create a new ticket, identified by the tag, with a note
         body = f"Body for test {self.tag} {unittest.TestCase.id(self)}"
