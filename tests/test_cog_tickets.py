@@ -37,7 +37,7 @@ class TestTicketCogUnitTests(unittest.TestCase):
             ["next week", today + dt.timedelta(weeks=1)],
             ["tomorrow", today + dt.timedelta(days=1)],
             ["2 months", TestTicketCogUnitTests.add_months(today, 2)],
-            ["2/1/25", dt.date.fromisoformat("2025-02-01")],
+            ["2/1/2025", dt.date.fromisoformat("2025-02-01")],
             ["in 5 days", today + dt.timedelta(days=5)],
             ["April 1, 2025", dt.date.fromisoformat("2025-04-01")],
         ]

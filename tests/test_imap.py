@@ -50,12 +50,14 @@ class TestMessages(test_utils.RedmineTestCase):
             self.assertNotIn("1600 Amphitheatre Pkwy", message.note)
             self.assertNotIn("Mountain View CA 94043 USA", message.note)
 
+
     def test_email_address_parsing(self):
         from_address =  "Fred Example <freddy@example.com>"
         first, last, addr = self.imap.parse_email_address(from_address)
         self.assertEqual(first, "Fred")
         self.assertEqual(last, "Example")
         self.assertEqual(addr, "freddy@example.com")
+
 
     # disabled so I don't flood the system with files
     def test_upload(self):
@@ -289,3 +291,21 @@ class TestMessages(test_utils.RedmineTestCase):
             self.assertEqual(1, len(tickets))
             self.assertEqual(message.subject, tickets[0].subject)
             #self.assertEqual(user.id, tickets[0].author.id)
+
+
+    def test_add_note(self):
+        test_ticket_id = 182
+        ticket = self.redmine.ticket_mgr.get(test_ticket_id)
+        user = self.redmine.user_mgr.get_by_name("test-known-user")
+
+        message = Message(f"{user.name} <{user.mail}>", "RE: " + ticket.subject)
+        note = f"TEST {self.tag} {unittest.TestCase.id(self)}"
+        message.set_note(note)
+        self.imap.handle_message(self.tag, message)
+
+        ticket = self.redmine.ticket_mgr.get(test_ticket_id, include="journals")
+        self.assertIsNotNone(ticket)
+
+        last_note = ticket.get_notes()[-1]
+        self.assertEqual(last_note.user.id, user.id)
+        self.assertEqual(last_note.notes, note)

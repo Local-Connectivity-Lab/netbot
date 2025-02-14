@@ -52,7 +52,7 @@ def dumps(num:int)-> str:
 
 def tagstr() -> str:
     """convert the current timestamp in seconds to a base36 str"""
-    return dumps(int(time.time()))
+    return dumps(int(time.time()))[::-1]
 
 
 def randstr(length:int=12) -> str:
