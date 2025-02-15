@@ -8,7 +8,8 @@ from unittest.mock import MagicMock, patch
 
 from dotenv import load_dotenv
 
-from redmine.model import ParentTicket
+from redmine.model import ParentTicket, synctime
+from redmine.tickets import TICKET_DUSTY_AGE, TICKET_MAX_AGE
 
 from tests import test_utils
 
@@ -18,22 +19,14 @@ log = logging.getLogger(__name__)
 class TestTicketManager(test_utils.MockRedmineTestCase):
     """Mocked testing of ticket manager"""
 
-    @unittest.skip # FIXME currently rewriting
-    @patch('redmine.session.RedmineSession.get')
-    def test_expired_tickets(self, mock_get:MagicMock):
-        # setup the mock tickets
-        ticket = test_utils.mock_ticket()
-        result = test_utils.mock_result([
-            ticket,
-            test_utils.mock_ticket(),
-        ])
-        mock_get.return_value = result.asdict()
+    def test_dusty_tickets(self):
+        for ticket in self.tickets_mgr.dusty():
+            age = synctime.age(ticket.updated_on)
+            self.assertGreaterEqual(age.days, TICKET_DUSTY_AGE)
 
-        expired = self.tickets_mgr.expired_tickets()
-        self.assertGreater(len(expired), 0)
-        expired_ids = [ticket.id for ticket in expired]
-        self.assertIn(ticket.id, expired_ids)
-        #FIXME mock_get.assert_called_once()
+        for ticket in self.tickets_mgr.recyclable():
+            age = synctime.age(ticket.updated_on)
+            self.assertGreaterEqual(age.days, TICKET_MAX_AGE)
 
 
     @unittest.skip # FIXME currently breaking mock testing

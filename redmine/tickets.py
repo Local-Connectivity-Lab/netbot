@@ -328,18 +328,16 @@ class TicketManager():
 
 
     def dusty(self) -> set[Ticket]:
-        # tickets that are older than
+        # tickets that are older than 7
         tickets = set()
         tickets.update(self.older_than(TICKET_DUSTY_AGE))
-        tickets.update(self.due()) ### FIXME REMOVE
         return tickets
 
 
-    def expired_tickets(self) -> set[Ticket]:
+    def recyclable(self) -> set[Ticket]:
         # tickets that have expired: older that TICKET_MAX_AGE
         tickets = set()
         tickets.update(self.older_than(TICKET_MAX_AGE))
-        tickets.update(self.due()) ### FIXME REMOVE
         return tickets
 
 
