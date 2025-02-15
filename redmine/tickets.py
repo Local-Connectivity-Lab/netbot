@@ -329,9 +329,16 @@ class TicketManager():
 
     def dusty(self) -> set[Ticket]:
         # tickets that are older than 7
-        tickets = set()
-        tickets.update(self.older_than(TICKET_DUSTY_AGE))
-        return tickets
+
+        # http://localhost/projects/scn/issues.json?v[status_id][]=2&op[updated_on]=%3Ct-&v[updated_on][]=7
+        #"status_id": "2"
+        #query = f"/issues.json?status_id=2&op[updated_on]=%3Ct-&v[updated_on][]=7&op[priority_id]=!&v[priority_id][]=14&include=children"
+        query = "/issues.json?set_filter=1&sort=id%3Adesc&f[]=priority_id&op[priority_id]=!&v[priority_id][]=14&f[]=status_id&op[status_id]=%3D&v[status_id][]=2&f[]=updated_on&op[updated_on]=%3Ct-&v[updated_on][]=7&f[]=&c[]=tracker&c[]=status&c[]=priority&c[]=subject&c[]=assigned_to&c[]=updated_on&group_by=&t[]="
+        response = self.session.get(query)
+        if response:
+            return TicketsResult(**response).issues
+        else:
+            return []
 
 
     def recyclable(self) -> set[Ticket]:

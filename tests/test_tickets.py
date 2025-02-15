@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Redmine tickets manager test cases"""
 
+import datetime
 import unittest
 import logging
 import json
@@ -8,11 +9,10 @@ from unittest.mock import MagicMock, patch
 
 from dotenv import load_dotenv
 
-from redmine.model import ParentTicket, synctime
+from redmine.model import ParentTicket, synctime, TicketStatus
 from redmine.tickets import TICKET_DUSTY_AGE, TICKET_MAX_AGE
 
 from tests import test_utils
-
 
 log = logging.getLogger(__name__)
 
@@ -20,13 +20,41 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
     """Mocked testing of ticket manager"""
 
     def test_dusty_tickets(self):
-        for ticket in self.tickets_mgr.dusty():
+        # to find dusty tickets, a dusty ticket needs to be created.
+        ticket1 = self.create_ticket(
+            status=TicketStatus(id=2,name="In Progress",is_closed=False),
+            updated_on=synctime.ago(days=TICKET_DUSTY_AGE+1),
+        )
+        # cache a search result
+        self.session.cache_results([ticket1])
+
+        self.assertGreaterEqual(synctime.age(ticket1.updated_on), datetime.timedelta(days=TICKET_DUSTY_AGE))
+
+        dusty_tickets = self.tickets_mgr.dusty()
+        self.assertGreaterEqual(len(dusty_tickets), 1, "No dusty tickets found")
+        for ticket in dusty_tickets:
             age = synctime.age(ticket.updated_on)
             self.assertGreaterEqual(age.days, TICKET_DUSTY_AGE)
+            self.assertEqual(ticket.status.name, "In Progress")
 
-        for ticket in self.tickets_mgr.recyclable():
+
+    def test_recyclable_tickets(self):
+        # to find dusty tickets, a dusty ticket needs to be created.
+        ticket1 = self.create_ticket(
+            status=TicketStatus(id=2,name="In Progress",is_closed=False),
+            updated_on=synctime.ago(days=TICKET_MAX_AGE+1),
+        )
+        # cache a search result
+        self.session.cache_results([ticket1])
+
+        self.assertGreaterEqual(synctime.age(ticket1.updated_on), datetime.timedelta(days=TICKET_DUSTY_AGE))
+
+        dusty_tickets = self.tickets_mgr.dusty()
+        self.assertGreaterEqual(len(dusty_tickets), 1, "No recyclable tickets found")
+        for ticket in dusty_tickets:
             age = synctime.age(ticket.updated_on)
             self.assertGreaterEqual(age.days, TICKET_MAX_AGE)
+            self.assertEqual(ticket.status.name, "In Progress")
 
 
     @unittest.skip # FIXME currently breaking mock testing

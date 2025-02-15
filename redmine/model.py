@@ -254,6 +254,10 @@ class User():
     def asdict(self):
         return dataclasses.asdict(self)
 
+    @property
+    def json(self):
+        return json.dumps(self.asdict(), indent=4, default=vars)
+
 
 @dataclass
 class UserResult:

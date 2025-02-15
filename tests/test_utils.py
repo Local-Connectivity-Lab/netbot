@@ -141,14 +141,13 @@ class MockRedmineTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tag:str = tagstr()
-        session = MockSession(cls.tag)
-        cls.redmine = Client.from_session(session, default_project=1)
+        cls.session = MockSession(cls.tag)
+        cls.redmine = Client.from_session(cls.session, default_project=1)
         cls.user_mgr = cls.redmine.user_mgr
         cls.tickets_mgr = cls.redmine.ticket_mgr
 
         cls.user:User = mock_user(cls.tag)
-        #session.test_cache[f"/users/{cls.user.id}.json"] = json.dumps(cls.user)
-        session.cache_user(cls.user)
+        cls.session.cache_user(cls.user)
         cls.user_mgr.cache.cache_user(cls.user)
         log.info(f"SETUP created mock user: {cls.user}")
 
@@ -167,8 +166,11 @@ class MockRedmineTestCase(unittest.TestCase):
         return message
 
 
-    def create_ticket(self) -> Ticket:
-        return self.redmine.create_ticket(self.user, self.create_message())
+    def create_ticket(self, **kwargs) -> Ticket:
+        # create a ticket from json template
+        ticket = mock_ticket(**kwargs)
+        self.session.cache_ticket(ticket)
+        return ticket
 
 
 class MockBotTestCase(MockRedmineTestCase, unittest.IsolatedAsyncioTestCase):

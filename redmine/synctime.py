@@ -30,10 +30,15 @@ def parse_millis(timestamp:int) -> dt.datetime:
     return dt.datetime.fromtimestamp(timestamp, dt.timezone.utc)
 
 
+def ago(**kwargs) -> dt.datetime:
+    # so generate one for "three yeas ago"
+    return now() - dt.timedelta(**kwargs)
+
+
 def epoch_datetime() -> dt.datetime:
     # discord API fails when using 0 as a timestamp,
-    # so generate one for "three yeas ago"
-    return now() - dt.timedelta(days=3*365)
+    # so generate one for "ten years ago"
+    return ago(days=10*365)
 
 
 def parse_str(timestamp:str) -> dt.datetime:

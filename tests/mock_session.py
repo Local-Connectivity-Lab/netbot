@@ -7,7 +7,7 @@ import logging
 from urllib.parse import urlparse
 
 from redmine.session import RedmineSession
-from redmine.model import User
+from redmine.model import User, Ticket, TicketsResult
 
 TEST_DATA = "data" # dir with test data
 
@@ -50,10 +50,32 @@ class MockSession(RedmineSession):
             #super().get(query, impersonate_id)
 
 
+    def _cache(self, resource:str, item):
+        self.test_cache[resource] = json.dumps(item, indent=4, default=str)
+
+
     def cache_user(self, user:User):
-        data = {}
-        data['user'] = user.asdict()
-        self.test_cache[f"/users/{user.id}.json"] = json.dumps(data)
+        data = {
+            'user': user.asdict()
+        }
+        self._cache(f"/users/{user.id}.json", data)
+
+
+    def cache_ticket(self, ticket:Ticket):
+        data = {
+            'issue': ticket.asdict()
+        }
+        log.info(data)
+        self._cache(f"/issues/{ticket.id}.json", data)
+
+
+    def cache_results(self, tickets:list[Ticket]):
+        result = TicketsResult(
+            total_count=len(tickets),
+            limit=25,
+            offset=0,
+            issues=tickets)
+        self._cache("/issues.json", result.asdict())
 
 
     def get(self, query:str, impersonate_id:str|None=None):
@@ -80,24 +102,24 @@ class MockSession(RedmineSession):
         log.debug(f"PUT {path} -> {item}")
 
 
-    def post(self, resource: str, data:str, user_login: str|None = None, files: list|None = None) -> dict|None:
-        log.info(f"POST {resource}, data={data} user_login={user_login}")
-        item_id = self._next_id()
+    # def post(self, resource: str, data:str, user_login: str|None = None, files: list|None = None) -> dict|None:
+    #     log.info(f"POST {resource}, data={data} user_login={user_login}")
+    #     item_id = self._next_id()
 
-        path = urlparse(resource).path
+    #     path = urlparse(resource).path
 
-        name_a = path.rsplit('.', 1)
-        path = f"{name_a[0]}/{item_id}.{name_a[1]}"
+    #     name_a = path.rsplit('.', 1)
+    #     path = f"{name_a[0]}/{item_id}.{name_a[1]}"
 
-        data_dict = json.loads(data)
-        for _, v in data_dict.items():
-            v['id'] = item_id
-        value = json.dumps(data_dict)
-        log.debug(f"POST {path} -> {value}")
-        self.test_cache[path] = value
+    #     data_dict = json.loads(data)
+    #     for _, v in data_dict.items():
+    #         v['id'] = item_id
+    #     value = json.dumps(data_dict)
+    #     log.debug(f"POST {path} -> {value}")
+    #     self.test_cache[path] = value
 
-        return data_dict
-        #raise RedmineException(f"POST failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
+    #     return data_dict
+    #     #raise RedmineException(f"POST failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
 
 
     def delete(self, resource: str) -> None:
