@@ -1,0 +1,36 @@
+{
+    "groups": [
+      {
+        "id": 57,
+        "name": "admin-team"
+      },
+      {
+        "id": 661,
+        "name": "blocked"
+      },
+      {
+        "id": 34,
+        "name": "comms-team"
+      },
+      {
+        "id": 650,
+        "name": "infra-config-team"
+      },
+      {
+        "id": 72,
+        "name": "infra-field-team"
+      },
+      {
+        "id": 2279,
+        "name": "intake-team"
+      },
+      {
+        "id": 30,
+        "name": "software-dev-team"
+      },
+      {
+        "id": 2280,
+        "name": "uw-research-nsf-team"
+      }
+    ]
+  }

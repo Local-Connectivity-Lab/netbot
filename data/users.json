@@ -1,0 +1,56 @@
+{
+  "users": [
+    {
+      "id": 1960,
+      "login": "test-admin",
+      "admin": true,
+      "firstname": "Test",
+      "lastname": "Admin",
+      "mail": "test.admin@example.com",
+      "created_on": "2024-10-26T19:59:09Z",
+      "updated_on": "2024-10-26T19:59:09Z",
+      "last_login_on": null,
+      "passwd_changed_on": "2024-10-26T19:59:09Z",
+      "twofa_scheme": null,
+      "status": 1,
+      "custom_fields": [
+        { "id": 2, "name": "Discord ID", "value": "test-admin" }
+      ]
+    },
+    {
+      "id": 2272,
+      "login": "test-known-user",
+      "admin": false,
+      "firstname": "Test Known",
+      "lastname": "User",
+      "mail": "known@example.com",
+      "created_on": "2025-01-31T02:59:19Z",
+      "updated_on": "2025-01-31T03:00:07Z",
+      "last_login_on": null,
+      "passwd_changed_on": "2025-01-31T02:59:19Z",
+      "twofa_scheme": null,
+      "status": 1,
+      "custom_fields": [{ "id": 2, "name": "Discord ID", "value": "" }]
+    },
+    {
+      "id": 2183,
+      "login": "test-user",
+      "admin": false,
+      "firstname": "Test",
+      "lastname": "User",
+      "mail": "test@example.com",
+      "created_on": "2024-10-28T20:15:48Z",
+      "updated_on": "2024-10-28T20:19:36Z",
+      "last_login_on": null,
+      "passwd_changed_on": "2024-10-28T20:15:48Z",
+      "twofa_scheme": null,
+      "status": 1,
+      "custom_fields": [
+        { "id": 2, "name": "Discord ID", "value": "4321|test-user" }
+      ]
+    }
+  ],
+  "total_count": 3,
+  "offset": 0,
+  "limit": 25
+}
