@@ -15,10 +15,29 @@ from tests import test_utils
 
 log = logging.getLogger(__name__)
 
+INTAKE_TEAM = "intake-team"
+
+
+class TestNetbot(test_utils.MockBotTestCase):
+    """NetBot Mock Test Suite"""
+
+    def setUp(self):
+        super().setUp()
+        #netbot.setup_logging()
+        self.bot = netbot.NetBot(self.redmine)
+
+
+    def test_group_for_tracker(self):
+        trackers = self.bot.redmine.ticket_mgr.get_trackers()
+        for tracker in trackers.values():
+            if tracker.name not in ["Test-Reject"]:
+                team = self.bot.group_for_tracker(tracker)
+                self.assertIsNotNone(team)
+
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
-class TestNetbot(test_utils.BotTestCase):
-    """NetBot Test Suite"""
+class TestNetbotIntegration(test_utils.BotTestCase):
+    """NetBot Integration Test Suite"""
 
     def setUp(self):
         super().setUp()
@@ -34,14 +53,30 @@ class TestNetbot(test_utils.BotTestCase):
 #- add trivial test for on_application_command_error
 
 
-    SKIP_TRACKERS = ["Test-Reject"]
+    # SKIP_TRACKERS = ["Test-Reject"]
+    # def test_group_for_tracker(self):
+    #     trackers = self.bot.redmine.ticket_mgr.get_trackers()
+    #     for tracker in trackers.values():
+    #         if tracker.name not in TestNetbot.SKIP_TRACKERS:
+    #             team = self.bot.group_for_tracker(tracker)
+    #             self.assertIsNotNone(team)
 
-    def test_group_for_tracker(self):
-        trackers = self.bot.redmine.ticket_mgr.get_trackers()
-        for tracker in trackers.values():
-            if tracker.name not in TestNetbot.SKIP_TRACKERS:
-                team = self.bot.group_for_tracker(tracker)
-                self.assertIsNotNone(team)
+
+    def test_recycle_ticket(self):
+        # create test ticket
+        ticket = self.create_test_ticket()
+
+        # look up team
+        test_team = self.bot.redmine.user_mgr.get_team_by_name(INTAKE_TEAM)
+
+        # recycle the ticket
+        recycled = self.bot.redmine.ticket_mgr.recycle(ticket, test_team.id)
+
+        self.assertEqual(recycled.assigned_to.id, test_team.id)
+        self.assertEqual(recycled.status.name, "New")
+
+        # remove the test ticket
+        self.redmine.ticket_mgr.remove(ticket.id)
 
 
     async def test_synchronize_ticket(self):

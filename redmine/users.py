@@ -6,7 +6,7 @@ import logging
 import json
 
 
-from redmine.model import Team, User, UserResult, NamedId
+from redmine.model import Team, User, UserResult, NamedId, DISCORD_ID_FIELD
 from redmine.session import RedmineSession, RedmineException
 
 
@@ -297,6 +297,7 @@ class UserManager():
         """get a user by ID, directly from redmine"""
         jresp = self.session.get(f"/users/{user_id}.json")
         if jresp:
+            log.info(f"^^^ {jresp['user']}")
             return User(**jresp['user'])
 
 
@@ -312,11 +313,14 @@ class UserManager():
 
 
     def create_discord_mapping(self, user:User, discord_id: int, discord_name:str) -> User:
-        field_id = 2 ## FIXME "Discord ID"search for me in cached custom fields
         named = NamedId(id=discord_id, name=discord_name)
         fields = {
             "custom_fields": [
-                { "id": field_id, "value": named.as_token() }
+                {
+                    "id": 2, # Currently, get_custom_field() is in ticket_mgr
+                    "name": DISCORD_ID_FIELD,
+                    "value": named.as_token()
+                }
             ]
         }
         updated = self.update(user, fields)

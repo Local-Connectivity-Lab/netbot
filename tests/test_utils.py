@@ -2,13 +2,11 @@
 """Utilities to help testing"""
 
 import json
-import os
 import time
 import string
 import random
 import logging
 import unittest
-from urllib.parse import urlparse
 from unittest import mock
 
 import discord
@@ -19,13 +17,13 @@ from redmine.tickets import SCN_PROJECT_ID
 from redmine.session import RedmineSession
 from redmine.redmine import Client
 from netbot.netbot import NetBot
+from tests.mock_session import MockSession
 
 
 log = logging.getLogger(__name__)
 
 
 TEST_DATA = "data" # dir with test data
-
 
 TEST_ADMIN = "test-admin"
 TEST_USER = "test-user"
@@ -66,13 +64,9 @@ def randint(maxval:int=9999999) -> int:
 
 def load_json(filename:str):
     #with open(os.path.join(TEST_DATA, filename), 'r', encoding="utf-8") as file:
+    log.debug(f"loading json from {TEST_DATA + filename}")
     with open(TEST_DATA + filename, 'r', encoding="utf-8") as file:
         return json.load(file)
-
-
-def load_file(filename:str):
-    with open(os.path.join(TEST_DATA, filename), 'r', encoding="utf-8") as file:
-        return file.read()
 
 
 def lookup_test_user(user_mgr:UserManager) -> User:
@@ -141,51 +135,6 @@ def remove_test_users(user_mgr:UserManager):
 # TODO delete test tickets and "Search for subject match in email threading" ticket. TAG with test too?
 
 
-class MockSession(RedmineSession):
-    """Magic session handling for test"""
-    def __init__(self, token:str):
-        super().__init__("http://example.com", token)
-        self.test_cache = {}
-
-
-    def get(self, query:str, impersonate_id:str|None=None):
-        log.info(f"GET {query}, id={impersonate_id}")
-        try:
-            path = urlparse(query).path
-            # check for cache?
-
-            return load_json(path)
-        except FileNotFoundError:
-            return super().get(query, impersonate_id)
-        except Exception as ex:
-            log.error(f"{ex}")
-            return None
-
-
-    # def put(self, resource: str, data:str, impersonate_id:str|None=None) -> None:
-    #     log.info(f"PUT {resource}, data={data} id={impersonate_id}")
-    #     # UDATE!
-    #     path = urlparse(resource).path
-    #     self.test_cache[path] = data
-    #     #raise RedmineException(f"PUT {resource} by {impersonate_id} failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
-
-
-    # def post(self, resource: str, data:str, user_login: str|None = None, files: list|None = None) -> dict|None:
-    #     log.info(f"POST {resource}, data={data} user_login={user_login}")
-    #     path = urlparse(resource).path
-    #     # NEED A NEW ID!
-    #     self.test_cache[path] = data
-    #     #raise RedmineException(f"POST failed, status=[{r.status_code}] {r.reason}", r.headers['X-Request-Id'])
-
-
-    # def delete(self, resource: str) -> None:
-    #     log.info(f"DELETE {resource}")
-    #     path = urlparse(resource).path
-    #     if path in self.test_cache:
-    #         log.debug(f"deleted {path}")
-    #         del self.test_cache[path]
-
-
 class MockRedmineTestCase(unittest.TestCase):
     """Abstract base class for mocked redmine testing"""
 
@@ -198,6 +147,8 @@ class MockRedmineTestCase(unittest.TestCase):
         cls.tickets_mgr = cls.redmine.ticket_mgr
 
         cls.user:User = mock_user(cls.tag)
+        #session.test_cache[f"/users/{cls.user.id}.json"] = json.dumps(cls.user)
+        session.cache_user(cls.user)
         cls.user_mgr.cache.cache_user(cls.user)
         log.info(f"SETUP created mock user: {cls.user}")
 
@@ -218,6 +169,21 @@ class MockRedmineTestCase(unittest.TestCase):
 
     def create_ticket(self) -> Ticket:
         return self.redmine.create_ticket(self.user, self.create_message())
+
+
+class MockBotTestCase(MockRedmineTestCase, unittest.IsolatedAsyncioTestCase):
+    """Abstract base class for testing Bot features"""
+
+    def context(self) -> ApplicationContext:
+        ctx = mock.AsyncMock(ApplicationContext)
+        ctx.bot = mock.AsyncMock(NetBot)
+        ctx.bot.redmine = self.redmine
+        ctx.user = mock.AsyncMock(discord.Member)
+        ctx.user.name = self.user.discord_id.name
+        ctx.user.id = self.user.discord_id.id
+        ctx.command = mock.AsyncMock(discord.ApplicationCommand)
+        ctx.command.name = unittest.TestCase.id(self)
+        return ctx
 
 
 class RedmineTestCase(unittest.TestCase):
