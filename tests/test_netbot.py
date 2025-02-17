@@ -50,7 +50,7 @@ class TestNetbot(test_utils.MockBotTestCase):
         self.session.cache_results([ticket])
         # and a mock channel
         channel_id = ticket.get_sync_record().channel_id
-        channel = self.mock_channel(channel_id, ticket.id)
+        channel = self.mock_ticket_thread(channel_id, ticket.id)
 
         # 2. invoke dusty reminder
         with patch.object(netbot.NetBot, 'channel_for_tracker', return_value=channel) as mock_method:
@@ -76,7 +76,7 @@ class TestNetbot(test_utils.MockBotTestCase):
         self.session.cache_results([ticket])
         # and a mock channel
         channel_id = ticket.get_sync_record().channel_id
-        channel = self.mock_channel(channel_id, ticket.id)
+        channel = self.mock_ticket_thread(channel_id, ticket.id)
 
         # 2. invoke recycle with patches for reminder channel and
         with patch.object(netbot.NetBot, 'channel_for_tracker', return_value=channel) as patched_channel:

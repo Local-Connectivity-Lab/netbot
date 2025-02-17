@@ -459,44 +459,32 @@ class TicketsCog(commands.Cog):
             return
 
         channel_name = ctx.channel.name
-        text = f"Created by Discord user {ctx.user.name} -> {user.login}"
-        message = Message(from_addr=user.mail, subject=title, to=ctx.channel.name)
+        text = f"Created by Discord user {ctx.user.name} in channel {channel_name}"
+        message = Message(from_addr=user.mail, subject=title, to=channel_name)
         message.set_note(text)
 
-        ticket: Ticket = None
         ticket_id = NetBot.parse_thread_title(channel_name)
-        log.debug(f">>> {channel_name} --> {ticket_id}")
+        log.debug(f">>> {channel_name} --> ticket: {ticket_id}")
         if ticket_id:
             # check if it's an epic
             epic = self.redmine.ticket_mgr.get(ticket_id)
             if epic and epic.priority.name == "EPIC":
                 log.debug(f">>> {ticket_id} is an EPIC!")
                 ticket = self.redmine.ticket_mgr.create(user, message, parent_issue_id=ticket_id)
-            else:
-                ticket = self.redmine.ticket_mgr.create(user, message)
-        else:
-            ticket = self.redmine.ticket_mgr.create(user, message)
+                await self.thread(ctx, ticket.id)
+                return
 
-        if ticket:
-            # ticket created, set tracker
-            # set tracker
-            # TODO: search up all parents in hierarchy?
-            tracker = self.bot.redmine.ticket_mgr.get_tracker(channel_name)
-            if tracker:
-                log.debug(f"found {channel_name} => {tracker}")
-                params = {
-                    "tracker_id": str(tracker.id),
-                    "notes": f"Setting tracker based on channel name: {channel_name}"
-                }
-                self.redmine.ticket_mgr.update(ticket.id, params, user.login)
-            else:
-                log.debug(f"not tracker for {channel_name}")
-            # create related discord thread
+        # not in ticket thread, try tracker
+        tracker = self.bot.tracker_for_channel(channel_name)
+        if tracker:
+            log.debug(f"found channel: {channel_name} => tracker: {tracker}")
+            ticket = self.redmine.ticket_mgr.create(user, message, tracker_id=tracker.id)
             await self.thread(ctx, ticket.id)
-            #ticket_link = self.bot.formatter.redmine_link(ticket)
-            #await ctx.respond(f"Created ticket {ticket_link}")
         else:
-            await ctx.respond(f"Error creating ticket with title={title}")
+            # no parent or tracker
+            log.debug(f"no parent ot tracker for {channel_name}")
+            ticket = self.redmine.ticket_mgr.create(user, message)
+            await self.thread(ctx, ticket.id)
 
 
     @ticket.command(name="notify", description="Notify collaborators on a ticket")

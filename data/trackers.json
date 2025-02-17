@@ -1,1 +1,172 @@
-{"trackers":[{"id":8,"name":"External-Comms-Intake","default_status":{"id":1,"name":"New"},"description":"Default tracker for tickets taken in from emails- needs categorization","enabled_standard_fields":["assigned_to_id","category_id","fixed_version_id","parent_issue_id","start_date","due_date","estimated_hours","done_ratio","description","priority_id"]},{"id":10,"name":"Admin","default_status":{"id":1,"name":"New"},"description":"Internal admin/nonprofit related tasks","enabled_standard_fields":["assigned_to_id","category_id","fixed_version_id","parent_issue_id","start_date","due_date","estimated_hours","done_ratio","description","priority_id"]},{"id":9,"name":"Comms","default_status":{"id":1,"name":"New"},"description":"Internal and external coordination \u0026 comms","enabled_standard_fields":["assigned_to_id","category_id","fixed_version_id","parent_issue_id","start_date","due_date","estimated_hours","done_ratio","description","priority_id"]},{"id":6,"name":"Infra-Config","default_status":{"id":1,"name":"New"},"description":"Infrastructure and network configuration and maintenance like software updates, documentation, keeping Netbox up to date.","enabled_standard_fields":["assigned_to_id","category_id","fixed_version_id","parent_issue_id","start_date","due_date","estimated_hours","done_ratio","description","priority_id"]},{"id":2,"name":"Infra-Field","default_status":{"id":1,"name":"New"},"description":"Field work. New installs, repairs, physical tasks and maintenance","enabled_standard_fields":["assigned_to_id","category_id","fixed_version_id","parent_issue_id","start_date","due_date","estimated_hours","done_ratio","description","priority_id"]},{"id":4,"name":"Software-Dev","default_status":{"id":1,"name":"New"},"description":"Software development tasks","enabled_standard_fields":["assigned_to_id","category_id","fixed_version_id","parent_issue_id","start_date","due_date","estimated_hours","done_ratio","description","priority_id"]},{"id":17,"name":"Research","default_status":{"id":1,"name":"New"},"description":"Research projects (eg with UW)","enabled_standard_fields":["assigned_to_id","category_id","fixed_version_id","parent_issue_id","start_date","due_date","estimated_hours","done_ratio","description","priority_id"]},{"id":13,"name":"Test-Reject","default_status":{"id":5,"name":"Reject"},"description":"Test tickets created by mistake that need to be closed","enabled_standard_fields":["assigned_to_id","category_id","fixed_version_id","parent_issue_id","start_date","due_date","estimated_hours","done_ratio","description","priority_id"]}]}
+{
+    "trackers": [
+        {
+            "id": 8,
+            "name": "External-Comms-Intake",
+            "default_status": {
+                "id": 1,
+                "name": "New"
+            },
+            "description": "Default tracker for tickets taken in from emails- needs categorization",
+            "enabled_standard_fields": [
+                "assigned_to_id",
+                "category_id",
+                "fixed_version_id",
+                "parent_issue_id",
+                "start_date",
+                "due_date",
+                "estimated_hours",
+                "done_ratio",
+                "description",
+                "priority_id"
+            ]
+        },
+        {
+            "id": 10,
+            "name": "Admin",
+            "default_status": {
+                "id": 1,
+                "name": "New"
+            },
+            "description": "Internal admin/nonprofit related tasks",
+            "enabled_standard_fields": [
+                "assigned_to_id",
+                "category_id",
+                "fixed_version_id",
+                "parent_issue_id",
+                "start_date",
+                "due_date",
+                "estimated_hours",
+                "done_ratio",
+                "description",
+                "priority_id"
+            ]
+        },
+        {
+            "id": 9,
+            "name": "Comms",
+            "default_status": {
+                "id": 1,
+                "name": "New"
+            },
+            "description": "Internal and external coordination \u0026 comms",
+            "enabled_standard_fields": [
+                "assigned_to_id",
+                "category_id",
+                "fixed_version_id",
+                "parent_issue_id",
+                "start_date",
+                "due_date",
+                "estimated_hours",
+                "done_ratio",
+                "description",
+                "priority_id"
+            ]
+        },
+        {
+            "id": 6,
+            "name": "Infra-Config",
+            "default_status": {
+                "id": 1,
+                "name": "New"
+            },
+            "description": "Infrastructure and network configuration and maintenance like software updates, documentation, keeping Netbox up to date.",
+            "enabled_standard_fields": [
+                "assigned_to_id",
+                "category_id",
+                "fixed_version_id",
+                "parent_issue_id",
+                "start_date",
+                "due_date",
+                "estimated_hours",
+                "done_ratio",
+                "description",
+                "priority_id"
+            ]
+        },
+        {
+            "id": 2,
+            "name": "Infra-Field",
+            "default_status": {
+                "id": 1,
+                "name": "New"
+            },
+            "description": "Field work. New installs, repairs, physical tasks and maintenance",
+            "enabled_standard_fields": [
+                "assigned_to_id",
+                "category_id",
+                "fixed_version_id",
+                "parent_issue_id",
+                "start_date",
+                "due_date",
+                "estimated_hours",
+                "done_ratio",
+                "description",
+                "priority_id"
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Software-Dev",
+            "default_status": {
+                "id": 1,
+                "name": "New"
+            },
+            "description": "Software development tasks",
+            "enabled_standard_fields": [
+                "assigned_to_id",
+                "category_id",
+                "fixed_version_id",
+                "parent_issue_id",
+                "start_date",
+                "due_date",
+                "estimated_hours",
+                "done_ratio",
+                "description",
+                "priority_id"
+            ]
+        },
+        {
+            "id": 17,
+            "name": "Research",
+            "default_status": {
+                "id": 1,
+                "name": "New"
+            },
+            "description": "Research projects (eg with UW)",
+            "enabled_standard_fields": [
+                "assigned_to_id",
+                "category_id",
+                "fixed_version_id",
+                "parent_issue_id",
+                "start_date",
+                "due_date",
+                "estimated_hours",
+                "done_ratio",
+                "description",
+                "priority_id"
+            ]
+        },
+        {
+            "id": 13,
+            "name": "Test-Reject",
+            "default_status": {
+                "id": 5,
+                "name": "Reject"
+            },
+            "description": "Test tickets created by mistake that need to be closed",
+            "enabled_standard_fields": [
+                "assigned_to_id",
+                "category_id",
+                "fixed_version_id",
+                "parent_issue_id",
+                "start_date",
+                "due_date",
+                "estimated_hours",
+                "done_ratio",
+                "description",
+                "priority_id"
+            ]
+        }
+    ]
+}

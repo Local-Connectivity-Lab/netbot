@@ -181,11 +181,15 @@ class MockRedmineTestCase(unittest.TestCase):
         return ctx
 
 
-    def mock_channel(self, channel_id:int, ticket_id:int) -> discord.TextChannel:
+    def mock_channel(self, channel_id:int, name:str) -> discord.TextChannel:
         channel = mock.AsyncMock(discord.TextChannel)
         channel.id = channel_id
-        channel.name = f"Ticket #{ticket_id}"
+        channel.name = name
         return channel
+
+
+    def mock_ticket_thread(self, channel_id:int, ticket_id:int) -> discord.TextChannel:
+        return self.mock_channel(channel_id, f"Ticket #{ticket_id}")
 
 
 class MockBotTestCase(MockRedmineTestCase, unittest.IsolatedAsyncioTestCase):

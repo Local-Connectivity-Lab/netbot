@@ -4,8 +4,9 @@
 import unittest
 import logging
 import re
+import json
 import datetime as dt
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import discord
 from dotenv import load_dotenv
@@ -53,8 +54,37 @@ class TestTicketCogUnitTests(unittest.TestCase):
                 self.assertIsNone(result, "Invalid dates expected to return empty result")
 
 
+class TestTicketsCog(test_utils.MockBotTestCase):
+    """TicketsCog feature tests use mock redmine session"""
+
+    def setUp(self):
+        super().setUp()
+        self.bot = NetBot(self.redmine)
+        self.bot.load_extension("netbot.cog_tickets")
+        self.cog: TicketsCog = self.bot.cogs["TicketsCog"]
+
+
+    async def test_new_ticket(self):
+        # create a new ticket in the "network-software" channel
+        ticket = self.mock_ticket()
+        data = {
+            'issue': ticket.asdict()
+        }
+        ctx = self.mock_context()
+        ctx.channel = self.mock_channel(2424, "network-software")
+
+        with patch.object(test_utils.MockSession, 'post', return_value=data) as patched_post:
+            await self.cog.create_new_ticket(ctx, ticket.subject)
+
+        # make sure it was created with the correct tracker
+        patched_post.assert_called_once()
+        response = json.loads(patched_post.call_args.args[1])
+        log.debug(f"RESP: {response}")
+        self.assertEqual(response['issue']['tracker_id'], 4)
+
+
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
-class TestTicketsCog(test_utils.BotTestCase):
+class IntegrationTestTicketsCog(test_utils.BotTestCase):
     """Integration test suite for TicketsCog"""
 
     def setUp(self):

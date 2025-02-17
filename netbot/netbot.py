@@ -44,7 +44,6 @@ FALLBACK_TEAM = "admin-team"
 
 
 # utility method to get a list of (one) ticket from the title of the channel, or empty list
-# TODO could be moved to NetBot
 def default_ticket(ctx: discord.AutocompleteContext) -> list[int]:
     # examine the thread
     ticket_id = NetBot.parse_thread_title(ctx.interaction.channel.name)
@@ -343,45 +342,27 @@ class NetBot(commands.Bot):
 
 
     async def remind_dusty_ticket(self, ticket: Ticket) -> None:
-        """
-        Remind the correct people and channels when a ticket is dusry. ticket-1608
-        """
+        """Remind the correct people and channels when a ticket is dusty."""
         discord_ids = self.extract_ids_from_ticket(ticket)
         reminder = self.formatter.format_dusty_reminder(ticket, discord_ids)
-
-        # first, check the syncdata.
-        sync = ticket.validate_sync_record()
-        if sync and sync.channel_id > 0:
-            thread: discord.Thread = self.bot.get_channel(sync.channel_id)
-            if thread:
-                await thread.send(reminder)
-                return
-
-        # no syncdata, no thread. fallback to tracker-based channel
-        channel = self.channel_for_tracker(ticket.tracker)
-        if channel:
-            await channel.send(reminder)
-            return
-        else:
-            log.warning(f"Can't find channel for tracker={ticket.tracker.name}")
-
-        # shouldn't get here. this is a desperate fallback
-        log.warning(f"No channel for ticket: {ticket.id}, {ticket.tracker} - using {FALLBACK_TEAM}")
-        channel = self.get_channel_by_name(FALLBACK_TEAM)
-        if channel:
-            await channel.send(reminder)
+        channel = self.channel_for_ticket(ticket)
+        await channel.send(reminder)
 
 
     async def remind_dusty_tickets(self):
-        """Notify that tickets are about to expire.
-        ticket-1608
-        """
+        """Notify that tickets are about to expire."""
+        # ticket-1608
         # get list of tickets that will expire (based on rules in ticket_mgr)
         for ticket in self.redmine.ticket_mgr.dusty():
             await self.remind_dusty_ticket(ticket)
 
 
-    def channel_for_tracker(self, tracker: NamedId):
+    def tracker_for_channel(self, channel:str) -> NamedId:
+        tracker_name = CHANNEL_MAPPING.get(channel, None)
+        return self.redmine.ticket_mgr.get_tracker(tracker_name)
+
+
+    def channel_for_tracker(self, tracker: NamedId) -> discord.TextChannel:
         for channel_name, tracker_name in CHANNEL_MAPPING.items():
             if tracker.name == tracker_name:
                 return self.get_channel_by_name(channel_name)
@@ -409,26 +390,26 @@ class NetBot(commands.Bot):
         return None
 
 
-    async def recycle_tickets(self):
-        """ Recycle dusty tickets. From ticket-1608:
-        After 3 weeks of inactivity, the ticket is put in "new"
-        state and reassigned to the tracker-based group.
-        The team members are reminded of this status change.
+    async def recycle_ticket(self, ticket: Ticket):
+        """ Recycle recycle an old dusty tickets.
+        From ticket-1608: After 3 weeks of inactivity, the ticket
+        is put in "new" state and reassigned to the tracker-based
+        group. The team members are reminded of this status change.
         """
-        for ticket in self.redmine.ticket_mgr.recyclable():
-            # notification to discord, or just note provided by expire?
-            # - for now, add note to ticket with expire info, and allow sync.
-            new_owner = self.team_for_tracker(ticket.tracker)
-            self.redmine.ticket_mgr.recycle(ticket, new_owner)
+        new_owner = self.team_for_tracker(ticket.tracker)
+        self.redmine.ticket_mgr.recycle(ticket, new_owner)
 
-            # new_owner is a team. get the members for notification
-            discord_ids = self.extract_ids_from_team(new_owner)
-            log.info(f"$$$$$ team: {new_owner} {new_owner.users}")
-            log.info(f"$$$$$ ids: {discord_ids}")
-            reminder = self.formatter.format_recycled_reminder(ticket, discord_ids)
-            log.info(f"$$$$$ reminder: {reminder}")
-            channel = self.channel_for_ticket(ticket)
-            await channel.send(reminder)
+        # new_owner is a team. get the members for reminder
+        discord_ids = self.discord_ids_for_team(new_owner)
+        reminder = self.formatter.format_recycled_reminder(ticket, discord_ids)
+        channel = self.channel_for_ticket(ticket)
+        await channel.send(reminder)
+
+
+    async def recycle_tickets(self):
+        """ Recycle old dusty tickets."""
+        for ticket in self.redmine.ticket_mgr.recyclable():
+            await self.recycle_ticket(ticket)
 
 
     @commands.slash_command(name="notify", description="Force ticket notifications")
@@ -459,7 +440,8 @@ class NetBot(commands.Bot):
 
         return None # not found
 
-    def extract_ids_from_team(self, team: Team) -> set[int]:
+
+    def discord_ids_for_team(self, team: Team) -> set[int]:
         """Extract the Discord IDs from users in a team"""
 
         if len(team.users) == 0:
@@ -467,7 +449,6 @@ class NetBot(commands.Bot):
 
         discord_ids = set()
         for named in team.users:
-            log.info(f"--- NAMED: {named.id} {named}")
             user = self.redmine.user_mgr.cache.get(named.id) #expected to be cached
             if user:
                 if user.discord_id:
@@ -486,6 +467,7 @@ class NetBot(commands.Bot):
 
         return discord_ids
 
+
     def extract_ids_from_ticket(self, ticket: Ticket) -> set[int]:
         """Extract the Discord IDs from users interested in a ticket,
            using owner and collaborators"""
@@ -495,8 +477,6 @@ class NetBot(commands.Bot):
             interested.append(ticket.assigned_to)
         if ticket.watchers:
             interested.extend(ticket.watchers)
-
-        log.debug(f"INTERESTED: {interested}")
 
         discord_ids = set()
         for named in interested:
