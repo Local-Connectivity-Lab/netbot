@@ -412,12 +412,7 @@ class NetBot(commands.Bot):
             await self.recycle_ticket(ticket)
 
 
-    @commands.slash_command(name="notify", description="Force ticket notifications")
-    async def force_notify(self):
-        await self.remind_dusty_tickets()
-
-
-    @tasks.loop(hours=24)
+    #@tasks.loop(hours=24)
     async def run_daily_tasks(self):
         """Process dusty and recycled tickets.
         Expected to run every 24 hours to:

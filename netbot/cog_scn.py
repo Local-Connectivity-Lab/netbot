@@ -361,8 +361,15 @@ class SCNCog(commands.Cog):
 
 
     @scn.command(name="force-notify", description="Force ticket notifications")
-    async def force_notify(self, ctx: discord.ApplicationContext):
-        await self.bot.notify_expiring_tickets()
+    async def force_remind(self, ctx:discord.ApplicationContext):
+        await ctx.respond("Sending reminders for dusty tickets....")
+        await self.bot.remind_dusty_tickets()
+
+
+    @scn.command(name="force-recycle", description="Force ticket notifications")
+    async def force_recycle(self, ctx:discord.ApplicationContext):
+        await ctx.respond("Recycling dusty, old tickets....")
+        await self.bot.recycle_tickets()
 
 
     @scn.command(description="List and approve registered new users")

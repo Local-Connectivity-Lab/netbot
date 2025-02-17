@@ -88,7 +88,7 @@ class TestNetbot(test_utils.MockBotTestCase):
         #    and patched channel invoked
         patched_put.assert_called_once()
         response = json.loads(patched_put.call_args.args[1])
-        self.assertEqual(response['issue']['assigned_to_id'], "software-dev-team")
+        self.assertEqual(response['issue']['assigned_to_id'], "30")
         self.assertEqual(response['issue']['status_id'], "1")
 
         reminder_str = channel.method_calls[0].args[0]
@@ -125,7 +125,7 @@ class TestNetbotIntegration(test_utils.BotTestCase):
         test_team = self.bot.redmine.user_mgr.get_team_by_name(INTAKE_TEAM)
 
         # recycle the ticket
-        recycled = self.bot.redmine.ticket_mgr.recycle(ticket, test_team.id)
+        recycled = self.bot.redmine.ticket_mgr.recycle(ticket, test_team)
 
         self.assertEqual(recycled.assigned_to.id, test_team.id)
         self.assertEqual(recycled.status.name, "New")

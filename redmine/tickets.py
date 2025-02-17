@@ -300,7 +300,7 @@ class TicketManager():
         return epics
 
 
-    def recycle(self, ticket:Ticket, team_id: int):
+    def recycle(self, ticket:Ticket, team: Team):
         """Recycle a dusty ticket:
         - reassign to tracker-based team
         - set status to new
@@ -311,7 +311,7 @@ class TicketManager():
         # ID can be resolved to discord-id, but not without call in user manager.
         # Ideally, this would @ the owner and collaborators.
         fields = {
-            "assigned_to_id": f"{team_id}",
+            "assigned_to_id": f"{team.id}",
             "status_id": "1", # New, TODO lookup using status lookup table.
             "notes": f"Ticket automatically recycled after {TICKET_MAX_AGE} days due to inactivity.",
         }
