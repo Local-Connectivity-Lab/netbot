@@ -446,15 +446,15 @@ class NetBot(commands.Bot):
         for named in team.users:
             user = self.redmine.user_mgr.cache.get(named.id) #expected to be cached
             if user:
-                if user.discord_id:
-                    discord_ids.add(user.discord_id.id)
+                if user.discord_id and user.discord_id.id > 0:
+                    discord_ids.add(user.discord_id.id) # <-- data might have 0
                 else:
                     log.info(f"No Discord ID for {named}")
             elif self.redmine.user_mgr.is_team(named.name):
                 # a team, look up role it.
                 team = self.get_role_by_name(named.name)
                 if team:
-                    discord_ids.add(f"&{team.id}")
+                    discord_ids.add(f"&{team.id}") # <-- is this valid for roles?
                 else:
                     log.warning(f"Team name {named} has no matching Discord role.")
             else:
