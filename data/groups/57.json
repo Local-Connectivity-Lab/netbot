@@ -1,6 +1,12 @@
 {
     "group": {
         "id": 57,
-        "name": "admin-team"
+        "name": "admin-team",
+        "users": [
+            {
+                "id": 1960,
+                "name": "Test Admin"
+            }
+        ]
     }
 }

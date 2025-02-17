@@ -14,7 +14,7 @@
       "twofa_scheme": null,
       "status": 1,
       "custom_fields": [
-        { "id": 2, "name": "Discord ID", "value": "test-admin" }
+        { "id": 2, "name": "Discord ID", "value": "4322|test-admin" }
       ]
     },
     {

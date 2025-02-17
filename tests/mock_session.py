@@ -92,14 +92,14 @@ class MockSession(RedmineSession):
     def put(self, resource:str, data:str, impersonate_id:str|None=None) -> None:
         log.info(f"PUT {resource}, data={data} impersonate={impersonate_id}")
 
-        item = self._get(resource)
-        data_dict = json.loads(data)
-        for k, v in data_dict.items():
-            item[k].update(v)
+        # item = self._get(resource)
+        # data_dict = json.loads(data)
+        # for k, v in data_dict.items():
+        #     item[k].update(v)
 
-        path = urlparse(resource).path
-        self.test_cache[path] = json.dumps(item)
-        log.debug(f"PUT {path} -> {item}")
+        # path = urlparse(resource).path
+        # self.test_cache[path] = json.dumps(item)
+        # log.debug(f"PUT {path} -> {item}")
 
 
     # def post(self, resource: str, data:str, user_login: str|None = None, files: list|None = None) -> dict|None:

@@ -1,6 +1,12 @@
 {
     "group": {
         "id": 30,
-        "name": "software-dev-team"
+        "name": "software-dev-team",
+        "users": [
+            {
+                "id": 2183,
+                "name": "Test User"
+            }
+        ]
     }
 }

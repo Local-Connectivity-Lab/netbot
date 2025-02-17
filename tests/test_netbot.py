@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """NetBot Test Suite"""
 
+import json
 import unittest
+from unittest.mock import patch
 import logging
 
 import discord
 from dotenv import load_dotenv
 
+from redmine import synctime
+from redmine.tickets import TICKET_MAX_AGE, TICKET_DUSTY_AGE
+from redmine.model import TicketStatus, NamedId
 from netbot import netbot
 from netbot.formatting import MAX_MESSAGE_LEN
 
 from tests import test_utils
+from tests.mock_session import MockSession
 
 
 log = logging.getLogger(__name__)
@@ -23,7 +29,6 @@ class TestNetbot(test_utils.MockBotTestCase):
 
     def setUp(self):
         super().setUp()
-        #netbot.setup_logging()
         self.bot = netbot.NetBot(self.redmine)
 
 
@@ -31,8 +36,67 @@ class TestNetbot(test_utils.MockBotTestCase):
         trackers = self.bot.redmine.ticket_mgr.get_trackers()
         for tracker in trackers.values():
             if tracker.name not in ["Test-Reject"]:
-                team = self.bot.group_for_tracker(tracker)
+                team = self.bot.team_for_tracker(tracker)
                 self.assertIsNotNone(team)
+
+
+    async def test_dusty_reminder(self):
+        # 1. setup mock session to return a dusty tickets
+        ticket = self.mock_ticket(
+            assigned_to=NamedId(id=self.user.id,name=self.user.name),
+            status=TicketStatus(id=2,name="In Progress",is_closed=False),
+            updated_on=synctime.ago(days=TICKET_DUSTY_AGE+1),
+        )
+        self.session.cache_results([ticket])
+        # and a mock channel
+        channel_id = ticket.get_sync_record().channel_id
+        channel = self.mock_channel(channel_id, ticket.id)
+
+        # 2. invoke dusty reminder
+        with patch.object(netbot.NetBot, 'channel_for_tracker', return_value=channel) as mock_method:
+            await self.bot.remind_dusty_tickets()
+
+        # 3. confirm reminder is sent for dusty ticket - mock ctx invoked
+        reminder_str = channel.method_calls[0].args[0]
+        log.debug(f"Dusty reminder: {reminder_str}")
+        self.assertTrue(str(ticket.id) in reminder_str)
+
+        log.debug(f"USER: {self.user.discord_id} {self.user}")
+        self.assertIn(str(self.user.discord_id.id), reminder_str)
+        mock_method.assert_called_once()
+
+
+    async def test_recycle_tickets(self):
+        # to find old tickets, an old ticket needs to be created.
+        ticket = self.mock_ticket(
+            assigned_to=NamedId(id=self.user.id,name=self.user.name),
+            status=TicketStatus(id=2,name="In Progress",is_closed=False),
+            updated_on=synctime.ago(days=TICKET_MAX_AGE+1),
+        )
+        self.session.cache_results([ticket])
+        # and a mock channel
+        channel_id = ticket.get_sync_record().channel_id
+        channel = self.mock_channel(channel_id, ticket.id)
+
+        # 2. invoke recycle with patches for reminder channel and
+        with patch.object(netbot.NetBot, 'channel_for_tracker', return_value=channel) as patched_channel:
+            with patch.object(MockSession, 'put') as patched_put:
+                # recycle tickets
+                await self.bot.recycle_tickets()
+
+        # 3. confirm reminder is sent for dusty ticket
+        #    and patched channel invoked
+        patched_put.assert_called_once()
+        response = json.loads(patched_put.call_args.args[1])
+        self.assertEqual(response['issue']['assigned_to_id'], "software-dev-team")
+        self.assertEqual(response['issue']['status_id'], "1")
+
+        reminder_str = channel.method_calls[0].args[0]
+        self.assertTrue(str(ticket.id) in reminder_str)
+
+        test_user = test_utils.lookup_test_user(self.redmine.user_mgr)
+        self.assertIn(f"<@{test_user.discord_id.id}>", reminder_str)
+        patched_channel.assert_called_once()
 
 
 @unittest.skipUnless(load_dotenv(), "ENV settings not available")
@@ -51,15 +115,6 @@ class TestNetbotIntegration(test_utils.BotTestCase):
 ##- test-call sync with a *new* ticket, not existing
 #- add test messages to thread.history for syncronize_ticket <<< !!! FIXME
 #- add trivial test for on_application_command_error
-
-
-    # SKIP_TRACKERS = ["Test-Reject"]
-    # def test_group_for_tracker(self):
-    #     trackers = self.bot.redmine.ticket_mgr.get_trackers()
-    #     for tracker in trackers.values():
-    #         if tracker.name not in TestNetbot.SKIP_TRACKERS:
-    #             team = self.bot.group_for_tracker(tracker)
-    #             self.assertIsNotNone(team)
 
 
     def test_recycle_ticket(self):

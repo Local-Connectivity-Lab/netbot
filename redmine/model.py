@@ -329,7 +329,7 @@ class Ticket():
     watchers: list[NamedId]|None = None
 
 
-    def __post_init__(self, **kwargs):
+    def __post_init__(self):
         self.status = TicketStatus(**self.status)
         self.author = NamedId(**self.author)
         self.priority = NamedId(**self.priority)

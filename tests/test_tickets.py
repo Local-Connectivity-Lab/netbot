@@ -21,7 +21,7 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
 
     def test_dusty_tickets(self):
         # to find dusty tickets, a dusty ticket needs to be created.
-        ticket1 = self.create_ticket(
+        ticket1 = self.mock_ticket(
             status=TicketStatus(id=2,name="In Progress",is_closed=False),
             updated_on=synctime.ago(days=TICKET_DUSTY_AGE+1),
         )
@@ -40,7 +40,7 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
 
     def test_recyclable_tickets(self):
         # to find dusty tickets, a dusty ticket needs to be created.
-        ticket1 = self.create_ticket(
+        ticket1 = self.mock_ticket(
             status=TicketStatus(id=2,name="In Progress",is_closed=False),
             updated_on=synctime.ago(days=TICKET_MAX_AGE+1),
         )
@@ -57,8 +57,7 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
             self.assertEqual(ticket.status.name, "In Progress")
 
 
-    @unittest.skip # FIXME currently breaking mock testing
-    @patch('redmine.session.RedmineSession.post')
+    @patch('tests.mock_session.MockSession.post')
     def test_default_project_id(self, mock_post:MagicMock):
         test_proj_id = "42"
 
@@ -77,9 +76,8 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
         self.assertEqual(test_proj_id, resp_ticket['project_id'])
 
 
-    @unittest.skip
     # note: patching 'get' instead of 'post': the get gets the new ticket
-    @patch('redmine.session.RedmineSession.post')
+    @patch('tests.mock_session.MockSession.post')
     def test_create_sub_ticket(self, mock_post:MagicMock):
 
         # setup the mock tickets

@@ -1,0 +1,51 @@
+{
+    "issue": {
+      "id": 9250,
+      "project": {
+        "id": 1,
+        "name": "Test Project"
+      },
+      "tracker": {
+        "id": 4,
+        "name": "Software-Dev"
+      },
+      "status": {
+        "id": 1,
+        "name": "New",
+        "is_closed": false
+      },
+      "priority": {
+        "id": 2,
+        "name": "Normal"
+      },
+      "author": {
+        "id": 5,
+        "name": "Jar Jar Binx"
+      },
+      "subject": "This is a test ticket",
+      "description": "Description of a test ticket.",
+      "start_date": "2025-02-16",
+      "due_date": null,
+      "done_ratio": 0,
+      "is_private": false,
+      "estimated_hours": null,
+      "total_estimated_hours": null,
+      "spent_hours": 0,
+      "total_spent_hours": 0,
+      "custom_fields": [
+        {
+          "id": 4,
+          "name": "syncdata",
+          "value": "1246236561985503273|2024-05-31 23:10:48.014533+00:00"
+        },
+        {
+          "id": 5,
+          "name": "To/CC",
+          "value": ""
+        }
+      ],
+      "created_on": "2025-02-16T21:50:26Z",
+      "updated_on": "2025-02-16T21:50:26Z",
+      "closed_on": null
+    }
+  }

@@ -77,8 +77,7 @@ def lookup_test_user(user_mgr:UserManager) -> User:
 
 
 def mock_ticket(**kwargs) -> Ticket:
-    #return json_ticket('test-ticket.json', **kwargs)
-    return json_ticket('issues/595.json', **kwargs)
+    return json_ticket('issues/9250.json', **kwargs)
 
 
 def json_ticket(file:str, **kwargs) -> Ticket:
@@ -98,8 +97,7 @@ def mock_user(tag: str) -> User:
         id=random.randint(1000, 9999),
         login=f'test-{tag}',
         mail=f'{tag}@example.org',
-        #custom_fields=[ {"id": 2, "name":'Discord ID', "value":f'discord-{tag}'} ],
-        custom_fields=[],
+        custom_fields=[ {"id": 2, "name":'Discord ID', "value":"632388422765208038|test_discord_id"} ],
         admin=False,
         firstname='Test',
         lastname=tag,
@@ -166,11 +164,28 @@ class MockRedmineTestCase(unittest.TestCase):
         return message
 
 
-    def create_ticket(self, **kwargs) -> Ticket:
+    def mock_ticket(self, **kwargs) -> Ticket:
         # create a ticket from json template
         ticket = mock_ticket(**kwargs)
         self.session.cache_ticket(ticket)
         return ticket
+
+
+    def mock_context(self) -> ApplicationContext:
+        ctx = mock.AsyncMock(ApplicationContext)
+        ctx.bot = mock.AsyncMock(NetBot)
+        ctx.bot.redmine = self.redmine
+        ctx.user = mock.AsyncMock(discord.Member)
+        ctx.user.name = self.user.discord_id.name
+        ctx.user.id = self.user.discord_id.id
+        return ctx
+
+
+    def mock_channel(self, channel_id:int, ticket_id:int) -> discord.TextChannel:
+        channel = mock.AsyncMock(discord.TextChannel)
+        channel.id = channel_id
+        channel.name = f"Ticket #{ticket_id}"
+        return channel
 
 
 class MockBotTestCase(MockRedmineTestCase, unittest.IsolatedAsyncioTestCase):

@@ -249,15 +249,26 @@ class DiscordFormatter():
         return details
 
 
-    def format_expiration_notification(self, ticket:Ticket, discord_ids: list[str]):
+    def format_dusty_reminder(self, ticket:Ticket, discord_ids: list[str]):
         # format an alert.
         # https://discord.com/developers/docs/interactions/message-components#action-rows
         # action row with what options?
         # :warning:
         # ⚠️
         # [icon] **Alert** [Ticket x](link) will expire in x hours, as xyz.
-        ids_str = ["@" + id for id in discord_ids]
-        return f"ALERT: Expiring ticket: {self.redmine_link(ticket)} {' '.join(ids_str)}"
+        ids_str = [f"<@{id}>" for id in discord_ids]
+        return f"⚠️ Ticket gettin' dusty: {self.redmine_link(ticket)} {' '.join(ids_str)}"
+
+
+    def format_recycled_reminder(self, ticket:Ticket, discord_ids: list[str]):
+        # format an alert.
+        # https://discord.com/developers/docs/interactions/message-components#action-rows
+        # action row with what options?
+        # :warning:
+        # ⚠️
+        # [icon] **Alert** [Ticket x](link) will expire in x hours, as xyz.
+        ids_str = [f"<@{id}>" for id in discord_ids]
+        return f"⚠️ Ticket recycled: {self.redmine_link(ticket)} {' '.join(ids_str)}"
 
 
     def format_ticket_alert(self, ticket: Ticket, discord_ids: set[int], msg: str) -> str:
