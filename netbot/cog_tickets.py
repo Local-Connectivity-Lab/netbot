@@ -438,12 +438,13 @@ class TicketsCog(commands.Cog):
 
 
     async def create_thread(self, ticket:Ticket, ctx:discord.ApplicationContext):
-        log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel}")
+        log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel.name}")
         thread_name = f"Ticket #{ticket.id}: {ticket.subject}"
         if isinstance(ctx.channel, discord.Thread):
-            log.debug(f"creating thread in parent channel {ctx.channel.parent}, for {ticket}")
+            log.debug(f"creating thread in parent channel {ctx.channel.parent.name}, for {ticket}")
             thread = await ctx.channel.parent.create_thread(name=thread_name, type=discord.ChannelType.public_thread)
         else:
+            log.debug(f"creating thread in channel {ctx.channel.name}, for {ticket}")
             thread = await ctx.channel.create_thread(name=thread_name, type=discord.ChannelType.public_thread)
         # ticket-614: Creating new thread should post the ticket details to the new thread
         await thread.send(self.bot.formatter.format_ticket_details(ticket))
@@ -523,7 +524,8 @@ class TicketsCog(commands.Cog):
             if synced and synced.channel_id != ctx.channel_id:
                 thread = self.bot.get_channel(synced.channel_id)
                 if thread:
-                    await ctx.respond(f"Ticket {ticket_link} already synced with {thread.jump_url}")
+                    url = thread.jump_url
+                    await ctx.respond(f"Ticket {ticket_link} already synced with {url}")
                     return # stop processing
                 else:
                     log.info(f"Ticket {ticket_id} synced with unknown thread ID {synced.channel_id}. Recovering.")
@@ -533,14 +535,19 @@ class TicketsCog(commands.Cog):
 
             # create the thread...
             thread = await self.create_thread(ticket, ctx)
+            url = thread.jump_url
 
             # update the discord flag on tickets, add a note with url of thread; thread.jump_url
-            note = f"Created Discord thread: {thread.name}: {thread.jump_url}"
+            name = thread.name
+            note = f"Created Discord thread: {name}: {url}"
             user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
-            self.redmine.enable_discord_sync(ticket.id, user, note)
+            self.redmine.ticket_mgr.enable_discord_sync(ticket.id, user, note)
 
             # ticket-614: add ticket link to thread response
-            await ctx.respond(f"Created new thread {thread.jump_url} for ticket {ticket_link}")
+            log.info(f"ctx {ctx} {vars(ctx)}")
+            log.info(f"URL {url}")
+            log.info(f"LINK {ticket_link}")
+            await ctx.respond(f"Created new thread {url} for ticket {ticket_link}")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
 

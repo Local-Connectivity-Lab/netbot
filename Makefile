@@ -19,9 +19,10 @@ run: venv
 venv: $(VENV)/bin/activate
 
 $(VENV)/bin/activate: requirements.txt
-	python3.11 -m venv $(VENV)
+	python3 -m venv $(VENV)
 	$(PIP) install --upgrade pip
-	$(PIP) install -r requirements.txt
+	# $(PIP) install -r requirements.txt --upgrade
+	$(PIP)  install --upgrade dateparser humanize IMAPClient py-cord python-dotenv requests audioop-lts
 
 test: $(VENV)/bin/activate
 	$(PYTHON) -m tests

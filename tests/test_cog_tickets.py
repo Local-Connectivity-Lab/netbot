@@ -72,6 +72,9 @@ class TestTicketsCog(test_utils.MockBotTestCase):
         }
         ctx = self.mock_context()
         ctx.channel = self.mock_channel(2424, "network-software")
+        # need to mock a thread for the ticket to create
+        thread = self.mock_ticket_thread(2323, ticket.id)
+        ctx.channel.create_thread = AsyncMock(return_value=thread)
 
         with patch.object(test_utils.MockSession, 'post', return_value=data) as patched_post:
             await self.cog.create_new_ticket(ctx, ticket.subject)

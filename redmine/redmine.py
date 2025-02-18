@@ -134,14 +134,3 @@ class Client():
         else:
             log.debug(f"Unable to match ticket number in: {string}")
             return []
-
-
-    def enable_discord_sync(self, ticket_id, user, note):
-        fields = {
-            "note": note, #f"Created Discord thread: {thread.name}: {thread.jump_url}",
-            "cf_1": "1", # TODO: read from custom fields via
-        }
-
-        self.ticket_mgr.update(ticket_id, fields, user.login)
-        # currently doesn't return or throw anything
-        # todo: better error reporting back to discord

@@ -19,7 +19,7 @@ def load_file(filename:str):
         return file.read()
 
 class MockSession(RedmineSession):
-    """Magic session handling for test"""
+    """Mock session handling for test"""
     def __init__(self, token:str):
         super().__init__("http://example.com", token)
         self.test_cache = {}
