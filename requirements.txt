@@ -4,4 +4,5 @@ IMAPClient==3.0.1
 py-cord==2.6.1
 python-dotenv==1.0.1
 requests==2.32.3
+audioop-lts==0.2.1
 coverage==7.6.12
