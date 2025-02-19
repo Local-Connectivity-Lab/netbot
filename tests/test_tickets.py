@@ -5,7 +5,7 @@ import datetime
 import unittest
 import logging
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, AsyncMock
 
 from dotenv import load_dotenv
 
@@ -14,7 +14,9 @@ from redmine.tickets import TICKET_DUSTY_AGE, TICKET_MAX_AGE
 
 from tests import test_utils
 
+
 log = logging.getLogger(__name__)
+
 
 class TestTicketManager(test_utils.MockRedmineTestCase):
     """Mocked testing of ticket manager"""
@@ -58,7 +60,7 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
 
 
     @patch('tests.mock_session.MockSession.post')
-    def test_default_project_id(self, mock_post:MagicMock):
+    def test_default_project_id(self, mock_post:AsyncMock):
         test_proj_id = "42"
 
         msg = self.create_message()
@@ -78,7 +80,7 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
 
     # note: patching 'get' instead of 'post': the get gets the new ticket
     @patch('tests.mock_session.MockSession.post')
-    def test_create_sub_ticket(self, mock_post:MagicMock):
+    def test_create_sub_ticket(self, mock_post:AsyncMock):
 
         # setup the mock tickets
         ticket = test_utils.mock_ticket(parent=ParentTicket(id=4242, subject="Test Parent Ticket"))
@@ -92,16 +94,6 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
 
         mock_post.assert_called_once()
         self.assertEqual(4242, check.parent.id)
-
-    # needs to patch 10 calls to GET
-    # @patch('redmine.session.RedmineSession.get')
-    # def test_epics(self, mock_get:MagicMock):
-    #     # setup the mock tickets
-    #     mock_get.return_value = test_utils.load_json("/epics.json")
-
-    #     check = self.tickets_mgr.get_epics()
-    #     self.assertEqual(10, len(check))
-    #     #self.assertEqual(9, len(check[0].children))
 
 
 # The integration test suite is only run if the ENV settings are configured correctly

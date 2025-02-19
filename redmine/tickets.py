@@ -514,13 +514,13 @@ class TicketManager():
         return ticket.get_notes(since=timestamp)
 
 
-    def enable_discord_sync(self, ticket_id, user, note):
+    def enable_discord_sync(self, ticket_id:int, user:User, note:str) -> Ticket:
         fields = {
-            "note": note, #f"Created Discord thread: {thread.name}: {thread.jump_url}",
+            "note": note,
             "cf_1": "1", # TODO: lookup in self.get_field_id
         }
 
-        self.update(ticket_id, fields, user.login)
+        return self.update(ticket_id, fields, user.login)
         # currently doesn't return or throw anything
         # todo: better error reporting back to discord
 

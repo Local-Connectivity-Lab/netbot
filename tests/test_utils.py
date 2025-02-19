@@ -178,6 +178,9 @@ class MockRedmineTestCase(unittest.TestCase):
         ctx.user = mock.AsyncMock(discord.Member)
         ctx.user.name = self.user.discord_id.name
         ctx.user.id = self.user.discord_id.id
+
+        ctx.respond = mock.AsyncMock()
+
         return ctx
 
 
@@ -185,8 +188,8 @@ class MockRedmineTestCase(unittest.TestCase):
         channel = mock.AsyncMock(discord.TextChannel)
         channel.id = channel_id
         channel.name = name
+        channel.jump_url = f"http://example.com/{channel_id}"
         return channel
-
 
     def mock_ticket_thread(self, channel_id:int, ticket_id:int) -> discord.TextChannel:
         return self.mock_channel(channel_id, f"Ticket #{ticket_id}")
@@ -251,6 +254,9 @@ class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
         ctx.user.id = self.user.discord_id.id
         ctx.command = mock.AsyncMock(discord.ApplicationCommand)
         ctx.command.name = unittest.TestCase.id(self)
+
+        ctx.respond = mock.AsyncMock()
+
         return ctx
 
 

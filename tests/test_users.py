@@ -2,7 +2,7 @@
 """Redmine user manager test cases"""
 
 import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, AsyncMock
 
 from redmine import model
 from tests import test_utils
@@ -15,7 +15,7 @@ class TestUserManager(test_utils.MockRedmineTestCase):
 
     @patch('tests.mock_session.MockSession.get')
     @patch('tests.mock_session.MockSession.put')
-    def test_create_discord_mapping(self, mock_put:MagicMock, mock_get:MagicMock):
+    def test_create_discord_mapping(self, mock_put:AsyncMock, mock_get:AsyncMock):
         # create a new user
         user = self.user
 
