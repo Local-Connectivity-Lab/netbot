@@ -521,7 +521,7 @@ class TicketsCog(commands.Cog):
 
             # check if sync data exists for a different channel
             synced = ticket.get_sync_record()
-            if synced and synced.channel_id != ctx.channel_id:
+            if synced and synced.channel_id != ctx.channel.id:
                 thread = self.bot.get_channel(synced.channel_id)
                 if thread:
                     url = thread.jump_url
@@ -544,9 +544,7 @@ class TicketsCog(commands.Cog):
             self.redmine.ticket_mgr.enable_discord_sync(ticket.id, user, note)
 
             # ticket-614: add ticket link to thread response
-            log.info(f"ctx {ctx} {vars(ctx)}")
-            log.info(f"URL {url}")
-            log.info(f"LINK {ticket_link}")
+            log.info('CTX5 %s', vars(ctx))
             await ctx.respond(f"Created new thread {url} for ticket {ticket_link}")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")

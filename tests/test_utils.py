@@ -173,13 +173,14 @@ class MockRedmineTestCase(unittest.TestCase):
 
     def mock_context(self) -> ApplicationContext:
         ctx = mock.AsyncMock(ApplicationContext)
-        ctx.__str__.return_value = "mock" # mock.AsyncMock(return_value="mockApplicationContext")
         ctx.bot = mock.AsyncMock(NetBot)
         ctx.bot.redmine = self.redmine
         ctx.user = mock.AsyncMock(discord.Member)
         ctx.user.name = self.user.discord_id.name
         ctx.user.id = self.user.discord_id.id
-        ctx.channel_id.return_value = 666666666
+
+        ctx.respond = mock.AsyncMock()
+
         return ctx
 
 
@@ -189,7 +190,6 @@ class MockRedmineTestCase(unittest.TestCase):
         channel.name = name
         channel.jump_url = f"http://example.com/{channel_id}"
         return channel
-
 
     def mock_ticket_thread(self, channel_id:int, ticket_id:int) -> discord.TextChannel:
         return self.mock_channel(channel_id, f"Ticket #{ticket_id}")
@@ -254,6 +254,9 @@ class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
         ctx.user.id = self.user.discord_id.id
         ctx.command = mock.AsyncMock(discord.ApplicationCommand)
         ctx.command.name = unittest.TestCase.id(self)
+
+        ctx.respond = mock.AsyncMock()
+
         return ctx
 
 

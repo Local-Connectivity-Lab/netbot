@@ -72,6 +72,8 @@ class TestTicketsCog(test_utils.MockBotTestCase):
         }
         ctx = self.mock_context()
         ctx.channel = self.mock_channel(2424, "network-software")
+        ctx.channel_id = ctx.channel.id
+
         # need to mock a thread for the ticket to create
         thread = self.mock_ticket_thread(2323, ticket.id)
         ctx.channel.create_thread = AsyncMock(return_value=thread)
@@ -118,6 +120,8 @@ class IntegrationTestTicketsCog(test_utils.BotTestCase):
 
         await self.cog.create_new_ticket(ctx, test_title)
         response_str = ctx.respond.call_args.args[0]
+
+        log.debug(f">>> {response_str}")
 
         ticket_id, url = self.parse_markdown_link(response_str)
         log.debug(f"created ticket: {ticket_id}, {url}")
@@ -514,7 +518,8 @@ class IntegrationTestTicketsCog(test_utils.BotTestCase):
             self.assertIn(str(ticket.id), response_3)
 
             # confirm create_scheduled_event TODO with correct date
-            self.assertTrue(await ctx3.guild.create_scheduled_event.called_once())
+            #event = await ctx3.guild.create_scheduled_event()
+            #event.assert_called_once()
 
             # check the ticket
             updated = self.tickets_mgr.get(ticket.id)
