@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 CHANNEL_MAPPING = {
     "intake": "External-Comms-Intake",
     "admin-team": "Admin",
-    "outreach": "Comms",
+    "outreach": "Outreach",
     "routing-and-infrastructure": "Infra-Config",
     "installs": "Infra-Field",
     "network-software": "Software-Dev",
@@ -33,7 +33,8 @@ CHANNEL_MAPPING = {
 TEAM_MAPPING = {
     "intake": "intake-team",
     "admin-team": "admin-team",
-    "outreach": "comms-team",
+    "outreach": "outreach-team",
+    "mutual-aid": "mutual-aid-team",
     "routing-and-infrastructure": "infra-config-team",
     "installs": "infra-field-team",
     "network-software": "software-dev-team",
