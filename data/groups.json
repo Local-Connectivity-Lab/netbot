@@ -9,10 +9,6 @@
         "name": "blocked"
       },
       {
-        "id": 34,
-        "name": "comms-team"
-      },
-      {
         "id": 650,
         "name": "infra-config-team"
       },
@@ -25,12 +21,24 @@
         "name": "intake-team"
       },
       {
+        "id": 916,
+        "name": "mutual-aid-team"
+      },
+      {
+        "id": 34,
+        "name": "outreach-team"
+      },
+      {
+        "id": 917,
+        "name": "scn-space-member"
+      },
+      {
         "id": 30,
         "name": "software-dev-team"
       },
       {
         "id": 2280,
-        "name": "uw-research-nsf-team"
+        "name": "uw-research-team"
       }
     ]
-  }
+}
