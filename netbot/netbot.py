@@ -23,10 +23,13 @@ log = logging.getLogger(__name__)
 CHANNEL_MAPPING = {
     "intake": "External-Comms-Intake",
     "admin-team": "Admin",
-    "outreach": "Outreach",
+    "outreach": "Outreach-Partnerships",
+    "mutual-aid": "Mutual-Aid-Action",
     "routing-and-infrastructure": "Infra-Config",
     "installs": "Infra-Field",
+    "repairs": "Infra-Field",
     "network-software": "Software-Dev",
+    "scn-space": "SCN-Space",
     "uw-research-nsf": "Research",
 }
 
@@ -37,8 +40,10 @@ TEAM_MAPPING = {
     "mutual-aid": "mutual-aid-team",
     "routing-and-infrastructure": "infra-config-team",
     "installs": "infra-field-team",
+    "repairs": "infra-field-team",
     "network-software": "software-dev-team",
-    "uw-research-nsf": "uw-research-nsf-team",
+    "scn-space": "scn-space-member",
+    "uw-research-nsf": "uw-research-team",
 }
 
 FALLBACK_TEAM = "admin-team"
