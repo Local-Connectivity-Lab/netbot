@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.11.12",
     "audioop",
+    "audioop-tls",
     "dateparser>=1.2.1",
     "discord>=2.3.2",
     "humanize>=4.12.0",

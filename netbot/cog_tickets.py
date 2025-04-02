@@ -45,15 +45,17 @@ def get_priorities(ctx: discord.AutocompleteContext):
 
 class PrioritySelect(discord.ui.Select):
     """Popup menu to select ticket priority"""
-    def __init__(self, bot_: discord.Bot):
+    def __init__(self, bot: discord.Bot):
         # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
         # Alternatively you can use Interaction.client, so you don't need to pass the bot instance.
-        self.bot = bot_
+        self.bot = bot
+        self.value = None
 
         # Get the possible priorities
         options = []
-        for priority in self.bot.redmine.ticket_mgr.get_priorities():
-            options.append(discord.SelectOption(label=priority['name'], default=priority['is_default']))
+        priorities = bot.redmine.ticket_mgr.get_priorities()
+        for name in priorities.keys():
+            options.append(discord.SelectOption(label=name, default=(name=="Normal")))
 
         # The placeholder is what will be shown when no option is selected.
         # The min and max values indicate we can only pick one of the three options.
@@ -70,8 +72,9 @@ class PrioritySelect(discord.ui.Select):
         # Select object, and the values attribute gets a list of the user's
         # selected options. We only want the first one.
         log.info(f"{interaction.user} {interaction.data}")
+        self.value = self.bot.redmine.ticket_mgr.get_priority(self.values[0])
         await interaction.response.send_message(
-            f"PrioritySelect.callback() - selected priority {self.values[0]}"
+            f"PrioritySelect.callback() - selected priority: {self.value}"
         )
 
 
@@ -81,11 +84,13 @@ class TrackerSelect(discord.ui.Select):
         # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
         # Alternatively you can use Interaction.client, so you don't need to pass the bot instance.
         self.bot = bot_
+        self.value = None
 
         # Get the possible trackers
         options = []
-        for tracker in self.bot.redmine.ticket_mgr.get_trackers():
-            options.append(discord.SelectOption(label=tracker['name']))
+        trackers = self.bot.redmine.ticket_mgr.get_trackers()
+        for name in trackers.keys():
+            options.append(discord.SelectOption(label=name))
 
         # The placeholder is what will be shown when no option is selected.
         # The min and max values indicate we can only pick one of the three options.
@@ -103,8 +108,9 @@ class TrackerSelect(discord.ui.Select):
         # Select object, and the values attribute gets a list of the user's
         # selected options. We only want the first one.
         log.info(f"{interaction.user} {interaction.data}")
+        self.value = self.bot.redmine.ticket_mgr.get_tracker(self.values[0])
         await interaction.response.send_message(
-            f"TrackerSelect.callback() - selected tracker {self.values[0]}"
+            f"TrackerSelect.callback() - selected tracker: {self.value}"
         )
 
 

@@ -606,20 +606,35 @@ class TicketManager():
     def get_updated_field(self, ticket) -> dt.datetime:
         return synctime.parse_str(ticket.updated_on)
 
+    def next_intake(self) -> Ticket:
+        """Based on age, get the nxt ticket that requires intake"""
+        # http://localhost/projects/scn/issues?query_id=14&sort=updated_on%2Cpriority%3Adesc%2Cid%3Adesc
+        # http://localhost/projects/scn/issues?
+        # set_filter=1&
+        # sort=id:desc&f[]=status_id&op[status_id]=o&f[]=tracker_id&op[tracker_id]==&v[tracker_id][]=8&f[]=&c[]=tracker&c[]=status&c[]=priority&c[]=subject&c[]=assigned_to&c[]=updated_on&group_by=&t[]=
+        # /issues.json?tracker_id=1
 
+        tracker = self.get_tracker("External-Comms-Intake")
+
+        tickets = self.tickets(tracker=tracker.id, limit=1, sort="updated_on")
+        if tickets and len(tickets) > 0:
+            return tickets[0]
+
+
+    # outdated. REMOVE
     # NOTE: This implies that ticket should be a full object with methods.
     # Starting to move fields out to their own methods, to eventually move to
     # their own Ticket class.
-    def get_field(self, ticket:Ticket, fieldname:str) -> str:
-        try:
-            match fieldname:
-                case "url":
-                    return f"{self.url}/issues/{ticket.id}"
-                case "link":
-                    return f"[{ticket.id}]({self.url}/issues/{ticket.id})"
-                case "updated":
-                    return str(ticket.updated_on) # formatted string, or dt?
-                case _:
-                    return str(ticket.get_field(fieldname))
-        except AttributeError:
-            return None
+    # def get_field(self, ticket:Ticket, fieldname:str) -> str:
+    #     try:
+    #         match fieldname:
+    #             case "url":
+    #                 return f"{self.url}/issues/{ticket.id}"
+    #             case "link":
+    #                 return f"[{ticket.id}]({self.url}/issues/{ticket.id})"
+    #             case "updated":
+    #                 return str(ticket.updated_on) # formatted string, or dt?
+    #             case _:
+    #                 return str(ticket.get_field(fieldname))
+    #     except AttributeError:
+    #         return None

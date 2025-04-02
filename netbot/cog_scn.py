@@ -4,14 +4,17 @@ import logging
 
 import discord
 
+from discord.ui.input_text import InputText, InputTextStyle
 from discord.commands import option, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import basic_autocomplete
 
-from redmine.model import Message, User
+from redmine.model import Message, User, Ticket
 from redmine.redmine import Client, BLOCKED_TEAM_NAME
 
 from netbot.netbot import NetBot, default_ticket
+from netbot.cog_tickets import TrackerSelect, PrioritySelect
+
 
 log = logging.getLogger(__name__)
 
@@ -27,6 +30,7 @@ log = logging.getLogger(__name__)
 def setup(bot):
     bot.add_cog(SCNCog(bot))
     log.info("initialized SCN cog")
+
 
 class NewUserModal(discord.ui.Modal):
     """modal dialog to collect new user info"""
@@ -110,38 +114,54 @@ class ApproveUserView(discord.ui.View):
         await interaction.response.send_message(f"ApproveUserView: {interaction}")
 
 
-# FIXME Not yet implemented
 class IntakeView(discord.ui.View):
-    """Perform intake"""
+    """View to perform intake process"""
     # to build, need:
     # - list of trackers
     # - list or priorities
     # - ticket subject
     # - from email
     # build intake view
-    # 1. Assign: (popup with potential assignments)
-    # 2. Priority: (popup with priorities)
+    # 1. Assign: (popup with tracker)
+    # #2. Priority: (popup with priorities)
     # 3. (Reject) Subject
     # 4. (Block) email-addr
-    def __init__(self, bot_: discord.Bot) -> None:
-        self.bot = bot_
+    def __init__(self, bot: discord.Bot, ticket: Ticket) -> None:
+        self.bot = bot
+        self.ticket = ticket
+        self.tracker = None
+        self.priority = None
+
         super().__init__()
 
-        # Adds the dropdown to our View object
-        #self.add_item(PrioritySelect(self.bot))
-        #self.add_item(discord.ui.InputText(label="Subject", row=1))
-        #self.add_item(TrackerSelect(self.bot))
+        #self.add_item(InputText(label="Subject", value=ticket.subject))
+        #self.add_item(InputText(label="Description", style=InputTextStyle.paragraph, value=ticket.description))
 
+        self.priSelect = PrioritySelect(self.bot)
+        self.add_item(self.priSelect)
+        self.trackSelect = TrackerSelect(self.bot)
+        self.add_item(self.trackSelect)
 
-        self.add_item(discord.ui.Button(label="Assign", row=4))
-        self.add_item(discord.ui.Button(label="Reject ticket subject", row=4))
-        self.add_item(discord.ui.Button(label="Block email@address.com", row=4))
 
     async def select_callback(self, select, interaction): # the function called when the user is done selecting options
         await interaction.response.send_message(f"IntakeView.select_callback() selected: {select.values[0]}")
 
+    @discord.ui.button(label="Assign", row=4)
+    async def assign_callback(self, button, interaction):
+        priority = self.priSelect.value
+        tracker = self.trackSelect.value
+        await interaction.response.send_message(f"IntakeView.assign_callback(): {priority}, {tracker}")
+
+    @discord.ui.button(label="Reject", row=4)
+    async def reject_callback(self, button, interaction):
+        await interaction.response.send_message(f"IntakeView.button_callback(): {button}, {interaction}")
+
+    @discord.ui.button(label="Block", row=4)
+    async def block_callback(self, button, interaction):
+        await interaction.response.send_message(f"IntakeView.button_callback(): {button}, {interaction}")
+
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f"IntakeView.allback() {interaction.data}")
+        await interaction.response.send_message(f"IntakeView.callback() {interaction.data}")
 
 
 class SCNCog(commands.Cog):
@@ -305,11 +325,13 @@ class SCNCog(commands.Cog):
             await ctx.respond(buff[:2000]) # truncate!
 
 
-    #@scn.command()
-    #async def intake(self, ctx:discord.ApplicationContext):
-    #    """perform intake"""
-    #    # check team? admin?, provide reasonable error msg.
-    #    await ctx.respond("INTAKE #{ticket.id}", view=IntakeView(self.bot))
+    @scn.command(description="Perform intake on the next incoming ticket")
+    async def intake(self, ctx:discord.ApplicationContext):
+        """perform intake"""
+        # check team? admin?, provide reasonable error msg.
+        ticket = self.bot.redmine.ticket_mgr.next_intake()
+        link = self.bot.formatter.ticket_link(ctx, ticket.id)
+        await ctx.respond(f"Intake {link}", view=IntakeView(self.bot, ticket))
 
 
     @scn.command(description="list all open epics")
