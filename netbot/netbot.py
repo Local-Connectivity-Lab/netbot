@@ -74,9 +74,10 @@ class NetBot(commands.Bot):
         self.lock = asyncio.Lock()
         self.ticket_locks = {}
 
-        self.formatter = DiscordFormatter(client.url)
-
         self.redmine = client
+
+        self.formatter = DiscordFormatter(self.redmine.url)
+
         #guilds = os.getenv('DISCORD_GUILDS').split(', ')
         #if guilds:
         #    log.info(f"setting guilds: {guilds}")
@@ -104,7 +105,11 @@ class NetBot(commands.Bot):
         self.sync_all_threads.start() # pylint: disable=no-member
 
         # start the expriation checker
-        ### FIXME self.check_expired_tickets.start() # pylint: disable=no-member
+        ### FIXME self.check_expired_tickets.start()
+
+        # initialize the formatter, once the guilds have been configured
+        self.formatter.post_setup(self.guilds)
+
         log.debug(f"Initialized with {self.redmine}")
 
 

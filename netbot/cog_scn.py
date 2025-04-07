@@ -4,12 +4,12 @@ import logging
 
 import discord
 
-from discord.ui.input_text import InputText, InputTextStyle
+#from discord.ui.input_text import InputText, InputTextStyle
 from discord.commands import option, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import basic_autocomplete
 
-from redmine.model import Message, User, Ticket
+from redmine.model import Message, User, Ticket #, NamedId
 from redmine.redmine import Client, BLOCKED_TEAM_NAME
 
 from netbot.netbot import NetBot, default_ticket
@@ -126,31 +126,47 @@ class IntakeView(discord.ui.View):
     # #2. Priority: (popup with priorities)
     # 3. (Reject) Subject
     # 4. (Block) email-addr
-    def __init__(self, bot: discord.Bot, ticket: Ticket) -> None:
+    def __init__(self, bot: discord.Bot, ticket: Ticket, *args, **kwargs) -> None:
         self.bot = bot
         self.ticket = ticket
-        self.tracker = None
-        self.priority = None
 
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
         #self.add_item(InputText(label="Subject", value=ticket.subject))
         #self.add_item(InputText(label="Description", style=InputTextStyle.paragraph, value=ticket.description))
 
-        self.priSelect = PrioritySelect(self.bot)
-        self.add_item(self.priSelect)
-        self.trackSelect = TrackerSelect(self.bot)
-        self.add_item(self.trackSelect)
+        self.select_priority = PrioritySelect(self.bot)
+        self.add_item(self.select_priority)
+        self.select_tracker = TrackerSelect(self.bot)
+        self.add_item(self.select_tracker)
 
 
     async def select_callback(self, select, interaction): # the function called when the user is done selecting options
         await interaction.response.send_message(f"IntakeView.select_callback() selected: {select.values[0]}")
 
+
     @discord.ui.button(label="Assign", row=4)
-    async def assign_callback(self, button, interaction):
-        priority = self.priSelect.value
-        tracker = self.trackSelect.value
-        await interaction.response.send_message(f"IntakeView.assign_callback(): {priority}, {tracker}")
+    async def assign_callback(self, _, interaction):
+        # validate user
+        user = self.bot.redmine.user_mgr.find_discord_user(interaction.user.name)
+        if not user:
+            await interaction.respond(f"ERROR: Discord user without redmine config: {interaction.user.name}.")
+            return
+
+        # get team for tracker
+        team = self.bot.team_for_tracker(self.select_tracker.value)
+
+        fields = {
+            "tracker_id": self.select_tracker.value.id,
+            "priority_id": self.select_priority.value.id,
+            "assigned_to_id": team.id,
+        }
+        updated = self.bot.redmine.ticket_mgr.update(self.ticket.id, fields, user.login)
+        ticket_link = self.bot.formatter.redmine_link(self.ticket)
+        await interaction.respond(
+            f"Intake complete for {ticket_link}: {updated.subject}",
+            embed=self.bot.formatter.ticket_embed(self.bot.redmine.user_mgr, updated))
+
 
     @discord.ui.button(label="Reject", row=4)
     async def reject_callback(self, button, interaction):
@@ -159,9 +175,6 @@ class IntakeView(discord.ui.View):
     @discord.ui.button(label="Block", row=4)
     async def block_callback(self, button, interaction):
         await interaction.response.send_message(f"IntakeView.button_callback(): {button}, {interaction}")
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f"IntakeView.callback() {interaction.data}")
 
 
 class SCNCog(commands.Cog):
@@ -330,7 +343,7 @@ class SCNCog(commands.Cog):
         """perform intake"""
         # check team? admin?, provide reasonable error msg.
         ticket = self.bot.redmine.ticket_mgr.next_intake()
-        link = self.bot.formatter.ticket_link(ctx, ticket.id)
+        link = self.bot.formatter.ticket_link(ticket.id)
         await ctx.respond(f"Intake {link}", view=IntakeView(self.bot, ticket))
 
 

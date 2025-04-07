@@ -43,19 +43,21 @@ def get_priorities(ctx: discord.AutocompleteContext):
     return [priority for priority in priorities.keys() if priority.lower().startswith(ctx.value.lower())]
 
 
+DEFAULT_PRIORITY = "Normal"
+
 class PrioritySelect(discord.ui.Select):
     """Popup menu to select ticket priority"""
     def __init__(self, bot: discord.Bot):
         # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
         # Alternatively you can use Interaction.client, so you don't need to pass the bot instance.
         self.bot = bot
-        self.value = None
+        self.value = self.bot.redmine.ticket_mgr.get_priority(DEFAULT_PRIORITY)
 
         # Get the possible priorities
         options = []
         priorities = bot.redmine.ticket_mgr.get_priorities()
         for name in priorities.keys():
-            options.append(discord.SelectOption(label=name, default=(name=="Normal")))
+            options.append(discord.SelectOption(label=name, default=name==DEFAULT_PRIORITY))
 
         # The placeholder is what will be shown when no option is selected.
         # The min and max values indicate we can only pick one of the three options.
@@ -71,11 +73,10 @@ class PrioritySelect(discord.ui.Select):
         # the user's favourite colour or choice. The self object refers to the
         # Select object, and the values attribute gets a list of the user's
         # selected options. We only want the first one.
-        log.info(f"{interaction.user} {interaction.data}")
+
         self.value = self.bot.redmine.ticket_mgr.get_priority(self.values[0])
-        await interaction.response.send_message(
-            f"PrioritySelect.callback() - selected priority: {self.value}"
-        )
+        log.debug(f"{interaction} {self.value}")
+        await interaction.respond(f"{interaction.user.name} {self.value}")
 
 
 class TrackerSelect(discord.ui.Select):
@@ -107,19 +108,17 @@ class TrackerSelect(discord.ui.Select):
         # the user's favourite colour or choice. The self object refers to the
         # Select object, and the values attribute gets a list of the user's
         # selected options. We only want the first one.
-        log.info(f"{interaction.user} {interaction.data}")
         self.value = self.bot.redmine.ticket_mgr.get_tracker(self.values[0])
-        await interaction.response.send_message(
-            f"TrackerSelect.callback() - selected tracker: {self.value}"
-        )
+        log.debug(f"{interaction} {self.value}")
+        await interaction.respond(f"{interaction.user.name} {self.value}")
 
 
 class SubjectEdit(discord.ui.InputText, Item[V]):
     """Popup menu to select ticket tracker"""
-    def __init__(self, bot_: discord.Bot, ticket: Ticket):
+    def __init__(self, bot: discord.Bot, ticket: Ticket):
         # For example, you can use self.bot to retrieve a user or perform other functions in the callback.
         # Alternatively you can use Interaction.client, so you don't need to pass the bot instance.
-        self.bot = bot_
+        self.bot = bot
         self.ticket = ticket
 
         # Get the possible trackers
@@ -378,7 +377,7 @@ class TicketsCog(commands.Cog):
             ticket_link = self.bot.formatter.redmine_link(ticket)
             await ctx.respond(
                 f"Updated {ticket_link}, status: {ticket.status} -> {updated.status}",
-                embed=self.bot.formatter.ticket_embed(ctx, updated))
+                embed=self.bot.formatter.ticket_embed(self.bot.redmine.user_mgr, updated))
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 
@@ -405,7 +404,7 @@ class TicketsCog(commands.Cog):
             ticket_link = self.bot.formatter.redmine_link(ticket)
             await ctx.respond(
                 f"Updated {ticket_link}, owner: {updated.assigned}, status: {updated.status}",
-                embed=self.bot.formatter.ticket_embed(ctx, updated))
+                embed=self.bot.formatter.ticket_embed(self.bot.redmine.user_mgr, updated))
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 
@@ -574,7 +573,7 @@ class TicketsCog(commands.Cog):
 
             await ctx.respond(
                 f"Updated tracker of {ticket_link}: {ticket.tracker} -> {updated.tracker}",
-                embed=self.bot.formatter.ticket_embed(ctx, updated))
+                embed=self.bot.formatter.ticket_embed(self.bot.redmine.user_mgr, updated))
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
 
@@ -601,7 +600,7 @@ class TicketsCog(commands.Cog):
             ticket_link = self.bot.formatter.redmine_link(ticket)
             await ctx.respond(
                 f"Updated priority of {ticket_link}: {ticket.priority} -> {updated.priority}",
-                embed=self.bot.formatter.ticket_embed(ctx, updated))
+                embed=self.bot.formatter.ticket_embed(self.bot.redmine.user_mgr, updated))
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
 
@@ -628,7 +627,7 @@ class TicketsCog(commands.Cog):
         ticket_link = self.bot.formatter.redmine_link(ticket)
         await ctx.respond(
             f"Updated subject of {ticket_link} to: {updated.subject}",
-            embed=self.bot.formatter.ticket_embed(ctx, updated))
+            embed=self.bot.formatter.ticket_embed(self.bot.redmine.user_mgr, updated))
 
 
     async def find_event_for_ticket(self, ctx: discord.ApplicationContext, ticket_id:int) -> ScheduledEvent:
@@ -743,7 +742,7 @@ class TicketsCog(commands.Cog):
         parent_link = self.bot.formatter.redmine_link(parent)
         await ctx.respond(
             f"Updated parent of {ticket_link} -> {parent_link}",
-            embed=self.bot.formatter.ticket_embed(ctx, updated))
+            embed=self.bot.formatter.ticket_embed(self.bot.redmine.user_mgr, updated))
 
 
     @ticket.command(name="help", description="Display hepl about ticket management")

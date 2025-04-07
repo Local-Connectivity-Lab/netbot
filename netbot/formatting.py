@@ -6,6 +6,8 @@ import logging
 import discord
 
 from redmine.model import NamedId, Ticket, User
+from redmine.users import UserManager
+
 from redmine import synctime
 
 log = logging.getLogger(__name__)
@@ -59,6 +61,32 @@ class DiscordFormatter():
     """
     def __init__(self, url: str):
         self.base_url = url
+        self.guilds: list[discord.Guild] = None
+
+
+    def post_setup(self, guilds: list[discord.Guild]):
+        log.info(f"@@@@ Updating guilds: {guilds}")
+        self.guilds = guilds
+
+
+    def get_role_by_name(self, role_name: str) -> discord.Role:
+        # Noting: "guild" maps to discord server, and the API is designed to run on many "Discord servers" concurrently
+        for guild in self.guilds:
+            for role in guild.roles:
+                if role_name == role.name:
+                    return role
+
+
+    def find_ticket_thread(self, ticket_id:int) -> discord.Thread|None:
+        """Search thru thread titles looking for a matching ticket ID"""
+        # search thru all threads for:
+        title_prefix = f"Ticket #{ticket_id}"
+        for guild in self.guilds:
+            for thread in guild.threads:
+                if thread.name.startswith(title_prefix):
+                    return thread
+
+        return None # not found
 
 
     async def print_tickets(self, title:str, tickets:list[Ticket], ctx:discord.ApplicationContext):
@@ -74,7 +102,7 @@ class DiscordFormatter():
 
 
     async def print_ticket(self, ticket, ctx:discord.ApplicationContext):
-        await ctx.respond(embed=self.ticket_embed(ctx, ticket))
+        await ctx.respond(embed=self.ticket_embed(ctx.bot.redmine.user_mgr, ticket))
 
 
     def format_registered_users(self, users: list[User]) -> str:
@@ -136,19 +164,19 @@ class DiscordFormatter():
         return f"[`#{ticket.id}`]({self.base_url}/issues/{ticket.id})"
 
 
-    def discord_link(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
-        thread = ctx.bot.find_ticket_thread(ticket.id)
+    def discord_link(self, ticket:Ticket) -> str:
+        thread = self.find_ticket_thread(ticket.id)
         if thread:
             return thread.jump_url
 
 
-    def ticket_link(self, ctx: discord.ApplicationContext, ticket_id:int) -> str:
+    def ticket_link(self, ticket_id:int) -> str:
         """Given a ticket ID, construct a link for the ticket, first looking for related Discord thread"""
         # handle none context gracefully
-        if ctx:
-            thread = ctx.bot.find_ticket_thread(ticket_id)
-            if thread:
-                return thread.jump_url
+        thread = self.find_ticket_thread(ticket_id)
+        if thread:
+            return thread.jump_url
+
         # didn't find context or ticket
         return f"[`#{ticket_id}`]({self.base_url}/issues/{ticket_id})"
 
@@ -186,12 +214,12 @@ class DiscordFormatter():
         return f"`{link_padding}`{link}` {status} {priority}  {age:<10} {assigned:<18} `{ticket.subject[:60]}"
 
 
-    def format_subticket(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
+    def format_subticket(self, ticket:Ticket) -> str:
         if ticket.status and ticket.status.is_closed:
             # if the ticket is closed, remove the link and add strikeout
             return f"~~{ticket.id} - {ticket.subject}~~"
         else:
-            thread_url = self.discord_link(ctx, ticket)
+            thread_url = self.discord_link(ticket)
             if thread_url:
                 return thread_url
             else:
@@ -293,36 +321,35 @@ class DiscordFormatter():
         return None
 
 
-    def get_user_id(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
+    def get_user_id(self, user_mgr: UserManager, ticket:Ticket) -> str:
         if ticket is None or ticket.assigned_to is None:
             return ""
 
-        user_str = self.format_discord_member(ctx, ticket.assigned_to.id)
+        user = user_mgr.get(ticket.assigned_to.id) # call to cache
+        user_str = self.format_discord_member(user)
         if not user_str:
             user_str = ticket.assigned_to.name
 
         return user_str
 
 
-    def format_discord_member(self, ctx: discord.ApplicationContext, user_id:int) -> str:
-        user = ctx.bot.redmine.user_mgr.get(user_id) # call to cache
-        if user and user.discord_id:
+    def format_discord_member(self, user: User) -> str:
+        if user.discord_id:
             return f"<@!{user.discord_id.id}>"
-        if user:
+        else:
             return user.name
-        return ""
 
 
-    def format_collaborators(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
+    def format_collaborators(self, user_mgr: UserManager, ticket:Ticket) -> str:
         if not ticket.watchers:
             return ""
         if len(ticket.watchers) > 1:
-            return ",".join([self.format_discord_member(ctx, watcher.id) for watcher in ticket.watchers])
+            return ",".join([self.format_discord_member(user_mgr.get(watcher.id)) for watcher in ticket.watchers])
 
-        return self.format_discord_member(ctx, ticket.watchers[0].id)
+        return self.format_discord_member(user_mgr.get(ticket.watchers[0].id))
 
 
-    def ticket_embed(self, ctx: discord.ApplicationContext, ticket:Ticket) -> discord.Embed:
+    def ticket_embed(self, user_manager: UserManager, ticket:Ticket) -> discord.Embed:
         """Build an embed panel with full ticket details"""
         subject = f"{get_emoji(ticket.priority.name)} {ticket.subject[:EMBED_TITLE_LEN-8]} (#{ticket.id})"
         embed = discord.Embed(
@@ -341,23 +368,23 @@ class DiscordFormatter():
             embed.add_field(name="Category", value=ticket.category)
 
         if ticket.assigned_to:
-            embed.add_field(name="Owner", value=self.get_user_id(ctx, ticket))
+            embed.add_field(name="Owner", value=self.get_user_id(user_manager, ticket))
 
         if ticket.watchers:
-            embed.add_field(name="Collaborators", value=self.format_collaborators(ctx, ticket))
+            embed.add_field(name="Collaborators", value=self.format_collaborators(user_manager, ticket))
 
         if ticket.parent:
-            embed.add_field(name="Parent", value=self.ticket_link(ctx, ticket.parent.id))
+            embed.add_field(name="Parent", value=self.ticket_link(ticket.parent.id))
 
         # list the sub-tickets
         if ticket.children:
             buff = ""
             for child in ticket.children:
-                buff += "- " + self.format_subticket(ctx, child) + "\n"
+                buff += "- " + self.format_subticket(child) + "\n"
             embed.add_field(name="Tickets", value=buff, inline=False)
 
         # thread & redmine links
-        jump_url = self.discord_link(ctx, ticket)
+        jump_url = self.discord_link(ticket)
         if jump_url:
             embed.add_field(name="Thread", value=jump_url)
         else:
@@ -388,11 +415,11 @@ class DiscordFormatter():
             if epic.children:
                 buff = ""
                 for child in epic.children:
-                    buff += "- " + self.format_subticket(ctx, child) + "\n"
+                    buff += "- " + self.format_subticket(child) + "\n"
                 embed.add_field(name="", value=buff, inline=False)
 
             # thread & redmine links
-            jump_url = self.discord_link(ctx, epic)
+            jump_url = self.discord_link(epic)
             if jump_url:
                 embed.add_field(name="Thread", value=jump_url)
             else:
