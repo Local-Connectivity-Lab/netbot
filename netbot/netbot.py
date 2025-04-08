@@ -2,12 +2,10 @@
 """netbot"""
 
 import os
-import sys
 import re
 import logging
 import asyncio
 import discord
-from dotenv import load_dotenv
 from discord.ext import commands, tasks
 
 from redmine.model import TicketNote, Ticket, NamedId, Team
@@ -514,51 +512,3 @@ class NetBot(commands.Bot):
 
         # auth role not found
         return False
-
-
-def main():
-    """netbot main function"""
-    log.info(f"loading .env for {__name__}")
-    load_dotenv()
-
-    client = Client.fromenv()
-    bot = NetBot(client)
-
-    for arg in sys.argv:
-        if arg.lower() == "sync-off":
-            log.info("Disabling ticket sync, due to 'sync-off' param")
-            bot.run_sync = False
-
-    # register cogs
-    bot.load_extension("netbot.cog_scn")
-    bot.load_extension("netbot.cog_tickets")
-
-    # sanity check!
-    client.sanity_check()
-
-    # run the bot
-    bot.run_bot()
-
-
-def setup_logging():
-    """set up logging for netbot"""
-    log_level = logging.INFO
-    # check args. cheap, I know.
-    for arg in sys.argv:
-        if arg.lower() == "debug":
-            log_level = logging.DEBUG
-
-    logging.basicConfig(level=log_level,
-                        format="{asctime} {levelname:<8s} {name:<16} {message}",
-                        style='{')
-    logging.getLogger("discord.gateway").setLevel(logging.WARNING)
-    logging.getLogger("discord.http").setLevel(logging.WARNING)
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
-    logging.getLogger("discord.client").setLevel(logging.WARNING)
-    logging.getLogger("discord.webhook.async_").setLevel(logging.WARNING)
-
-    log.debug("log level set to debug")
-
-if __name__ == '__main__':
-    setup_logging()
-    main()

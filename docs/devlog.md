@@ -1,5 +1,9 @@
 # Netbot Development Log
 
+## 2025-04-07
+
+Major pivot to `uv`.
+
 ## 2025-01-30
 
 When deploying the lastest, found a problem with certain emails. The regex used to strip Fordarded emails contains the "match everything" wildcard. Except `.*` does not match new-lines.

@@ -62,13 +62,10 @@ class DiscordFormatter():
     def __init__(self, url: str):
         self.base_url = url
         self.guilds: list[discord.Guild] = None
-        log.info(f">>>> CREATING: {self}")
 
 
     def post_setup(self, guilds: list[discord.Guild]):
-        log.info(f"@@@@ Updating guilds: {guilds}")
         self.guilds = guilds
-        log.info(f">>>> AFTER guilds: {self.guilds} {self}")
 
 
     def get_role_by_name(self, role_name: str) -> discord.Role:
@@ -83,9 +80,6 @@ class DiscordFormatter():
         """Search thru thread titles looking for a matching ticket ID"""
         # search thru all threads for:
         title_prefix = f"Ticket #{ticket_id}"
-
-        log.info(f"T>T>T> guilds: {self.guilds} {self}")
-
 
         for guild in self.guilds:
             for thread in guild.threads:

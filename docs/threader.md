@@ -39,12 +39,12 @@ sudo crontab -e
 
 and add the following entry to the bottom, to run the threader_job.sh every 5 minutes, and direct the output to system logging with the tag `threader`:
 ```
-*/5 * * * * /home/scn/netbot/threader_job.sh | /usr/bin/logger -t threader
+*/5 * * * * uv run -project /home/scn/netbot threader | /usr/bin/logger -t threader
 ```
 
-Replace `/home/scn/netbot` above with the actual full path to the `threader_job.sh` script on the system.
+Replace `/home/scn/netbot` above with the actual full path to the `netbot` project.
 
-The `threader_job.sh` exists to make sure the `.env` file and the `venv` Python virtual environment are loaded to execute the `threader.py` code.
+`uv` is used to manage the virtual environment.
 
 All output to stdout and stderr captured and logged to syslog with the tag "threader".
 

@@ -136,6 +136,6 @@ To search for specific keyword 'xyz', combine that with `grep`:
 
 `docker logs netbot | grep xyz`
 
-To display the netbot logs to the console as they occur, the Unix [`tail`](https://en.wikipedia.org/wiki/Tail_(Unix)) command is handy:
+To display the netbot logs to the console as they occur:
 
-`docker logs netbot | tail -f`
+`docker logs netbot -f`

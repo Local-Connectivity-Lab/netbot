@@ -32,6 +32,34 @@ For deployment and operational details, see [Netbot Operation](docs/netbot.md).
 
 
 ## Development
+
+`netbot` has been updated to run with standard [`uv`](https://docs.astral.sh/uv/) commands.
+
+To set up a development envrionment, after installing [`uv`](https://docs.astral.sh/uv/getting-started/installation/):
+```sh
+git clone https://github.com/Local-Connectivity-Lab/netbot
+cd netbot
+uv run tests
+```
+
+Specific commands have been added for uv:
+- `uv run netbot` : run `netbot`
+- `uv run threader` : run the email `threader`
+- `uv run tests` : run the test suite
+
+The email threader can be run from a system crontab job with:
+```sh
+uv run --project /home/scn/netbot threader
+```
+
+```
+sudo crontab -e
+
+# add the following line
+*/5 * * * * uv run --project /home/scn/netbot threader | /usr/bin/logger -t threader
+```
+
+### Old (but still supported)
 A `Makefile` is provided with the following targets:
 - `venv`     : build a Python virtual environment ("venv")
 - `run`      : run netbot
