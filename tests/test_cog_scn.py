@@ -28,6 +28,7 @@ class TestSCNCog(test_utils.BotTestCase):
         super().setUp()
         self.bot = NetBot(self.redmine)
         self.bot.load_extension("netbot.cog_scn")
+        self.bot.formatter.post_setup(test_utils.mock_guilds())
         self.cog:SCNCog = self.bot.cogs["SCNCog"] # Note class name, note filename.
 
 

@@ -61,6 +61,7 @@ class TestTicketsCog(test_utils.MockBotTestCase):
         super().setUp()
         self.bot = NetBot(self.redmine)
         self.bot.load_extension("netbot.cog_tickets")
+        self.bot.formatter.post_setup(test_utils.mock_guilds())
         self.cog: TicketsCog = self.bot.cogs["TicketsCog"]
 
 
@@ -96,6 +97,7 @@ class IntegrationTestTicketsCog(test_utils.BotTestCase):
         super().setUp()
         self.bot: NetBot = NetBot(self.redmine)
         self.bot.load_extension("netbot.cog_tickets")
+        self.bot.formatter.post_setup(test_utils.mock_guilds())
         self.cog: TicketsCog = self.bot.cogs["TicketsCog"]
 
 
@@ -200,6 +202,8 @@ class IntegrationTestTicketsCog(test_utils.BotTestCase):
 
         # unassign the ticket
         ctx = self.build_context()
+
+
         await self.cog.unassign(ctx, ticket.id)
         embed = ctx.respond.call_args.kwargs['embed']
         self.assertIn(str(ticket.id), embed.title)

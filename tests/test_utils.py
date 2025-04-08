@@ -11,12 +11,15 @@ from unittest import mock
 
 import discord
 from discord import ApplicationContext
+
 from redmine.users import UserManager
 from redmine.model import Message, User, Ticket, TicketsResult
 from redmine.tickets import SCN_PROJECT_ID
 from redmine.session import RedmineSession
 from redmine.redmine import Client
 from netbot.netbot import NetBot
+from netbot.formatting import DiscordFormatter
+
 from tests.mock_session import MockSession
 
 
@@ -111,6 +114,13 @@ def mock_user(tag: str) -> User:
     )
 
 
+def mock_guilds() -> list[discord.Guild]:
+    guild = mock.AsyncMock(discord.Guild)
+    guild.id = 4309865428282864
+    guild.name = "Test Server"
+    return [guild]
+
+
 def mock_result(tickets: list[Ticket]) -> TicketsResult:
     return TicketsResult(len(tickets), 0, 25, tickets)
 
@@ -181,6 +191,9 @@ class MockRedmineTestCase(unittest.TestCase):
 
         ctx.respond = mock.AsyncMock()
 
+        ctx.bot.formatter = DiscordFormatter(self.redmine.url)
+        ctx.bot.formatter.post_setup(guilds=mock_guilds())
+
         return ctx
 
 
@@ -207,6 +220,7 @@ class MockBotTestCase(MockRedmineTestCase, unittest.IsolatedAsyncioTestCase):
         ctx.user.id = self.user.discord_id.id
         ctx.command = mock.AsyncMock(discord.ApplicationCommand)
         ctx.command.name = unittest.TestCase.id(self)
+
         return ctx
 
 
@@ -256,6 +270,9 @@ class BotTestCase(RedmineTestCase, unittest.IsolatedAsyncioTestCase):
         ctx.command.name = unittest.TestCase.id(self)
 
         ctx.respond = mock.AsyncMock()
+
+        ctx.bot.formatter = DiscordFormatter(self.redmine.url)
+        ctx.bot.formatter.post_setup(guilds=mock_guilds())
 
         return ctx
 

@@ -4,10 +4,11 @@ import logging
 
 import discord
 
-#from discord.ui.input_text import InputText, InputTextStyle
+from discord.ui.input_text import InputText
 from discord.commands import option, SlashCommandGroup
 from discord.ext import commands
 from discord.utils import basic_autocomplete
+from discord.enums import InputTextStyle
 
 from redmine.model import Message, User, Ticket #, NamedId
 from redmine.redmine import Client, BLOCKED_TEAM_NAME
@@ -114,7 +115,7 @@ class ApproveUserView(discord.ui.View):
         await interaction.response.send_message(f"ApproveUserView: {interaction}")
 
 
-class IntakeView(discord.ui.View):
+class IntakeModal(discord.ui.Modal):
     """View to perform intake process"""
     # to build, need:
     # - list of trackers
@@ -132,18 +133,16 @@ class IntakeView(discord.ui.View):
 
         super().__init__(*args, **kwargs)
 
-        #self.add_item(InputText(label="Subject", value=ticket.subject))
-        #self.add_item(InputText(label="Description", style=InputTextStyle.paragraph, value=ticket.description))
+        self.add_item(InputText(label="Subject", value=ticket.subject))
+        self.add_item(InputText(label="Description", style=InputTextStyle.paragraph, value=ticket.description[:3999])) # FIXME
 
         self.select_priority = PrioritySelect(self.bot)
         self.add_item(self.select_priority)
         self.select_tracker = TrackerSelect(self.bot)
         self.add_item(self.select_tracker)
 
-
-    async def select_callback(self, select, interaction): # the function called when the user is done selecting options
-        await interaction.response.send_message(f"IntakeView.select_callback() selected: {select.values[0]}")
-
+    #async def select_callback(self, select, interaction): # the function called when the user is done selecting options
+    #    await interaction.response.send_message(f"IntakeView.select_callback() selected: {select.values[0]}")
 
     @discord.ui.button(label="Assign", row=4)
     async def assign_callback(self, _, interaction):
@@ -163,9 +162,7 @@ class IntakeView(discord.ui.View):
         }
         updated = self.bot.redmine.ticket_mgr.update(self.ticket.id, fields, user.login)
         ticket_link = self.bot.formatter.redmine_link(self.ticket)
-        await interaction.respond(
-            f"Intake complete for {ticket_link}: {updated.subject}",
-            embed=self.bot.formatter.ticket_embed(self.bot.redmine.user_mgr, updated))
+        await interaction.respond(f"Intake complete for {ticket_link}: {updated.subject}")
 
 
     @discord.ui.button(label="Reject", row=4)
@@ -326,7 +323,7 @@ class SCNCog(commands.Cog):
         if teamname:
             team = self.redmine.user_mgr.cache.get_team_by_name(teamname)
             if team:
-                await ctx.respond(self.format_team(team))
+                await ctx.respond(self.bot.formatter.format_team(team))
             else:
                 await ctx.respond(f"Unknown team name: {teamname}") # error
         else:
@@ -334,7 +331,7 @@ class SCNCog(commands.Cog):
             teams = self.redmine.user_mgr.cache.get_teams()
             buff = ""
             for team in teams:
-                buff += self.format_team(team)
+                buff += self.bot.formatter.format_team(team)
             await ctx.respond(buff[:2000]) # truncate!
 
 
@@ -343,8 +340,9 @@ class SCNCog(commands.Cog):
         """perform intake"""
         # check team? admin?, provide reasonable error msg.
         ticket = self.bot.redmine.ticket_mgr.next_intake()
-        link = self.bot.formatter.ticket_link(ticket.id)
-        await ctx.respond(f"Intake {link}", view=IntakeView(self.bot, ticket))
+        #link = self.bot.formatter.ticket_link(ticket.id)
+        modal = IntakeModal(self.bot, ticket, title=f"Intake #{ticket.id}")
+        await ctx.respond(modal)
 
 
     @scn.command(description="list all open epics")
@@ -359,7 +357,7 @@ class SCNCog(commands.Cog):
     async def blocked(self, ctx:discord.ApplicationContext):
         team = self.redmine.user_mgr.cache.get_team_by_name(BLOCKED_TEAM_NAME)
         if team:
-            await ctx.respond(self.format_team(team))
+            await ctx.respond(self.bot.formatter.format_team(team))
         else:
             await ctx.respond(f"Expected team {BLOCKED_TEAM_NAME} not configured") # error
 
@@ -419,26 +417,3 @@ class SCNCog(commands.Cog):
 
         else:
             await ctx.respond("Must be authorized admin to approve Redmine users.")
-
-
-    ## FIXME move to DiscordFormatter
-
-    async def print_team(self, ctx, team):
-        msg = f"> **{team.name}**\n"
-        for user_rec in team.users:
-            #user = self.redmine.get_user(user_rec.id)
-            #discord_user = user.custom_fields[0].value or ""  # FIXME cf_* lookup
-            msg += f"{user_rec.name}, "
-            #msg += f"[{user.id}] **{user_rec.name}** {user.login} {user.mail} {user.custom_fields[0].value}\n"
-        msg = msg[:-2] + '\n\n'
-        await ctx.channel.send(msg)
-
-
-    def format_team(self, team) -> str:
-        # single line format: teamname: member1, member2
-        skip_teams = ["blocked", "users"]
-
-        if team and team.name not in skip_teams:
-            return f"**{team.name}**: {', '.join([user.name for user in team.users])}\n"
-        else:
-            return ""

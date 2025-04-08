@@ -62,11 +62,13 @@ class DiscordFormatter():
     def __init__(self, url: str):
         self.base_url = url
         self.guilds: list[discord.Guild] = None
+        log.info(f">>>> CREATING: {self}")
 
 
     def post_setup(self, guilds: list[discord.Guild]):
         log.info(f"@@@@ Updating guilds: {guilds}")
         self.guilds = guilds
+        log.info(f">>>> AFTER guilds: {self.guilds} {self}")
 
 
     def get_role_by_name(self, role_name: str) -> discord.Role:
@@ -81,6 +83,10 @@ class DiscordFormatter():
         """Search thru thread titles looking for a matching ticket ID"""
         # search thru all threads for:
         title_prefix = f"Ticket #{ticket_id}"
+
+        log.info(f"T>T>T> guilds: {self.guilds} {self}")
+
+
         for guild in self.guilds:
             for thread in guild.threads:
                 if thread.name.startswith(title_prefix):
@@ -347,6 +353,28 @@ class DiscordFormatter():
             return ",".join([self.format_discord_member(user_mgr.get(watcher.id)) for watcher in ticket.watchers])
 
         return self.format_discord_member(user_mgr.get(ticket.watchers[0].id))
+
+
+    # FIXME REMOVE
+    # async def print_team(self, ctx, team):
+    #     msg = f"> **{team.name}**\n"
+    #     for user_rec in team.users:
+    #         #user = self.redmine.get_user(user_rec.id)
+    #         #discord_user = user.custom_fields[0].value or ""  # FIXME cf_* lookup
+    #         msg += f"{user_rec.name}, "
+    #         #msg += f"[{user.id}] **{user_rec.name}** {user.login} {user.mail} {user.custom_fields[0].value}\n"
+    #     msg = msg[:-2] + '\n\n'
+    #     await ctx.channel.send(msg)
+
+
+    def format_team(self, team) -> str:
+        # single line format: teamname: member1, member2
+        skip_teams = ["blocked", "users"]
+
+        if team and team.name not in skip_teams:
+            return f"**{team.name}**: {', '.join([user.name for user in team.users])}\n"
+        else:
+            return ""
 
 
     def ticket_embed(self, user_manager: UserManager, ticket:Ticket) -> discord.Embed:
