@@ -53,7 +53,7 @@ class NewUserModal(discord.ui.Modal):
             return
 
         # create the mapping so it the discord user can be found
-        self.redmine.user_mgr.create_discord_mapping(user, interaction.user.name)
+        self.redmine.user_mgr.create_discord_mapping(user, interaction.user.id, interaction.user.name)
         log.debug(f"mapped discord new user: {interaction.user.name} -> {user.login}")
 
         embed = discord.Embed(title="Registered User")
