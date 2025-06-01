@@ -477,13 +477,18 @@ class TicketsCog(commands.Cog):
 
         # not in ticket thread, try tracker
         tracker = self.bot.tracker_for_channel(channel_name)
+        team = self.bot.team_for_tracker(tracker)
         if tracker:
             log.debug(f"found channel: {channel_name} => tracker: {tracker}")
-            ticket = self.redmine.ticket_mgr.create(user, message, tracker_id=tracker.id)
+            ticket = self.redmine.ticket_mgr.create(user, message, tracker_id=tracker.id, owner_id=team.id)
             await self.thread(ctx, ticket.id)
+            # FIXME notify in thread.
+            # TODO - extract discord thread creation,
+            # use to send notification for team/role
         else:
             # no parent or tracker
             log.debug(f"no parent ot tracker for {channel_name}")
+            # FIXME - tracker and team for "intake"
             ticket = self.redmine.ticket_mgr.create(user, message)
             await self.thread(ctx, ticket.id)
 
@@ -535,17 +540,16 @@ class TicketsCog(commands.Cog):
 
             # create the thread...
             thread = await self.create_thread(ticket, ctx)
-            url = thread.jump_url
 
             # update the discord flag on tickets, add a note with url of thread; thread.jump_url
             name = thread.name
-            note = f"Created Discord thread: {name}: {url}"
+            note = f"Created Discord thread: {name}: {thread.jump_url}"
             user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
             self.redmine.ticket_mgr.enable_discord_sync(ticket.id, user, note)
 
             # ticket-614: add ticket link to thread response
             log.info('CTX5 %s', vars(ctx))
-            await ctx.respond(f"Created new thread {url} for ticket {ticket_link}")
+            await ctx.respond(f"Created new thread {thread.jump_url} for ticket {ticket_link}")
         else:
             await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
 

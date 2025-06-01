@@ -105,6 +105,10 @@ class Client():
             return self.ticket_mgr.get_tracker(DEFAULT_TRACKER)
 
 
+    def get_default_tracker(self) -> NamedId:
+        return self.ticket_mgr.get_tracker(DEFAULT_TRACKER)
+
+
     def create_ticket(self, user:User, message:Message) -> Ticket:
         """
         This is a special case of ticket creation that manages blocked users

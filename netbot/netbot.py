@@ -46,7 +46,7 @@ TEAM_MAPPING = {
     "uw-research-nsf": "uw-research-team",
 }
 
-FALLBACK_TEAM = "admin-team"
+FALLBACK_TEAM = "intake-team"
 
 
 # utility method to get a list of (one) ticket from the title of the channel, or empty list
@@ -365,7 +365,11 @@ class NetBot(commands.Bot):
 
     def tracker_for_channel(self, channel:str) -> NamedId:
         tracker_name = CHANNEL_MAPPING.get(channel, None)
-        return self.redmine.ticket_mgr.get_tracker(tracker_name)
+        tracker =  self.redmine.ticket_mgr.get_tracker(tracker_name)
+        if tracker is None:
+            tracker = self.redmine.get_default_tracker()
+            log.info(f"No tracker found for channel: {channel}, tracker: {tracker_name}. Using default: {tracker}")
+        return tracker
 
 
     def channel_for_tracker(self, tracker: NamedId) -> discord.TextChannel:
@@ -377,6 +381,8 @@ class NetBot(commands.Bot):
     def team_for_tracker(self, tracker: NamedId) -> Team:
         """For a tracker, look up a team"""
         for channel_name, tracker_name in CHANNEL_MAPPING.items():
+            log.debug(f"{tracker} : {channel_name} ==> {tracker_name}")
+
             if tracker.name == tracker_name:
                 # lookup team from channel
                 team_name = TEAM_MAPPING.get(channel_name, None)
@@ -418,7 +424,7 @@ class NetBot(commands.Bot):
             await self.recycle_ticket(ticket)
 
 
-    #@tasks.loop(hours=24)
+    @tasks.loop(hours=24)
     async def run_daily_tasks(self):
         """Process dusty and recycled tickets.
         Expected to run every 24 hours to:
@@ -426,7 +432,7 @@ class NetBot(commands.Bot):
         - remind owners of dusty tickets
         for ticket-1608
         """
-        self.recycle_tickets()
+        await self.recycle_tickets()
         await self.remind_dusty_tickets()
 
 
@@ -535,9 +541,8 @@ def main():
     bot.run_bot()
 
 
-def setup_logging():
+def setup_logging(log_level = logging.INFO):
     """set up logging for netbot"""
-    log_level = logging.INFO
     # check args. cheap, I know.
     for arg in sys.argv:
         if arg.lower() == "debug":
