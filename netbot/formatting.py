@@ -277,6 +277,21 @@ class DiscordFormatter():
         return f"⚠️ {self.redmine_link(ticket)} {' '.join(ids_str)}: {msg}"
 
 
+    def format_roles_alert(self, role_ids: set[int], msg: str) -> str:
+        """
+        Format a message with Discord role IDs (ints):
+
+        <@&role_id>
+
+        Note that role_id must be looked up beforehand.
+
+        https://discord.com/developers/docs/reference#message-formatting
+        """
+        roles_str = [f"<@&{role}>" for role in role_ids]
+        log.debug(f"ids_str={roles_str}, role_ids={role_ids}")
+        return f"⚠️ {' '.join(roles_str)}: {msg}"
+
+
     def ticket_color(self, ticket:Ticket) -> discord.Color:
         """Get the default color associtated with a priority"""
         if ticket.status.is_closed:

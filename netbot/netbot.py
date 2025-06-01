@@ -100,11 +100,10 @@ class NetBot(commands.Bot):
         #log.info(f"Logged in as {self.user} (ID: {self.user.id})")
         #log.debug(f"bot: {self}, guilds: {self.guilds}")
 
-        # start the thread-syncer
-        self.sync_all_threads.start() # pylint: disable=no-member
+        # start the tasks running
+        self.sync_all_threads.start()
+        self.run_daily_tasks.start()
 
-        # start the expriation checker
-        ### FIXME self.check_expired_tickets.start() # pylint: disable=no-member
         log.debug(f"Initialized with {self.redmine}")
 
 
@@ -432,6 +431,10 @@ class NetBot(commands.Bot):
         - remind owners of dusty tickets
         for ticket-1608
         """
+        if not self.run_sync:
+            log.debug("SYNC disabled, skipping daily_tasks")
+            return
+
         await self.recycle_tickets()
         await self.remind_dusty_tickets()
 

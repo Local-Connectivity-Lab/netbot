@@ -478,19 +478,20 @@ class TicketsCog(commands.Cog):
         # not in ticket thread, try tracker
         tracker = self.bot.tracker_for_channel(channel_name)
         team = self.bot.team_for_tracker(tracker)
+        role = self.bot.get_role_by_name(team.name)
         if tracker:
-            log.debug(f"found channel: {channel_name} => tracker: {tracker}")
-            ticket = self.redmine.ticket_mgr.create(user, message, tracker_id=tracker.id, owner_id=team.id)
-            await self.thread(ctx, ticket.id)
-            # FIXME notify in thread.
-            # TODO - extract discord thread creation,
+            log.debug(f"creating ticket in {channel_name} for tracker={tracker}, owner={team}")
+            ticket = self.redmine.ticket_mgr.create(user, message, tracker_id=tracker.id, assigned_to_id=team.id)
+            # create new ticket thread
+            thread = await self.create_thread(ticket, ctx)
             # use to send notification for team/role
+            ticket_link = self.bot.formatter.redmine_link(ticket)
+            alert_msg = f"New ticket created: {ticket_link}"
+            await thread.send(self.bot.formatter.format_roles_alert([role.id], alert_msg))
+            await ctx.respond(".")
         else:
-            # no parent or tracker
-            log.debug(f"no parent ot tracker for {channel_name}")
-            # FIXME - tracker and team for "intake"
-            ticket = self.redmine.ticket_mgr.create(user, message)
-            await self.thread(ctx, ticket.id)
+            log.error(f"no tracker for {channel_name}")
+            await ctx.respond(f"ERROR: No tracker for {channel_name}.")
 
 
     @ticket.command(name="notify", description="Notify collaborators on a ticket")
