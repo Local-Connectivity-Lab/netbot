@@ -12,7 +12,11 @@ all:
 run:
 	uv run -m netbot.netbot debug sync-off
 
-test:
+
+lint:
+	uvx ruff check .
+
+test: lint
 	uv run -m tests
 
 coverage:
@@ -23,8 +27,6 @@ htmlcov:
 	uvx coverage run -m tests
 	uvx coverage html
 
-lint:
-	uvx ruff check .
 
 clean:
 	rm -rf __pycache__
