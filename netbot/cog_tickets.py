@@ -745,6 +745,6 @@ class TicketsCog(commands.Cog):
             embed=self.bot.formatter.ticket_embed(ctx, updated))
 
 
-    @ticket.command(name="help", description="Display hepl about ticket management")
+    @ticket.command(name="help", description="Display help about ticket management")
     async def help(self, ctx: discord.ApplicationContext):
         await ctx.respond(embed=self.bot.formatter.help_embed(ctx))
