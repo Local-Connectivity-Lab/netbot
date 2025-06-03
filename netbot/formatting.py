@@ -453,8 +453,7 @@ class DiscordFormatter():
             name="Find tickets to work on",
             value="* **`/ticket query me`** to find tickets assigned to you.\n" +
             "* **`/ticket query <term>`** to find tickets associated with a specific *<term>*\n" +
-            "* **`/ticket details <id>`** to get detailed information about ticket *<id>*\n" +
-            "* **`/ticket epics`** to list the large projects",
+            "* **`/ticket details <id>`** to get detailed information about ticket *<id>*\n",
             inline=False)
 
         embed.add_field(
