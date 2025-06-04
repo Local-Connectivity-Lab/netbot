@@ -249,7 +249,7 @@ class DiscordFormatter():
         return details
 
 
-    def format_dusty_reminder(self, ticket:Ticket, discord_ids: list[str]):
+    def format_dusty_reminder(self, ticket:Ticket, discord_ids: list[str], thread_url: str):
         # format an alert.
         # https://discord.com/developers/docs/interactions/message-components#action-rows
         # action row with what options?
@@ -257,10 +257,10 @@ class DiscordFormatter():
         # ⚠️
         # [icon] **Alert** [Ticket x](link) will expire in x hours, as xyz.
         ids_str = [f"<@{id}>" for id in discord_ids]
-        return f"⚠️ Ticket gettin' dusty: {self.redmine_link(ticket)} {' '.join(ids_str)}"
+        return f"⚠️ {' '.join(ids_str)} Ticket gettin' dusty: {thread_url}"
 
 
-    def format_recycled_reminder(self, ticket:Ticket, discord_ids: list[str]):
+    def format_recycled_reminder(self, ticket:Ticket, discord_ids: list[str], thread_url: str):
         # format an alert.
         # https://discord.com/developers/docs/interactions/message-components#action-rows
         # action row with what options?
@@ -268,13 +268,28 @@ class DiscordFormatter():
         # ⚠️
         # [icon] **Alert** [Ticket x](link) will expire in x hours, as xyz.
         ids_str = [f"<@{id}>" for id in discord_ids]
-        return f"⚠️ Ticket recycled: {self.redmine_link(ticket)} {' '.join(ids_str)}"
+        return f"⚠️ {' '.join(ids_str)} Dusty ticket was recycled, and needs new owner: {thread_url}"
 
 
     def format_ticket_alert(self, ticket: Ticket, discord_ids: set[int], msg: str) -> str:
         ids_str = [f"<@{id}>" for id in discord_ids]
         log.debug(f"ids_str={ids_str}, discord_ids={discord_ids}")
         return f"⚠️ {self.redmine_link(ticket)} {' '.join(ids_str)}: {msg}"
+
+
+    def format_roles_alert(self, role_ids: set[int], msg: str) -> str:
+        """
+        Format a message with Discord role IDs (ints):
+
+        <@&role_id>
+
+        Note that role_id must be looked up beforehand.
+
+        https://discord.com/developers/docs/reference#message-formatting
+        """
+        roles_str = [f"<@&{role}>" for role in role_ids]
+        log.debug(f"ids_str={roles_str}, role_ids={role_ids}")
+        return f"⚠️ {' '.join(roles_str)}: {msg}"
 
 
     def ticket_color(self, ticket:Ticket) -> discord.Color:
@@ -438,8 +453,7 @@ class DiscordFormatter():
             name="Find tickets to work on",
             value="* **`/ticket query me`** to find tickets assigned to you.\n" +
             "* **`/ticket query <term>`** to find tickets associated with a specific *<term>*\n" +
-            "* **`/ticket details <id>`** to get detailed information about ticket *<id>*\n" +
-            "* **`/ticket epics`** to list the large projects",
+            "* **`/ticket details <id>`** to get detailed information about ticket *<id>*\n",
             inline=False)
 
         embed.add_field(

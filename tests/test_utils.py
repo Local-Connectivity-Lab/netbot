@@ -11,12 +11,15 @@ from unittest import mock
 
 import discord
 from discord import ApplicationContext
+
+import dotenv
+
 from redmine.users import UserManager
 from redmine.model import Message, User, Ticket, TicketsResult
 from redmine.tickets import SCN_PROJECT_ID
 from redmine.session import RedmineSession
 from redmine.redmine import Client
-from netbot.netbot import NetBot
+from netbot.netbot import NetBot, setup_logging
 from tests.mock_session import MockSession
 
 
@@ -67,6 +70,19 @@ def load_json(filename:str):
     log.debug(f"loading json from {TEST_DATA + filename}")
     with open(TEST_DATA + filename, 'r', encoding="utf-8") as file:
         return json.load(file)
+
+
+def init_test_users(user_mgr:UserManager) -> None:
+    # also, validate other expected users:
+    test_users = [TEST_USER, "test-known-user"]
+
+    for username in test_users:
+        user = user_mgr.find(username)
+        if not user:
+            log.info("Test user not found! Creating: {username}")
+            name = username.replace("-", "")
+            email = name + "@example.com"
+            user = user_mgr.create(email, "Test", name, username)
 
 
 def lookup_test_user(user_mgr:UserManager) -> User:
@@ -219,6 +235,7 @@ class RedmineTestCase(unittest.TestCase):
         cls.redmine = Client.from_session(sess, SCN_PROJECT_ID)
         cls.user_mgr = cls.redmine.user_mgr
         cls.tickets_mgr = cls.redmine.ticket_mgr
+        init_test_users(cls.user_mgr)
         cls.tag:str = tagstr()
         cls.user:User = lookup_test_user(cls.user_mgr)
         cls.user_mgr.cache.cache_user(cls.user)
@@ -277,21 +294,10 @@ def audit_expected_values():
     log.info("Audit complete.")
 
 
-#if __name__ == '__main__':
-    # when running this main, turn on DEBUG
-
-    # load credentials
-    #load_dotenv()
-
-    # construct the client and run the email check
-    #client = RedmineSession.fromenv()
-    #users = UserManager(client)
-
-    #user = users.get_by_name("philion")
-
-    #with open('data/test-user.json', 'w') as f:
-    #    json.dump(user, f)
-
-    #remove_test_users(users)
-
+if __name__ == '__main__':
+    setup_logging(logging.DEBUG)
+    dotenv.load_dotenv()
+    client = RedmineSession.fromenv()
+    users = UserManager(client)
     #audit_expected_values()
+    init_test_users(users)
