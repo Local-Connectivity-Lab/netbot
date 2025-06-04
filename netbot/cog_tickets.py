@@ -488,7 +488,7 @@ class TicketsCog(commands.Cog):
             ticket_link = self.bot.formatter.redmine_link(ticket)
             alert_msg = f"New ticket created: {ticket_link}"
             await thread.send(self.bot.formatter.format_roles_alert([role.id], alert_msg))
-            await ctx.respond(".")
+            await ctx.respond(alert_msg, embed=self.bot.formatter.ticket_embed(ctx, ticket))
         else:
             log.error(f"no tracker for {channel_name}")
             await ctx.respond(f"ERROR: No tracker for {channel_name}.")

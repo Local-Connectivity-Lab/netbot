@@ -249,7 +249,7 @@ class DiscordFormatter():
         return details
 
 
-    def format_dusty_reminder(self, ticket:Ticket, discord_ids: list[str]):
+    def format_dusty_reminder(self, ticket:Ticket, discord_ids: list[str], thread_url: str):
         # format an alert.
         # https://discord.com/developers/docs/interactions/message-components#action-rows
         # action row with what options?
@@ -257,10 +257,10 @@ class DiscordFormatter():
         # ⚠️
         # [icon] **Alert** [Ticket x](link) will expire in x hours, as xyz.
         ids_str = [f"<@{id}>" for id in discord_ids]
-        return f"⚠️ Ticket gettin' dusty: {self.redmine_link(ticket)} {' '.join(ids_str)}"
+        return f"⚠️ {' '.join(ids_str)} Ticket gettin' dusty: {thread_url}"
 
 
-    def format_recycled_reminder(self, ticket:Ticket, discord_ids: list[str]):
+    def format_recycled_reminder(self, ticket:Ticket, discord_ids: list[str], thread_url: str):
         # format an alert.
         # https://discord.com/developers/docs/interactions/message-components#action-rows
         # action row with what options?
@@ -268,7 +268,7 @@ class DiscordFormatter():
         # ⚠️
         # [icon] **Alert** [Ticket x](link) will expire in x hours, as xyz.
         ids_str = [f"<@{id}>" for id in discord_ids]
-        return f"⚠️ Ticket recycled: {self.redmine_link(ticket)} {' '.join(ids_str)}"
+        return f"⚠️ {' '.join(ids_str)} Dusty ticket was recycled, and needs new owner: {thread_url}"
 
 
     def format_ticket_alert(self, ticket: Ticket, discord_ids: set[int], msg: str) -> str:

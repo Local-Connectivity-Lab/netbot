@@ -349,9 +349,13 @@ class NetBot(commands.Bot):
     async def remind_dusty_ticket(self, ticket: Ticket) -> None:
         """Remind the correct people and channels when a ticket is dusty."""
         discord_ids = self.extract_ids_from_ticket(ticket)
-        reminder = self.formatter.format_dusty_reminder(ticket, discord_ids)
-        channel = self.channel_for_ticket(ticket)
-        await channel.send(reminder)
+        thread = self.find_ticket_thread(ticket.id)
+        if thread is None:
+            log.warning(f"Unable to find ticket thread for {ticket}")
+        else:
+            reminder = self.formatter.format_dusty_reminder(ticket, discord_ids, thread.jump_url)
+            channel = self.channel_for_ticket(ticket)
+            await channel.send(reminder)
 
 
     async def remind_dusty_tickets(self):
@@ -359,7 +363,9 @@ class NetBot(commands.Bot):
         # ticket-1608
         # get list of tickets that will expire (based on rules in ticket_mgr)
         for ticket in self.redmine.ticket_mgr.dusty():
-            await self.remind_dusty_ticket(ticket)
+            # skip EPIC tickets: they don't get dusty
+            if ticket.priority.name != "EPIC":
+                await self.remind_dusty_ticket(ticket)
 
 
     def tracker_for_channel(self, channel:str) -> NamedId:
@@ -408,19 +414,29 @@ class NetBot(commands.Bot):
         group. The team members are reminded of this status change.
         """
         new_owner = self.team_for_tracker(ticket.tracker)
+        if new_owner is None:
+            log.error(f"Unable to find team for tracker: {ticket.tracker}. Skipping recycle.")
+            return
+
         self.redmine.ticket_mgr.recycle(ticket, new_owner)
 
         # new_owner is a team. get the members for reminder
         discord_ids = self.discord_ids_for_team(new_owner)
-        reminder = self.formatter.format_recycled_reminder(ticket, discord_ids)
-        channel = self.channel_for_ticket(ticket)
-        await channel.send(reminder)
+        thread = self.find_ticket_thread(ticket.id)
+        if thread is None:
+            log.warning(f"Unable to find ticket thread for {ticket}")
+        else:
+            reminder = self.formatter.format_recycled_reminder(ticket, discord_ids, thread.jump_url)
+            channel = self.channel_for_ticket(ticket)
+            await channel.send(reminder)
 
 
     async def recycle_tickets(self):
         """ Recycle old dusty tickets."""
         for ticket in self.redmine.ticket_mgr.recyclable():
-            await self.recycle_ticket(ticket)
+            # skip EPIC tickets: they shouldn't be recycled
+            if ticket.priority.name != "EPIC":
+                await self.recycle_ticket(ticket)
 
 
     @tasks.loop(hours=24)

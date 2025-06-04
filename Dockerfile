@@ -6,5 +6,5 @@ WORKDIR /usr/src/app
 COPY . .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# start the bot
+# start the bot, -v added to enable debug logs
 CMD ["python", "-m", "netbot.netbot"]
