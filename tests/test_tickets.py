@@ -9,7 +9,7 @@ from unittest.mock import patch, AsyncMock
 
 from dotenv import load_dotenv
 
-from redmine.model import ParentTicket, synctime, TicketStatus
+from redmine.model import ParentTicket, synctime, TicketStatus, Ticket
 from redmine.tickets import TICKET_DUSTY_AGE, TICKET_MAX_AGE
 
 from tests import test_utils
@@ -94,6 +94,15 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
 
         mock_post.assert_called_once()
         self.assertEqual(4242, check.parent.id)
+
+
+    def test_updated_by_note(self):
+        with open("data/1712.json", 'rb') as file:
+            data = json.load(file)
+            ticket = Ticket(**data['issue'])
+
+            self.assertIsNotNone(ticket)
+            self.assertEqual(1712, ticket.id)
 
 
 # The integration test suite is only run if the ENV settings are configured correctly

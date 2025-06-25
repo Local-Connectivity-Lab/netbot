@@ -131,12 +131,15 @@ class TicketNote(): # https://www.redmine.org/projects/redmine/wiki/Rest_IssueJo
     private_notes: bool
     details: list[PropertyChange]
     user: NamedId | None = None
+    updated_by: NamedId | None = None
 
     def __post_init__(self):
         self.user = NamedId(**self.user)
         self.created_on = synctime.parse_str(self.created_on)
         if self.details:
             self.details = [PropertyChange(**change) for change in self.details]
+        if self.updated_by:
+            self.updated_by = NamedId(**self.updated_by)
 
     def __str__(self):
         return f"#{self.id} - {self.user}: {self.notes}"

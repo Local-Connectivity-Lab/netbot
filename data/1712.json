@@ -1,0 +1,143 @@
+{
+    "issue": {
+        "id": 1712,
+        "project": {
+            "id": 1,
+            "name": "Seattle Community Network"
+        },
+        "tracker": {
+            "id": 6,
+            "name": "Infra-Config"
+        },
+        "status": {
+            "id": 2,
+            "name": "In Progress",
+            "is_closed": false
+        },
+        "priority": {
+            "id": 2,
+            "name": "Normal"
+        },
+        "author": {
+            "id": 15,
+            "name": "Mister Jang"
+        },
+        "assigned_to": {
+            "id": 943,
+            "name": "Jeremy Bagle"
+        },
+        "subject": "Implement new Wireguard IP addressing",
+        "description": "by Discord user in channel network-software",
+        "start_date": "2025-05-16",
+        "due_date": null,
+        "done_ratio": 50,
+        "is_private": false,
+        "estimated_hours": null,
+        "total_estimated_hours": null,
+        "spent_hours": 0.0,
+        "total_spent_hours": 0.0,
+        "custom_fields": [
+            {
+                "id": 4,
+                "name": "syncdata",
+                "value": ""
+            },
+            {
+                "id": 5,
+                "name": "To/CC",
+                "value": "network-software"
+            }
+        ],
+        "created_on": "2025-05-17T04:54:36Z",
+        "updated_on": "2025-06-21T05:27:30Z",
+        "closed_on": null,
+        "journals": [
+            {
+                "id": 21656,
+                "user": {
+                    "id": 15,
+                    "name": "Mister Jang"
+                },
+                "notes": "",
+                "created_on": "2025-05-17T04:54:48Z",
+                "updated_on": "2025-05-17T04:54:48Z",
+                "private_notes": false,
+                "details": [
+                    {
+                        "property": "attr",
+                        "name": "description",
+                        "old_value": "Created by Discord user infrared0 in channel network-software",
+                        "new_value": "https://docs.google.com/spreadsheets/d/1lb4_l2U6wgyzFveW0ou6fJQguVi0xFGfpI-wx-aElMI/edit?gid=0#gid=0\r\nCreated by Discord user infrared0 in channel network-software"
+                    }
+                ]
+            },
+            {
+                "id": 22228,
+                "user": {
+                    "id": 943,
+                    "name": "Jeremy Bagle"
+                },
+                "notes": "",
+                "created_on": "2025-06-21T04:53:36Z",
+                "updated_on": "2025-06-21T04:53:36Z",
+                "private_notes": false,
+                "details": [
+                    {
+                        "property": "attr",
+                        "name": "status_id",
+                        "old_value": "1",
+                        "new_value": "2"
+                    },
+                    {
+                        "property": "attr",
+                        "name": "assigned_to_id",
+                        "old_value": null,
+                        "new_value": "943"
+                    }
+                ]
+            },
+            {
+                "id": 22233,
+                "user": {
+                    "id": 943,
+                    "name": "Jeremy Bagle"
+                },
+                "notes": "",
+                "created_on": "2025-06-21T05:19:42Z",
+                "updated_on": "2025-06-21T05:23:46Z",
+                "updated_by": {
+                    "id": 943,
+                    "name": "Jeremy Bagle"
+                },
+                "private_notes": false,
+                "details": [
+                    {
+                        "property": "attr",
+                        "name": "done_ratio",
+                        "old_value": "0",
+                        "new_value": "50"
+                    }
+                ]
+            },
+            {
+                "id": 22234,
+                "user": {
+                    "id": 943,
+                    "name": "Jeremy Bagle"
+                },
+                "notes": "**Status Update: WireGuard Deployment \u0026 Firewall Configuration**\r\n\r\n---\r\n\r\n**1. wg1 – Site Management WG Endpoint**\r\n\r\n* Created WireGuard interface for network **172.16.36.0/23** on VyOS\r\n\r\n**2. wg2 – Member Access WG Endpoint**\r\n\r\n* Created WireGuard interface for network **172.16.38.0/23** on VyOS\r\n\r\n**3. Firewall Group Assignments**\r\n\r\n* Added `wg1` and `wg2` to the **LOCAL** firewall group\r\n* Updated `WGManagementSubnet` network-group to include:\r\n\r\n  * **172.16.36.0/23**\r\n  * **172.16.38.0/23**\r\n\r\n---\r\n",
+                "created_on": "2025-06-21T05:27:30Z",
+                "updated_on": "2025-06-21T05:27:30Z",
+                "private_notes": false,
+                "details": [
+                    {
+                        "property": "attr",
+                        "name": "tracker_id",
+                        "old_value": "4",
+                        "new_value": "6"
+                    }
+                ]
+            }
+        ]
+    }
+}
