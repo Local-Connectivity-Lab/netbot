@@ -8,9 +8,10 @@ import logging
 import asyncio
 import discord
 from dotenv import load_dotenv
+from discord import Role
 from discord.ext import commands, tasks
 
-from redmine.model import TicketNote, Ticket, NamedId, Team
+from redmine.model import TicketNote, Ticket, NamedId, Team, TeamSet
 from redmine import synctime
 from redmine.redmine import Client
 
@@ -69,10 +70,14 @@ class NetBot(commands.Bot):
         log.info(f'initializing {self}')
         intents = discord.Intents.default()
         intents.message_content = True
+        intents.members = True # Needed to access member roles
 
         self.run_sync = True # ticket sync on by default
         self.lock = asyncio.Lock()
         self.ticket_locks = {}
+
+        self.roles: dict[str,Role] = {}
+        self.teams = TeamSet()
 
         self.formatter = DiscordFormatter(client.url)
 
@@ -96,9 +101,37 @@ class NetBot(commands.Bot):
         log.info(f"starting {self}")
         super().run(os.getenv('DISCORD_TOKEN'))
 
+
+    def cache_roles(self):
+        # Noting: "guild" maps to discord server, and the API is designed to run on many "Discord servers" concurrently
+        for guild in self.guilds:
+            for member in guild.members:
+                for role in member.roles:
+                    user = self.redmine.user_mgr.find_discord_user(member.name)
+                    #log.debug(f"<<< {role.name} {user.name}")
+                    if user:
+                        self.teams.add_user(role.name, user.name, user.id)
+                    else:
+                        log.warning(f"Unknown user: {member.name} for team: {role.name}")
+
+        log.debug(f"Loaded teams: {self.teams}")
+
+
+    def get_all_teams(self, include_users: bool = True) -> dict[str, Team]:
+        return self.teams
+
+
+    def reindex(self):
+        log.debug("NetBot.reindex")
+        self.cache_roles()
+
+
     async def on_ready(self):
         #log.info(f"Logged in as {self.user} (ID: {self.user.id})")
         #log.debug(f"bot: {self}, guilds: {self.guilds}")
+
+        # reindex: cache roles, etc.
+        self.reindex()
 
         # start the tasks running
         self.sync_all_threads.start()
@@ -244,11 +277,8 @@ class NetBot(commands.Bot):
 
 
     def get_role_by_name(self, role_name: str) -> discord.Role:
-        # Noting: "guild" maps to discord server, and the API is designed to run on many "Discord servers" concurrently
-        for guild in self.guilds:
-            for role in guild.roles:
-                if role_name == role.name:
-                    return role
+        # Load from cache
+        return self.roles.get(role_name, None)
 
 
     async def on_application_command_error(self, context: discord.ApplicationContext,

@@ -170,6 +170,44 @@ class Team:
     def __str__(self) -> str:
         return self.name
 
+    def add_user(self, named:NamedId):
+        if not self.users:
+            self.users = []
+        self.users.append(named)
+
+
+class TeamSet:
+    _teams: dict[str,Team] = {}
+
+    def __str__(self) -> str:
+        return str(self._teams)
+
+    def get(self, name: str) -> Team:
+        self._teams.get(name, None)
+
+
+    def in_team(self, username:str, teamname:str) -> bool:
+        if username is None or teamname is None:
+            return False
+
+        team = self.get(teamname)
+        if team:
+            for team_user in team.users:
+                if team_user.name == username:
+                    return True
+
+        return False
+
+
+    def add_user(self, teamname:str, username:str, userid:int) -> None:
+        team = self.get(teamname)
+        if not team:
+            team = Team(id=-1, name=teamname)
+            team.users = []
+            self._teams[teamname] = team
+        # TODO check if user already in team before adding: set behavior.
+        team.add_user(NamedId(userid, username))
+
 
 DISCORD_ID_FIELD = "Discord ID"
 

@@ -28,7 +28,7 @@ htmlcov:
 
 clean:
 	rm -rf __pycache__
-	rm -rf $(VENV)
+	rm -rf .venv/
 	rm -rf htmlcov
 	rm -f discord.log
 	rm -f dpytest_*.dat

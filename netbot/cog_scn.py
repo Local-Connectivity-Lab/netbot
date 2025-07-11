@@ -251,6 +251,7 @@ class SCNCog(commands.Cog):
     async def reindex(self, ctx:discord.ApplicationContext):
         """reindex the all cached information"""
         self.redmine.reindex()
+        #self.bot.reindex() FIXME, once roles are working
         await ctx.respond("Rebuilt redmine indices.")
 
 
