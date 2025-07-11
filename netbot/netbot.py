@@ -355,6 +355,9 @@ class NetBot(commands.Bot):
         else:
             reminder = self.formatter.format_dusty_reminder(ticket, discord_ids, thread.jump_url)
             channel = self.channel_for_ticket(ticket)
+
+            log.warning(f">>> {channel} : {reminder}") #REMOVE
+
             await channel.send(reminder)
 
 

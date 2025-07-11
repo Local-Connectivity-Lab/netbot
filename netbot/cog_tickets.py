@@ -487,7 +487,10 @@ class TicketsCog(commands.Cog):
             # use to send notification for team/role
             ticket_link = self.bot.formatter.redmine_link(ticket)
             alert_msg = f"New ticket created: {ticket_link}"
-            await thread.send(self.bot.formatter.format_roles_alert([role.id], alert_msg))
+            if role:
+                await thread.send(self.bot.formatter.format_roles_alert([role.id], alert_msg))
+            else:
+                log.warning(f"unable to load role by team name: {team.name}")
             await ctx.respond(alert_msg, embed=self.bot.formatter.ticket_embed(ctx, ticket))
         else:
             log.error(f"no tracker for {channel_name}")

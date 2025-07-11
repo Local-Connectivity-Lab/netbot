@@ -185,7 +185,7 @@ class TestIntegrationTicketManager(test_utils.RedmineTestCase):
         check_id = 1049
         check = self.tickets_mgr.get_epics()
 
-        self.assertEqual(7, len(check))
+        self.assertEqual(10, len(check))
 
         found = None
         for e in check:

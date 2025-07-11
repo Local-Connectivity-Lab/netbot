@@ -1,10 +1,16 @@
-FROM python:3.13
+# Use a Python image with uv pre-installed
+# see https://docs.astral.sh/uv/guides/integration/docker
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
-WORKDIR /usr/src/app
+# Copy the project into the image
+ADD . /app
 
-# install the code
-COPY . .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install the project into `/app`
+WORKDIR /app
+RUN uv sync
 
-# start the bot, -v added to enable debug logs
-CMD ["python", "-m", "netbot.netbot"]
+# Run netbot
+CMD ["uv", "run", "-m", "netbot.netbot"]
+
+# to enable debug logging
+#CMD ["uv", "run", "-m", "netbot.netbot", "debug"]

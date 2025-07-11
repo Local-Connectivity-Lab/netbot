@@ -251,7 +251,10 @@ class TestMessages(test_utils.RedmineTestCase):
         # requests to create new tickets from email for
         # known email addrs.
         # This is an attempt to recreate (to fix)
-        email = "no-reply@accounts.google.com"
+        # Update: origin email is now blocked, and invokes
+        # differnt logic.
+        # email = "no-reply@accounts.google.com"
+        email = "philion@gmail.com"
 
         user = self.redmine.user_mgr.get_by_name(email)
         self.assertIsNotNone(user, f"Couldn't find user for {email}")
