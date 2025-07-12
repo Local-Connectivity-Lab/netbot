@@ -43,6 +43,13 @@ def get_priorities(ctx: discord.AutocompleteContext):
     return [priority for priority in priorities.keys() if priority.lower().startswith(ctx.value.lower())]
 
 
+def get_statuses(ctx: discord.AutocompleteContext):
+    """Returns a list of priorities that begin with the characters entered so far."""
+    statuses = ["New", "In Progress", "Standing", "Resolved", "Backburner"]
+    # .lower() is used to make the autocomplete case-insensitive
+    return [status for status in statuses if status.lower().startswith(ctx.value.lower())]
+
+
 class PrioritySelect(discord.ui.Select):
     """Popup menu to select ticket priority"""
     def __init__(self, bot_: discord.Bot):
@@ -102,6 +109,31 @@ class TrackerSelect(discord.ui.Select):
         # the user's favourite colour or choice. The self object refers to the
         # Select object, and the values attribute gets a list of the user's
         # selected options. We only want the first one.
+        log.info(f"{interaction.user} {interaction.data}")
+        await interaction.response.send_message(
+            f"TrackerSelect.callback() - selected tracker {self.values[0]}"
+        )
+
+
+class StatusSelect(discord.ui.Select):
+    """Popup menu to select ticket status"""
+    def __init__(self, bot: discord.Bot):
+        self.bot = bot
+
+        super().__init__(
+            placeholder="Select ticket status...",
+            min_values=1,
+            max_values=1,
+            options=[
+                discord.SelectOption("New"),
+                discord.SelectOption("In Progress"),
+                discord.SelectOption("Standing"),
+                discord.SelectOption("Resolved"),
+                discord.SelectOption("Backburner"),
+            ],
+        )
+
+    async def callback(self, interaction: discord.Interaction):
         log.info(f"{interaction.user} {interaction.data}")
         await interaction.response.send_message(
             f"TrackerSelect.callback() - selected tracker {self.values[0]}"
@@ -560,7 +592,7 @@ class TicketsCog(commands.Cog):
 
     @ticket.command(name="tracker", description="Update the tracker of a ticket")
     @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
-    @option("tracker", description="Track to assign to ticket", autocomplete=get_trackers)
+    @option("tracker", description="Tracker to assign to ticket", autocomplete=get_trackers)
     async def tracker(self, ctx: discord.ApplicationContext, ticket_id:int, tracker:str):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
         ticket = self.redmine.ticket_mgr.get(ticket_id)
@@ -571,6 +603,29 @@ class TicketsCog(commands.Cog):
             tracker_rec = self.bot.redmine.ticket_mgr.get_tracker(tracker)
             fields = {
                 "tracker_id": tracker_rec.id,
+            }
+            updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
+
+            await ctx.respond(
+                f"Updated tracker of {ticket_link}: {ticket.tracker} -> {updated.tracker}",
+                embed=self.bot.formatter.ticket_embed(ctx, updated))
+        else:
+            await ctx.respond(f"ERROR: Unkown ticket ID: {ticket_id}")
+
+
+    @ticket.command(name="status", description="Update the status of a ticket")
+    @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
+    @option("status", description="Status to assign to ticket", autocomplete=get_statuses)
+    async def status(self, ctx: discord.ApplicationContext, ticket_id:int, status:str):
+        user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
+        ticket = self.redmine.ticket_mgr.get(ticket_id)
+        if ticket:
+            ticket_link = self.bot.formatter.redmine_link(ticket)
+
+            # look up the tracker string
+            status_rec = self.bot.redmine.ticket_mgr.get_status(status)
+            fields = {
+                "status_id": status_rec.id,
             }
             updated = self.bot.redmine.ticket_mgr.update(ticket_id, fields, user.login)
 

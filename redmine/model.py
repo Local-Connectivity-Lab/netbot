@@ -116,6 +116,7 @@ class TicketStatus(NamedId):
     id: int
     name: str
     is_closed: bool
+    description: str | None = None
 
     def __str__(self):
         return self.name

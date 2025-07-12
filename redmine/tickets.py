@@ -7,7 +7,7 @@ import re
 import json
 import urllib.parse
 
-from redmine.model import TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult, SYNC_FIELD_NAME
+from redmine.model import TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult, TicketStatus, SYNC_FIELD_NAME
 from redmine.session import RedmineSession, RedmineException
 from redmine import synctime
 
@@ -36,6 +36,7 @@ class TicketManager():
         self.priorities = {}
         self.trackers = {}
         self.custom_fields = {}
+        self.statuses = {}
         self.default_project:int = default_project
 
         self.reindex()
@@ -43,6 +44,7 @@ class TicketManager():
 
     def reindex(self):
         self.priorities = self.load_priorities()
+        self.statuses = self.load_statuses()
         self.trackers = self.load_trackers()
         self.custom_fields = self.load_custom_fields()
 
@@ -114,6 +116,29 @@ class TicketManager():
 
     def get_trackers(self) -> dict[str,NamedId]:
         return self.trackers
+
+
+    def load_statuses(self) -> dict[str,TicketStatus]:
+        """load active priorities"""
+
+        statuses: dict[str,TicketStatus] = {}
+
+        resp = self.session.get("/issue_statuses.json")
+        if resp:
+            for status in reversed(resp['issue_statuses']):
+                statuses[status['name']] = TicketStatus(**status)
+        else:
+            log.warning("No statuses to load")
+
+        return statuses
+
+
+    def get_status(self, name:str) -> TicketStatus | None:
+        return self.statuses.get(name, None)
+
+
+    def get_statuses(self) -> dict[str,TicketStatus]:
+        return self.statuses
 
 
     def create(self, user: User, message: Message, project_id: int = None, **params) -> Ticket:
