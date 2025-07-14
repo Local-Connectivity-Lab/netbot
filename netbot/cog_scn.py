@@ -301,7 +301,7 @@ class SCNCog(commands.Cog):
         if teamname:
             team = self.find_role(ctx, teamname)
             if team:
-                await ctx.respond(self.formatter.format_team(team))
+                await ctx.respond(self.formatter.format_team(ctx, team))
                 return
             else:
                 all_teams = [team.name for team in ctx.guild.roles]

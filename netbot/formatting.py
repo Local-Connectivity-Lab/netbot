@@ -521,6 +521,7 @@ class DiscordFormatter():
 
         return embed
 
+    ## FIXME move to DiscordFormatter
 
     async def print_team(self, ctx, team):
         msg = f"> **{team.name}**\n"
@@ -533,11 +534,23 @@ class DiscordFormatter():
         await ctx.channel.send(msg)
 
 
-    def format_team(self, team) -> str:
+    def format_team(self, ctx: discord.ApplicationContext, team: discord.Role) -> str:
         # single line format: teamname: member1, member2
         skip_teams = ["blocked", "users"]
 
         if team and team.name not in skip_teams:
-            return f"**{team.name}**: {', '.join([user.name for user in team.members])}\n"
+            team_channel = ctx.bot.channel_for_team(team.name)
+            if team_channel:
+                is_private = False
+                if isinstance(team_channel, discord.abc.PrivateChannel):
+                    is_private = True
+
+                team_name = team_channel.jump_url
+                if is_private:
+                    team_name = team_name + " 🔒"
+            else:
+                team_name = "**" + team.name + "**"
+
+            return f"{team_name}: {', '.join([user.name for user in team.members])}\n"
         else:
             return ""

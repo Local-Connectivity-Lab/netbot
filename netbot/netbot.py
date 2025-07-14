@@ -440,6 +440,12 @@ class NetBot(commands.Bot):
         return None
 
 
+    def channel_for_team(self, teamname:str):
+        for k, v in TEAM_MAPPING.items():
+            if teamname == v:
+                return self.get_channel_by_name(k)
+
+
     async def recycle_ticket(self, ticket: Ticket):
         """ Recycle recycle an old dusty tickets.
         From ticket-1608: After 3 weeks of inactivity, the ticket
