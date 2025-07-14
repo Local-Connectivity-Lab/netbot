@@ -148,6 +148,7 @@ class SCNCog(commands.Cog):
     """Cog to mange SCN-related functions"""
     def __init__(self, bot):
         self.bot = bot
+        self.formatter = bot.formatter
         self.redmine: Client = bot.redmine
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
@@ -255,55 +256,64 @@ class SCNCog(commands.Cog):
         await ctx.respond("Rebuilt redmine indices.")
 
 
-    @scn.command(description="join the specified team")
-    async def join(self, ctx:discord.ApplicationContext, teamname:str , member: discord.Member=None):
-        discord_name = ctx.user.name # by default, assume current user
-        if member:
-            log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
-            discord_name = member.name
+    # REMOVE - handled by discord roles
+    # @scn.command(description="join the specified team")
+    # async def join(self, ctx:discord.ApplicationContext, teamname:str , member: discord.Member=None):
+    #     discord_name = ctx.user.name # by default, assume current user
+    #     if member:
+    #         log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
+    #         discord_name = member.name
 
-        user = self.redmine.user_mgr.find(discord_name)
-        if user is None:
-            await ctx.respond(f"Unknown user, no Discord mapping: {discord_name}")
-        elif self.redmine.user_mgr.get_team_by_name(teamname) is None:
-            await ctx.respond(f"Unknown team name: {teamname}")
-        else:
-            self.redmine.user_mgr.join_team(user, teamname)
-            await ctx.respond(f"**{discord_name}** has joined *{teamname}*")
+    #     user = self.redmine.user_mgr.find(discord_name)
+    #     if user is None:
+    #         await ctx.respond(f"Unknown user, no Discord mapping: {discord_name}")
+    #     elif self.redmine.user_mgr.get_team_by_name(teamname) is None:
+    #         await ctx.respond(f"Unknown team name: {teamname}")
+    #     else:
+    #         self.redmine.user_mgr.join_team(user, teamname)
+    #         await ctx.respond(f"**{discord_name}** has joined *{teamname}*")
+
+    # REMOVE - handled by discord roles
+    # @scn.command(description="leave the specified team")
+    # async def leave(self, ctx:discord.ApplicationContext, teamname:str, member: discord.Member=None):
+    #     discord_name = ctx.user.name # by default, assume current user
+    #     if member:
+    #         log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
+    #         discord_name = member.name
+    #     user = self.redmine.user_mgr.find(discord_name)
+
+    #     if user:
+    #         self.redmine.user_mgr.leave_team(user, teamname)
+    #         await ctx.respond(f"**{discord_name}** has left *{teamname}*")
+    #     else:
+    #         await ctx.respond(f"Unknown Discord user: {discord_name}.")
 
 
-    @scn.command(description="leave the specified team")
-    async def leave(self, ctx:discord.ApplicationContext, teamname:str, member: discord.Member=None):
-        discord_name = ctx.user.name # by default, assume current user
-        if member:
-            log.info(f"Overriding current user={ctx.user.name} with member={member.name}")
-            discord_name = member.name
-        user = self.redmine.user_mgr.find(discord_name)
-
-        if user:
-            self.redmine.user_mgr.leave_team(user, teamname)
-            await ctx.respond(f"**{discord_name}** has left *{teamname}*")
-        else:
-            await ctx.respond(f"Unknown Discord user: {discord_name}.")
+    def find_role(self, ctx:discord.ApplicationContext, rolename:str) -> discord.Role | None:
+        for role in ctx.guild.roles:
+            if role.name == rolename:
+                return role
 
 
     @scn.command(description="list teams and members")
     async def teams(self, ctx:discord.ApplicationContext, teamname:str=None):
-        # list all teams, with members
-
+        # list teams, with members
         if teamname:
-            team = self.redmine.user_mgr.cache.get_team_by_name(teamname)
+            team = self.find_role(ctx, teamname)
             if team:
-                await ctx.respond(self.format_team(team))
+                await ctx.respond(self.formatter.format_team(team))
+                return
             else:
-                await ctx.respond(f"Unknown team name: {teamname}") # error
+                all_teams = [team.name for team in ctx.guild.roles]
+                await ctx.respond(f"Unknown team name: {teamname}\nTeams: {all_teams}") # error
         else:
             # all teams
-            teams = self.redmine.user_mgr.cache.get_teams()
-            buff = ""
-            for team in teams:
-                buff += self.format_team(team)
-            await ctx.respond(buff[:2000]) # truncate!
+            #teams = self.redmine.user_mgr.cache.get_teams()
+            teams = "\n- ".join([team.name for team in ctx.guild.roles])
+            #buff = ""
+            #for team in teams:
+            #    buff += self.formatter.format_team(team)
+            await ctx.respond("Available teams:\n-" + teams)
 
 
     #@scn.command()
@@ -325,7 +335,7 @@ class SCNCog(commands.Cog):
     async def blocked(self, ctx:discord.ApplicationContext):
         team = self.redmine.user_mgr.cache.get_team_by_name(BLOCKED_TEAM_NAME)
         if team:
-            await ctx.respond(self.format_team(team))
+            await ctx.respond(self.formatter.format_team(team))
         else:
             await ctx.respond(f"Expected team {BLOCKED_TEAM_NAME} not configured") # error
 
@@ -385,26 +395,3 @@ class SCNCog(commands.Cog):
 
         else:
             await ctx.respond("Must be authorized admin to approve Redmine users.")
-
-
-    ## FIXME move to DiscordFormatter
-
-    async def print_team(self, ctx, team):
-        msg = f"> **{team.name}**\n"
-        for user_rec in team.users:
-            #user = self.redmine.get_user(user_rec.id)
-            #discord_user = user.custom_fields[0].value or ""  # FIXME cf_* lookup
-            msg += f"{user_rec.name}, "
-            #msg += f"[{user.id}] **{user_rec.name}** {user.login} {user.mail} {user.custom_fields[0].value}\n"
-        msg = msg[:-2] + '\n\n'
-        await ctx.channel.send(msg)
-
-
-    def format_team(self, team) -> str:
-        # single line format: teamname: member1, member2
-        skip_teams = ["blocked", "users"]
-
-        if team and team.name not in skip_teams:
-            return f"**{team.name}**: {', '.join([user.name for user in team.users])}\n"
-        else:
-            return ""

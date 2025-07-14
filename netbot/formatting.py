@@ -65,7 +65,7 @@ class DiscordFormatter():
         if len(tickets) == 1:
             await self.print_ticket(tickets[0], ctx)
         else:
-            msg = self.format_tickets(title, tickets)
+            msg = self.format_ticket_report(ctx, title, tickets)
 
             if len(msg) > MAX_MESSAGE_LEN:
                 log.warning(f"message over {MAX_MESSAGE_LEN} chars. truncing.")
@@ -106,27 +106,28 @@ class DiscordFormatter():
         return legend
 
 
-    def format_tickets(self, title:str, tickets:list[Ticket], max_len=MAX_MESSAGE_LEN) -> str:
-        if tickets is None:
-            return "No tickets found."
+    # # OLD
+    # def format_tickets(self, title:str, tickets:list[Ticket], max_len=MAX_MESSAGE_LEN) -> str:
+    #     if tickets is None:
+    #         return "No tickets found."
 
-        legend = self.build_legend(tickets)
-        legend_row = "`  "
-        for name, icon in legend.items():
-            legend_row += icon + name + " "
-        legend_row = legend_row[:-1] + '`' # remove the last space
+    #     legend = self.build_legend(tickets)
+    #     legend_row = "`  "
+    #     for name, icon in legend.items():
+    #         legend_row += icon + name + " "
+    #     legend_row = legend_row[:-1] + '`' # remove the last space
 
-        section = "**" + title + "**\n"
-        for ticket in tickets:
-            ticket_line = self.format_ticket_row(ticket)
-            if len(section) + len(ticket_line) + len(legend_row) + 1 < max_len:
-                # make sure the lenght is less that the max
-                section += ticket_line + "\n" # append each ticket
-            else:
-                break # max_len hit
+    #     section = "**" + title + "**\n"
+    #     for ticket in tickets:
+    #         ticket_line = self.format_ticket_row(ticket)
+    #         if len(section) + len(ticket_line) + len(legend_row) + 1 < max_len:
+    #             # make sure the lenght is less that the max
+    #             section += ticket_line + "\n" # append each ticket
+    #         else:
+    #             break # max_len hit
 
-        section += legend_row # add the legend
-        return section.strip()
+    #     section += legend_row # add the legend
+    #     return section.strip()
 
 
     # noting for future: https://docs.python.org/3/library/string.html#string.Template
@@ -173,17 +174,52 @@ class DiscordFormatter():
             return ""
 
 
-    def format_ticket_row(self, ticket:Ticket) -> str:
-        link = self.redmine_link(ticket)
-        # link is mostly hidden, so we can't use the length to format.
-        # but the length of the ticket id can be used
-        link_padding = ' ' * (5 - len(str(ticket.id))) # field width = 6
+    # # OLD
+    # def format_ticket_row(self, ticket:Ticket) -> str:
+    #     link = self.redmine_link(ticket)
+    #     # link is mostly hidden, so we can't use the length to format.
+    #     # but the length of the ticket id can be used
+    #     link_padding = ' ' * (5 - len(str(ticket.id))) # field width = 6
 
+    #     status = get_emoji(ticket.status.name) if ticket.status else get_emoji('?')
+    #     priority = get_emoji(ticket.priority.name) if ticket.priority else get_emoji('?')
+    #     age = synctime.age_str(ticket.updated_on)
+    #     assigned = ticket.assigned_to.name if ticket.assigned_to else ""
+    #     return f"`{link_padding}`{link}` {status} {priority}  {age:<10} {assigned:<18} `{ticket.subject[:60]}"
+
+
+    def format_ticket_item(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
+        link = self.discord_link(ctx, ticket)
+        if not link:
+            link = self.redmine_link(ticket) + " **" + ticket.subject + "**"
         status = get_emoji(ticket.status.name) if ticket.status else get_emoji('?')
         priority = get_emoji(ticket.priority.name) if ticket.priority else get_emoji('?')
         age = synctime.age_str(ticket.updated_on)
         assigned = ticket.assigned_to.name if ticket.assigned_to else ""
-        return f"`{link_padding}`{link}` {status} {priority}  {age:<10} {assigned:<18} `{ticket.subject[:60]}"
+        return f"{status} {priority} {assigned} {age} {link}"
+
+
+    def format_ticket_report(self, ctx: discord.ApplicationContext, title:str, tickets:list[Ticket], max_len=MAX_MESSAGE_LEN) -> str:
+        if tickets is None:
+            return "No tickets found."
+
+        legend = self.build_legend(tickets)
+        legend_row = "" #"`  "
+        for name, icon in legend.items():
+            legend_row += icon + name + "  "
+        #legend_row = legend_row[:-1] + '`' # remove the last space
+
+        report = "**" + title + "**\n"
+        for ticket in tickets:
+            ticket_line = self.format_ticket_item(ctx, ticket)
+            if len(report) + len(ticket_line) + len(legend_row) + 1 < max_len:
+                # make sure the len is less that the max
+                report += ticket_line + "\n" # append each ticket
+            else:
+                break # max_len hit
+
+        report += legend_row # add the legend
+        return report.strip()
 
 
     def format_subticket(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
@@ -255,9 +291,8 @@ class DiscordFormatter():
         # action row with what options?
         # :warning:
         # ⚠️
-        # [icon] **Alert** [Ticket x](link) will expire in x hours, as xyz.
         ids_str = [f"<@{id}>" for id in discord_ids]
-        return f"⚠️ {' '.join(ids_str)} Ticket gettin' dusty: {thread_url}"
+        return f"⚠️ {' '.join(ids_str)} Ticket will soon be reassigned due to inactivity: {thread_url}"
 
 
     def format_recycled_reminder(self, ticket:Ticket, discord_ids: list[str], thread_url: str):
@@ -266,9 +301,8 @@ class DiscordFormatter():
         # action row with what options?
         # :warning:
         # ⚠️
-        # [icon] **Alert** [Ticket x](link) will expire in x hours, as xyz.
         ids_str = [f"<@{id}>" for id in discord_ids]
-        return f"⚠️ {' '.join(ids_str)} Dusty ticket was recycled, and needs new owner: {thread_url}"
+        return f"⚠️ {' '.join(ids_str)} Ticket was unassigned due to inactivity, and needs new owner: {thread_url}"
 
 
     def format_ticket_alert(self, ticket: Ticket, discord_ids: set[int], msg: str) -> str:
@@ -488,16 +522,22 @@ class DiscordFormatter():
         return embed
 
 
-def main():
-    pass
-    #redmine = Client.fromenv()
+    async def print_team(self, ctx, team):
+        msg = f"> **{team.name}**\n"
+        for user_rec in team.users:
+            #user = self.redmine.get_user(user_rec.id)
+            #discord_user = user.custom_fields[0].value or ""  # FIXME cf_* lookup
+            msg += f"{user_rec.name}, "
+            #msg += f"[{user.id}] **{user_rec.name}** {user.login} {user.mail} {user.custom_fields[0].value}\n"
+        msg = msg[:-2] + '\n\n'
+        await ctx.channel.send(msg)
 
-    # construct the formatter
-    #formatter = DiscordFormatter(redmine)
 
-    #tickets = ticket_manager.search("test")
-    #output = formatter.format_tickets("Test Tickets", tickets)
-    #print (output)
+    def format_team(self, team) -> str:
+        # single line format: teamname: member1, member2
+        skip_teams = ["blocked", "users"]
 
-if __name__ == '__main__':
-    main()
+        if team and team.name not in skip_teams:
+            return f"**{team.name}**: {', '.join([user.name for user in team.members])}\n"
+        else:
+            return ""

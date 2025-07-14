@@ -297,7 +297,7 @@ class UserManager():
         """get a user by ID, directly from redmine"""
         jresp = self.session.get(f"/users/{user_id}.json")
         if jresp:
-            log.info(f"^^^ {jresp['user']}")
+            #log.info(f"^^^ {jresp['user']}")
             return User(**jresp['user'])
 
 
