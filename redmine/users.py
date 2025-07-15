@@ -463,11 +463,8 @@ class UserManager():
             return
 
         # DELETE to /groups/{team-id}/users/{user_id}.json
-        r = self.session.delete(f"/groups/{team.id}/users/{user.id}.json") # encapsulation
-
-        # check status
-        if not r:
-            log.warning(f"Error removing {user.login} from {teamname}")
+        self.session.delete(f"/groups/{team.id}/users/{user.id}.json") # encapsulation
+        # raises an exception if there's a problem
 
 
     # python method sync?

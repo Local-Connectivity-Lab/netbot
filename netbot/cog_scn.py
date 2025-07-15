@@ -308,12 +308,11 @@ class SCNCog(commands.Cog):
                 await ctx.respond(f"Unknown team name: {teamname}\nTeams: {all_teams}") # error
         else:
             # all teams
-            #teams = self.redmine.user_mgr.cache.get_teams()
-            teams = "\n- ".join([team.name for team in ctx.guild.roles])
-            #buff = ""
-            #for team in teams:
-            #    buff += self.formatter.format_team(team)
-            await ctx.respond("Available teams:\n-" + teams)
+            #teams = "\n- ".join([team.name for team in ctx.guild.roles])
+            buff = ""
+            for team in ctx.guild.roles:
+                buff += self.formatter.format_team(ctx, team)
+            await ctx.respond(buff)
 
 
     #@scn.command()

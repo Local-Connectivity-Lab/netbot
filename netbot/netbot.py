@@ -102,19 +102,46 @@ class NetBot(commands.Bot):
         super().run(os.getenv('DISCORD_TOKEN'))
 
 
-    def cache_roles(self):
+    # def cache_roles(self):
+    #     # Noting: "guild" maps to discord server, and the API is designed to run on many "Discord servers" concurrently
+    #     for guild in self.guilds:
+    #         for member in guild.members:
+    #             for role in member.roles:
+    #                 user = self.redmine.user_mgr.find_discord_user(member.name)
+    #                 #log.debug(f"<<< {role.name} {user.name}")
+    #                 if user:
+    #                     self.teams.add_user(role.name, user.name, user.id)
+    #                 else:
+    #                     log.warning(f"Unknown user: {member.name} for team: {role.name}")
+
+    #     log.debug(f"Loaded teams: {self.teams}")
+
+    def sync_team(self, role:discord.Role, team:Team):
+        team_ids = set()
+        for member in role.members:
+            user = self.redmine.user_mgr.find_discord_user(member.name)
+            log.debug(f"adding {user.name} to {team.name}")
+            self.redmine.user_mgr.join_team(user, team.name)
+            team_ids.add(user.id)
+        # noting: "in_team_ids" is the set of valid redmine IDs that should be in the associated team
+        for user in team.users:
+            if user.id not in team_ids:
+                # user missing from ids, must have been removed
+                log.debug(f"removing {user.name} from {team.name}")
+                self.redmine.user_mgr.leave_team(user, team.name)
+
+
+    def sync_roles(self):
         # Noting: "guild" maps to discord server, and the API is designed to run on many "Discord servers" concurrently
         for guild in self.guilds:
-            for member in guild.members:
-                for role in member.roles:
-                    user = self.redmine.user_mgr.find_discord_user(member.name)
-                    #log.debug(f"<<< {role.name} {user.name}")
-                    if user:
-                        self.teams.add_user(role.name, user.name, user.id)
-                    else:
-                        log.warning(f"Unknown user: {member.name} for team: {role.name}")
-
-        log.debug(f"Loaded teams: {self.teams}")
+            for role in guild.roles:
+                team = self.redmine.user_mgr.get_team_by_name(role.name)
+                if not team:
+                    log.warning(f"No team for {role.name}. Create it, please!") # FIXME create the team!
+                    # create_team -> POST to /groups.json?name=teamname
+                else:
+                    self.sync_team(role, team)
+    # TODO: On team sync, update loacl team cache
 
 
     def get_all_teams(self, include_users: bool = True) -> dict[str, Team]:
@@ -123,7 +150,7 @@ class NetBot(commands.Bot):
 
     def reindex(self):
         log.debug("NetBot.reindex")
-        self.cache_roles()
+        self.sync_roles()
 
 
     async def on_ready(self):
