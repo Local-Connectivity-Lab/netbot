@@ -526,22 +526,23 @@ class DiscordFormatter():
         return embed
 
 
-    async def print_team(self, ctx, team):
-        msg = f"> **{team.name}**\n"
-        for user_rec in team.users:
-            #user = self.redmine.get_user(user_rec.id)
-            #discord_user = user.custom_fields[0].value or ""  # FIXME cf_* lookup
-            msg += f"{user_rec.name}, "
-            #msg += f"[{user.id}] **{user_rec.name}** {user.login} {user.mail} {user.custom_fields[0].value}\n"
-        msg = msg[:-2] + '\n\n'
-        await ctx.channel.send(msg)
+    # async def print_team(self, ctx, team):
+    #     msg = f"> **{team.name}**\n"
+    #     for user_rec in team.users:
+    #         #user = self.redmine.get_user(user_rec.id)
+    #         #discord_user = user.custom_fields[0].value or ""  # FIXME cf_* lookup
+    #         msg += f"{user_rec.name}, "
+    #         #msg += f"[{user.id}] **{user_rec.name}** {user.login} {user.mail} {user.custom_fields[0].value}\n"
+    #     msg = msg[:-2] + '\n\n'
+    #     await ctx.channel.send(msg)
 
 
-    def format_team(self, ctx: discord.ApplicationContext, team: discord.Role) -> str:
+    def format_team(self, ctx: discord.ApplicationContext, team: discord.Role, inc_users:bool = True) -> str:
         # single line format: teamname: member1, member2
-        skip_teams = ["blocked", "users", "@everyone", ctx.me.name]
+        #skip_teams = ["blocked", "users", "@everyone", ctx.me.name]
+        team_postfix = "-team"
 
-        if team and team.name not in skip_teams:
+        if team and team.name.endswith(team_postfix):
             team_channel = ctx.bot.channel_for_team(team.name)
             if team_channel:
                 is_private = False
@@ -554,6 +555,9 @@ class DiscordFormatter():
             else:
                 team_name = "**" + team.name + "**"
 
-            return f"{team_name}: {', '.join([user.display_name for user in team.members])}\n"
+            if inc_users:
+                return f"{team_name}: {', '.join([user.display_name for user in team.members])}\n"
+            else:
+                return f"- {team_name}\n"
         else:
             return ""

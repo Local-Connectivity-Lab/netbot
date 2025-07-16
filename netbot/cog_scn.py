@@ -304,14 +304,13 @@ class SCNCog(commands.Cog):
                 await ctx.respond(self.formatter.format_team(ctx, team))
                 return
             else:
-                all_teams = [team.name for team in ctx.guild.roles]
+                all_teams = ", ".join([team.name for team in ctx.guild.roles if team.name.endswith("-team")])
                 await ctx.respond(f"Unknown team name: {teamname}\nTeams: {all_teams}") # error
         else:
             # all teams
-            #teams = "\n- ".join([team.name for team in ctx.guild.roles])
             buff = ""
             for team in ctx.guild.roles:
-                buff += self.formatter.format_team(ctx, team)
+                buff += self.formatter.format_team(ctx, team, inc_users=False)
             await ctx.respond(buff)
 
 
@@ -329,6 +328,7 @@ class SCNCog(commands.Cog):
         epics = self.redmine.ticket_mgr.get_epics()
         # format the epics and respond
         await ctx.respond(embeds=self.bot.formatter.epics_embed(ctx, epics))
+
 
     @scn.command(description="list blocked email")
     async def blocked(self, ctx:discord.ApplicationContext):
