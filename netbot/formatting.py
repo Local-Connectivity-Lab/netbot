@@ -50,6 +50,8 @@ COLOR = {
     'Urgent': discord.Color.dark_gold(),
     'Immediate': discord.Color.red(),
     'EPIC': discord.Color.dark_gray(),
+    'Backburner': discord.Color.light_gray(),
+    'Standing': discord.Color.light_gray(),
 }
 
 
@@ -328,11 +330,13 @@ class DiscordFormatter():
 
     def ticket_color(self, ticket:Ticket) -> discord.Color:
         """Get the default color associtated with a priority"""
+        default_color = discord.Color.light_gray()
+
         if ticket.status.is_closed:
             # return the status color:
-            return COLOR[ticket.status.name]
+            return COLOR.get(ticket.status.name, default_color)
         else:
-            return COLOR[ticket.priority.name]
+            return COLOR.get(ticket.priority.name, default_color)
 
 
     def lookup_discord_user(self, ctx: discord.ApplicationContext, name:str) -> discord.Member:
