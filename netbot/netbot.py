@@ -120,9 +120,11 @@ class NetBot(commands.Bot):
         team_ids = set()
         for member in role.members:
             user = self.redmine.user_mgr.find_discord_user(member.name)
-            log.debug(f"adding {user.name} to {team.name}")
-            self.redmine.user_mgr.join_team(user, team.name)
-            team_ids.add(user.id)
+            if user:
+                log.debug(f"adding {user.name} to {team.name}")
+                self.redmine.user_mgr.join_team(user, team.name)
+                team_ids.add(user.id)
+
         # noting: "in_team_ids" is the set of valid redmine IDs that should be in the associated team
         for user in team.users:
             if user.id not in team_ids:
