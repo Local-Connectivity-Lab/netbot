@@ -207,6 +207,13 @@ class TestMessages(test_utils.RedmineTestCase):
     def test_handle_message_tracker(self):
         with open("data/with-tracker.eml", 'rb') as file:
             message = self.imap.parse_message(file.read())
+
+            # make sure user is in group
+            _, _, email = self.imap.parse_email_address(message.from_address)
+            user = self.redmine.user_mgr.get_by_name(email)
+            self.assertIsNotNone(user, f"Couldn't find user for {email} (from {message.from_address})")
+            self.user_mgr.join_team(user, "software-dev-team")
+
             self.imap.handle_message(self.tag, message)
 
             tickets = self.redmine.ticket_mgr.match_subject(message.subject)
@@ -254,12 +261,16 @@ class TestMessages(test_utils.RedmineTestCase):
         # Update: origin email is now blocked, and invokes
         # differnt logic.
         # email = "no-reply@accounts.google.com"
+        # make sure user is in group
         email = "philion@gmail.com"
 
         user = self.redmine.user_mgr.get_by_name(email)
         self.assertIsNotNone(user, f"Couldn't find user for {email}")
         self.assertEqual(email, user.mail)
         log.info(f"Found user for {email}: {user}")
+
+        # make sure user is in group
+        self.user_mgr.join_team(user, "software-dev-team")
 
         subject = f"{self.tag}.{unittest.TestCase.id(self)}"
         message = Message(email, subject)
