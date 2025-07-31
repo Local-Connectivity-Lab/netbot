@@ -204,7 +204,7 @@ class Client(): ## imap.Client()
             log.info(f"Unknow user: {addr}, created new account.")
 
         #  upload any attachments
-        self.ticket_mgr.upload_attachment(user, message.attachments)
+        self.redmine.ticket_mgr.upload_attachments(user, message.attachments)
 
         if ticket:
             # found a ticket, append the message
