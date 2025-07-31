@@ -25,10 +25,6 @@ class Attachment():
         self.payload = payload
         self.token = None
 
-    def upload(self, client, user):
-        # FIXME This is messy, move to caller.
-        self.token = client.ticket_mgr.upload_file(user, self.payload, self.name, self.content_type)
-
     def set_token(self, token):
         self.token = token
 
