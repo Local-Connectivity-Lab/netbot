@@ -220,7 +220,7 @@ class UserManager():
         # check status
         if r:
             user = User(**r['user'])
-
+            self.cache.cache_user(user)
             log.info(f"created user: {user.id} {user.login} {user.mail}")
 
             return user

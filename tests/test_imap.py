@@ -85,7 +85,7 @@ class TestMessages(test_utils.RedmineTestCase):
         addr = 'philion <philion@gmail.com>'
         first, last, email = self.imap.parse_email_address(addr)
         self.assertEqual("philion", first)
-        self.assertEqual("", last)
+        self.assertEqual("-", last)
         self.assertEqual("philion@gmail.com", email)
 
         addr2 = 'Paul Philion <philion@acmerocket.com>'
@@ -325,3 +325,22 @@ class TestMessages(test_utils.RedmineTestCase):
         last_note = ticket.get_notes()[-1]
         self.assertEqual(last_note.user.id, user.id)
         self.assertEqual(last_note.notes, note)
+
+
+    def test_empty_name(self):
+        try:
+            test_email = None
+            user = None
+            with open("data/empty-name.eml", 'rb') as file:
+                message = self.imap.parse_message(file.read())
+                log.debug(f"loaded message: {message}")
+                self.imap.handle_message("test", message)
+                _, _, test_email = self.imap.parse_email_address(message.from_address)
+
+            user = self.redmine.user_mgr.find(test_email)
+            self.assertIsNotNone(user, f"Couldn't find user for {test_email}")
+            self.assertEqual(test_email, user.mail)
+        finally:
+            if user:
+                # remove the user after the test
+                self.redmine.user_mgr.remove(user)

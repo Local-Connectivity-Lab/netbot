@@ -63,7 +63,7 @@ class Client(): ## imap.Client()
                 first, last = name.rsplit(None, 1)
             else:
                 first = name
-                last = ""
+                last = "-" # empty string breaks redmine
             addr = m.group(2)
 
             return first, last, addr
@@ -202,6 +202,8 @@ class Client(): ## imap.Client()
             # create new user
             user = self.redmine.user_mgr.create(addr, first, last, user_login=None)
             log.info(f"Unknow user: {addr}, created new account.")
+        # make sure user is in users group
+        self.redmine.user_mgr.join_team(user, "users")
 
         #  upload any attachments
         self.redmine.ticket_mgr.upload_attachments(user, message.attachments)
