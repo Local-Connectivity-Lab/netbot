@@ -34,12 +34,12 @@ Once the `.env` file has been created, the `cron` settings can be configured.
 
 To create a new entry for the threader job, use `crontab`:
 ```
-sudo crontab -e
+crontab -e
 ```
 
 and add the following entry to the bottom, to run the threader_job.sh every 5 minutes, and direct the output to system logging with the tag `threader`:
 ```
-*/5 * * * * /home/scn/netbot/threader_job.sh | /usr/bin/logger -t threader
+*/5 * * * * /home/scn/netbot/threader_job.sh 2>&1 | /usr/bin/logger -t threader
 ```
 
 Replace `/home/scn/netbot` above with the actual full path to the `threader_job.sh` script on the system.
@@ -80,3 +80,10 @@ To watch the threader logs as they are happening (the above log segment occurs e
 `tail -f /var/log/syslog | grep threader`
 
 will display the latest logs to the console as they occur, and is a convient way to check if the cron is operating at expected. This is where any access or authtentication errors would be displayed.
+
+If logs are not showing up in syslog as expected, check the user's mail spool. In this example, the user is `scn`:
+```
+more /var/spool/mail/scn
+```
+
+When cron has a critical failure it will attempt to send email, which can be reviewed with the above command.
