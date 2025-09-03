@@ -1,0 +1,22 @@
+{
+  "time_entry_activities": [
+    {
+      "id": 15,
+      "name": "Community Networks (General)",
+      "is_default": true,
+      "active": true
+    },
+    {
+      "id": 16,
+      "name": "Grant: Seattle TMF 2023-4",
+      "is_default": false,
+      "active": true
+    },
+    {
+      "id": 17,
+      "name": "Grant: Benton Fellowship 2024",
+      "is_default": false,
+      "active": true
+    }
+  ]
+}

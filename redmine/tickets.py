@@ -7,7 +7,7 @@ import re
 import json
 import urllib.parse
 
-from redmine.model import TO_CC_FIELD_NAME, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult, TicketStatus, SYNC_FIELD_NAME
+from redmine.model import TO_CC_FIELD_NAME, TimeEntry, TimeEntryResults, User, Message, NamedId, Team, Ticket, TicketNote, TicketsResult, TicketStatus, SYNC_FIELD_NAME
 from redmine.session import RedmineSession, RedmineException
 from redmine import synctime
 
@@ -37,7 +37,9 @@ class TicketManager():
         self.trackers = {}
         self.custom_fields = {}
         self.statuses = {}
+        self.programs = {} # grants and tracked SCN projects
         self.default_project:int = default_project
+        self.default_program:int = -1
 
         self.reindex()
 
@@ -47,6 +49,7 @@ class TicketManager():
         self.statuses = self.load_statuses()
         self.trackers = self.load_trackers()
         self.custom_fields = self.load_custom_fields()
+        self.programs = self.load_programs()
 
 
     def sanity_check(self) -> dict[str, bool]:
@@ -74,6 +77,24 @@ class TicketManager():
 
     def get_custom_field(self, name:str) -> NamedId | None:
         return self.custom_fields.get(name, None)
+
+
+    def load_programs(self) -> dict[str,int]:
+        programs: dict[str,int] = {}
+
+        resp = self.session.get("/enumerations/time_entry_activities.json")
+        for activity in resp['time_entry_activities']:
+            if activity.get('active', False): # use fallback=false for active
+                programs[activity['name']] = activity['id']
+            if activity.get('is_default', False):
+                self.default_program = activity['id']
+
+        log.debug(f"Loaded programs: {programs}, default: {self.default_program}")
+        return programs
+
+
+    def get_program(self, program_name: str) -> int:
+        return self.programs.get(program_name, self.default_program)
 
 
     def load_priorities(self) -> dict[str,NamedId]:
@@ -601,6 +622,50 @@ class TicketManager():
 
     def resolve(self, ticket_id, user_id=None):
         return self.update(ticket_id, {"status_id": "3"}, user_id) # '3' is the status_id, it doesn't accept "Resolved"
+
+
+    def record_time(self, ticket_id:int, user:User, hours:float, program:str, note:str) -> TimeEntry:
+        # time_entry (required): a hash of the time entry attributes, including:
+        # issue_id or project_id (only one is required): the issue id or project id to log time on (both are integers); note that project ids can only be found using the API (e.g. at /projects.json)
+        # spent_on: the date the time was spent (default to the current date); format is e.g. 2020-12-24
+        # hours (required): the number of spent hours
+        # activity_id: the id of the time activity. This parameter is required unless a default activity is defined in Redmine.
+        # comments: short description for the entry (255 characters max)
+        # user_id: user id to be specified in need of posting time on behalf of another user
+        time_entry = {
+            'time_entry': {
+                'issue_id': ticket_id,
+                # 'spent_on': "2020-12-24", # (default to the current date)
+                'hours': hours,
+                'activity_id': self.get_program(program),
+                'comments': note,
+                'user_id': user.id,
+            }
+        }
+
+        response = self.session.post("/time_entries.json", json.dumps(time_entry), user.login)
+        if response:
+            return TimeEntry(**response['time_entry'])
+        else:
+            raise RedmineException(
+                f"create_ticket failed, status=[{response.status_code}] {response.reason}",
+                response.headers['X-Request-Id'])
+
+
+    # project_id
+    # issue_id
+    # activity_id
+    #  user_id
+    # from 2019-01-01
+    # to 2019-01-03
+    # spent_on - specific date?
+    def get_time_records(self, **kwargs) -> TimeEntryResults|None:
+        response = self.session.get(f"/time_entries.json?{urllib.parse.urlencode(kwargs)}")
+        if response:
+            return TimeEntryResults(**response)
+        else:
+            log.error(f"Error querying time records: params: {kwargs}, response={response}")
+            return None
 
 
     def update_sync_record(self, record:synctime.SyncRecord):

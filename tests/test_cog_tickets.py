@@ -583,3 +583,30 @@ class IntegrationTestTicketsCog(test_utils.BotTestCase):
                 # delete the ticket and confirm
                 self.redmine.ticket_mgr.remove(parent_ticket.id)
                 self.assertIsNone(self.redmine.ticket_mgr.get(parent_ticket.id))
+
+
+    async def test_record_time(self):
+        try:
+            ticket = self.create_test_ticket()
+            ctx = self.build_context()
+            ctx.channel = unittest.mock.AsyncMock(discord.TextChannel)
+            ctx.channel.name = f"Ticket #{ticket.id}"
+            ctx.channel.id = ticket.id
+
+            activity = "Development"
+            notes = "this is a test"
+            await self.cog.recordTime(ctx, 2.33, activity, notes)
+
+            records = self.redmine.ticket_mgr.get_time_records(issue_id=ticket.id)
+            self.assertIsNotNone(records)
+            self.assertEqual(records.total_count, 1)
+            self.assertEqual(records.time_entries[0].project.id, 1)
+            self.assertEqual(records.time_entries[0].ticket_id, ticket.id)
+            self.assertEqual(records.time_entries[0].user.id, self.user.id)
+            self.assertEqual(records.time_entries[0].activity.name, activity)
+            self.assertEqual(records.time_entries[0].comments, notes)
+        finally:
+            if ticket:
+               # delete the ticket and confirm
+               self.redmine.ticket_mgr.remove(ticket.id)
+               self.assertIsNone(self.redmine.ticket_mgr.get(ticket.id))

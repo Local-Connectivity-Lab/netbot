@@ -806,3 +806,27 @@ class TicketsCog(commands.Cog):
     @ticket.command(name="help", description="Display help about ticket management")
     async def help(self, ctx: discord.ApplicationContext):
         await ctx.respond(embed=self.bot.formatter.help_embed(ctx))
+
+
+    @discord.slash_command(name="testime", description="Record time against a program")
+    async def recordTime(self, ctx: discord.ApplicationContext, hours: float, program: str, note: str = ""):
+        log.info(f">>> {hours} {program} {note}")
+        redmine: Client = ctx.bot.redmine
+
+        user = redmine.user_mgr.find(ctx.user.name)
+        if not user:
+            await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add` to create the mapping.") # error
+            return
+
+        autoresolve = False
+        ticket_id = NetBot.parse_thread_title(ctx.channel.name)
+        if ticket_id is None:
+            # create a ticket and thread
+            ticket_cog = ctx.bot.get_cog('TicketsCog')
+            if ticket_cog:
+                await ticket_cog.create_new_ticket(ctx, note)
+                autoresolve = True
+
+        redmine.ticket_mgr.record_time(ticket_id, user, hours, program, note)
+        if autoresolve:
+            redmine.ticket_mgr.resolve(ticket_id)

@@ -562,3 +562,56 @@ class TicketsResult:
     @property
     def json(self):
         return json.dumps(self.asdict(), indent=4, default=vars)
+
+
+@dataclass
+class TimeEntry:
+    id: int
+    project: NamedId
+    issue: map
+    user: NamedId
+    activity: NamedId
+    hours: float
+    comments: str
+    spent_on: dt.date
+    created_on: dt.datetime
+    updated_on: dt.datetime
+    ticket_id: int = -1
+
+    def __post_init__(self):
+        self.user = NamedId(**self.user)
+        self.project = NamedId(**self.project)
+        self.activity =  NamedId(**self.activity)
+        self.ticket_id = self.issue['id']
+
+        if self.created_on and isinstance(self.created_on, str):
+            self.created_on = synctime.parse_str(self.created_on)
+        if self.updated_on and isinstance(self.updated_on, str):
+            self.updated_on = synctime.parse_str(self.updated_on)
+
+    def asdict(self):
+        return dataclasses.asdict(self)
+
+    @property
+    def json(self):
+        return json.dumps(self.asdict(), indent=4, default=vars)
+
+
+@dataclass
+class TimeEntryResults:
+    """Encapsulates a set of tickets"""
+    total_count: int
+    limit: int
+    offset: int
+    time_entries: list[TimeEntry]
+
+    def __post_init__(self):
+        if self.time_entries and len(self.time_entries) > 0 and isinstance(self.time_entries[0], dict):
+            self.time_entries = [TimeEntry(**entry) for entry in self.time_entries]
+
+    def asdict(self):
+        return dataclasses.asdict(self)
+
+    @property
+    def json(self):
+        return json.dumps(self.asdict(), indent=4, default=vars)
