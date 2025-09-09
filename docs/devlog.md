@@ -1,5 +1,9 @@
 # Netbot Development Log
 
+## 2025-09-08, v0.5
+
+Added `/record_time` command: Captures hours (float), program (popup selector based on /enumerations/time_entry_activities.json) ans an options note.
+
 ## 2025-01-30
 
 When deploying the lastest, found a problem with certain emails. The regex used to strip Fordarded emails contains the "match everything" wildcard. Except `.*` does not match new-lines.

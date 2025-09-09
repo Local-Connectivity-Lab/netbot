@@ -19,7 +19,7 @@ from redmine.model import Message, User, Ticket, TicketsResult
 from redmine.tickets import SCN_PROJECT_ID
 from redmine.session import RedmineSession
 from redmine.redmine import Client
-from netbot.netbot import NetBot, setup_logging
+from netbot.netbot import NetBot, setup_logging, config
 from tests.mock_session import MockSession
 
 
@@ -233,6 +233,7 @@ class RedmineTestCase(unittest.TestCase):
     def setUpClass(cls):
         sess = RedmineSession.fromenv()
         cls.redmine = Client.from_session(sess, SCN_PROJECT_ID)
+        config.programs = cls.redmine.ticket_mgr.get_programs()
         cls.user_mgr = cls.redmine.user_mgr
         cls.tickets_mgr = cls.redmine.ticket_mgr
         init_test_users(cls.user_mgr)

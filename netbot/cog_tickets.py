@@ -6,7 +6,7 @@ import logging
 import datetime as dt
 
 import discord
-from discord import ScheduledEvent
+from discord import ScheduledEvent, OptionChoice
 from discord.commands import option, SlashCommandGroup
 from discord.ext import commands
 from discord.enums import InputTextStyle
@@ -19,14 +19,37 @@ from redmine.model import Message, Ticket
 from redmine import synctime
 from redmine.redmine import Client
 from netbot.netbot import NetBot, TEAM_MAPPING, CHANNEL_MAPPING, default_ticket
+from . import config
+
+# FIXME
+# try for empty responses.
+# await interaction.response.defer()
+
 
 
 log = logging.getLogger(__name__)
 
+# cached data for fast option-choices popup menus
+_programs: list[OptionChoice] = [
+    OptionChoice("Community Networks (General)", value=15),
+    OptionChoice("Grant: Seattle TMF 2023-4", value=16),
+    OptionChoice("Grant: Benton Fellowship 2024", value=17),
+]
+#_bot = None
 
 def setup(bot:NetBot):
+    #_programs = get_program_options()
+    #log.warning(f"initilized programs: {_programs}")
     bot.add_cog(TicketsCog(bot))
+
     log.info("initialized tickets cog")
+
+
+def get_program_options() -> list[OptionChoice]:
+    programs = []
+    for k, v in config.programs.items():
+        programs.append(OptionChoice(k, value=v))
+    return programs
 
 
 def get_trackers(ctx: discord.AutocompleteContext):
@@ -114,6 +137,34 @@ class TrackerSelect(discord.ui.Select):
             f"TrackerSelect.callback() - selected tracker {self.values[0]}"
         )
 
+
+class ProgramSelect(discord.ui.Select):
+    """Popup menu to select ticket tracker"""
+    def __init__(self, bot: discord.Bot):
+        self.bot = bot
+
+        # Get the possible trackers
+        options = []
+        for name, value in self.bot.redmine.ticket_mgr.get_programs().items():
+            options.append(discord.SelectOption(label=name))
+
+        # The placeholder is what will be shown when no option is selected.
+        # The min and max values indicate we can only pick one of the three options.
+        # The options parameter, contents shown above, define the dropdown options.
+        super().__init__(
+            placeholder="Select program...",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        # Use the interaction object to send a response message containing
+        # the user's favourite colour or choice. The self object refers to the
+        # Select object, and the values attribute gets a list of the user's
+        # selected options. We only want the first one.
+        log.info(f"PROGRAM SELECT {interaction.user} {interaction.data}")
+        await interaction.response.send_message(f"ProgramSelect.callback() - selected program {self.values[0]}")
 
 class StatusSelect(discord.ui.Select):
     """Popup menu to select ticket status"""
@@ -808,9 +859,12 @@ class TicketsCog(commands.Cog):
         await ctx.respond(embed=self.bot.formatter.help_embed(ctx))
 
 
-    @discord.slash_command(name="testime", description="Record time against a program")
-    async def recordTime(self, ctx: discord.ApplicationContext, hours: float, program: str, note: str = ""):
-        log.info(f">>> {hours} {program} {note}")
+    @discord.slash_command(name="record_time", description="Record time against a program")
+    @option("hours", description="Hours worked on the program: `3.5`")
+    @option("program_id", choices=get_program_options(), description="Select the program or grant", required=True)
+    @option("note", description="Optional: Additional comments")
+    async def recordTime(self, ctx: discord.ApplicationContext, hours: float, program_id: int, note: str = ""):
+        log.info(f">>> {hours} {program_id} {note}")
         redmine: Client = ctx.bot.redmine
 
         user = redmine.user_mgr.find(ctx.user.name)
@@ -827,6 +881,8 @@ class TicketsCog(commands.Cog):
                 await ticket_cog.create_new_ticket(ctx, note)
                 autoresolve = True
 
-        redmine.ticket_mgr.record_time(ticket_id, user, hours, program, note)
+        redmine.ticket_mgr.record_time(ticket_id, user, hours, program_id, note)
         if autoresolve:
             redmine.ticket_mgr.resolve(ticket_id)
+
+        await ctx.respond(f"Recorded {hours} on {program_id} for {user.discord}")

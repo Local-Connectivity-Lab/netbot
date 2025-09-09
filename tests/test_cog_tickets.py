@@ -593,9 +593,10 @@ class IntegrationTestTicketsCog(test_utils.BotTestCase):
             ctx.channel.name = f"Ticket #{ticket.id}"
             ctx.channel.id = ticket.id
 
-            activity = "Development"
+            activity = "Community Networks (General)"
+            activity_id = self.tickets_mgr.get_program(activity)
             notes = "this is a test"
-            await self.cog.recordTime(ctx, 2.33, activity, notes)
+            await self.cog.recordTime(ctx, 2.33, activity_id, notes)
 
             records = self.redmine.ticket_mgr.get_time_records(issue_id=ticket.id)
             self.assertIsNotNone(records)

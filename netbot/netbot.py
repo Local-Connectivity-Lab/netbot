@@ -16,7 +16,7 @@ from redmine import synctime
 from redmine.redmine import Client
 
 from .formatting import DiscordFormatter
-
+from . import config
 
 log = logging.getLogger(__name__)
 
@@ -49,6 +49,7 @@ TEAM_MAPPING = {
 
 FALLBACK_TEAM = "intake-team"
 
+PROG_CACHE = None
 
 # utility method to get a list of (one) ticket from the title of the channel, or empty list
 def default_ticket(ctx: discord.AutocompleteContext) -> list[int]:
@@ -62,7 +63,6 @@ def default_ticket(ctx: discord.AutocompleteContext) -> list[int]:
 
 class NetbotException(Exception):
     """netbot exception"""
-
 
 class NetBot(commands.Bot):
     """netbot"""
@@ -82,6 +82,8 @@ class NetBot(commands.Bot):
         self.formatter = DiscordFormatter(client.url)
 
         self.redmine = client
+        config.programs = client.ticket_mgr.get_programs()
+
         #guilds = os.getenv('DISCORD_GUILDS').split(', ')
         #if guilds:
         #    log.info(f"setting guilds: {guilds}")
@@ -115,6 +117,7 @@ class NetBot(commands.Bot):
     #                     log.warning(f"Unknown user: {member.name} for team: {role.name}")
 
     #     log.debug(f"Loaded teams: {self.teams}")
+
 
     def sync_team(self, role:discord.Role, team:Team):
         team_ids = set()
@@ -645,6 +648,7 @@ def setup_logging(log_level = logging.INFO):
     logging.getLogger("discord.webhook.async_").setLevel(logging.WARNING)
 
     log.debug("log level set to debug")
+
 
 if __name__ == '__main__':
     setup_logging()

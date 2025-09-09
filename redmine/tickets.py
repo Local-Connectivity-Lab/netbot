@@ -93,6 +93,12 @@ class TicketManager():
         return programs
 
 
+    def get_programs(self) -> dict[str,int]:
+        if len(self.programs) == 0:
+            self.programs = self.load_programs()
+        return self.programs
+
+
     def get_program(self, program_name: str) -> int:
         return self.programs.get(program_name, self.default_program)
 
@@ -624,7 +630,7 @@ class TicketManager():
         return self.update(ticket_id, {"status_id": "3"}, user_id) # '3' is the status_id, it doesn't accept "Resolved"
 
 
-    def record_time(self, ticket_id:int, user:User, hours:float, program:str, note:str) -> TimeEntry:
+    def record_time(self, ticket_id:int, user:User, hours:float, program_id:int, note:str) -> TimeEntry:
         # time_entry (required): a hash of the time entry attributes, including:
         # issue_id or project_id (only one is required): the issue id or project id to log time on (both are integers); note that project ids can only be found using the API (e.g. at /projects.json)
         # spent_on: the date the time was spent (default to the current date); format is e.g. 2020-12-24
@@ -637,7 +643,7 @@ class TicketManager():
                 'issue_id': ticket_id,
                 # 'spent_on': "2020-12-24", # (default to the current date)
                 'hours': hours,
-                'activity_id': self.get_program(program),
+                'activity_id': program_id, #self.get_program(program),
                 'comments': note,
                 'user_id': user.id,
             }
