@@ -10,6 +10,8 @@ import discord
 from dotenv import load_dotenv
 from discord import Role
 from discord.ext import commands, tasks
+import datetime as dt
+from zoneinfo import ZoneInfo
 
 from redmine.model import TicketNote, Ticket, NamedId, Team, TeamSet
 from redmine import synctime
@@ -511,7 +513,7 @@ class NetBot(commands.Bot):
 
 
     # The goal is to run the "daily" activities at 10am pacific daily
-    _ten_am_pacific = synctime.parse_hours("10:00 -0800")
+    _ten_am_pacific = dt.time(hour=10, tzinfo=ZoneInfo("America/Los_Angeles"))
     @tasks.loop(time=_ten_am_pacific)
     async def run_daily_tasks(self):
         """Process dusty and recycled tickets.
