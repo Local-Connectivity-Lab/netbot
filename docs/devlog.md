@@ -2,7 +2,7 @@
 
 ## 2025-09-08, v0.5
 
-Added `/record_time` command: Captures hours (float), program (popup selector based on /enumerations/time_entry_activities.json) ans an options note.
+Added `/hours` command: Captures hours (float), program (popup selector based on /enumerations/time_entry_activities.json) ans an options note.
 
 ## 2025-01-30
 

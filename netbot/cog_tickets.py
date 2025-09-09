@@ -859,12 +859,11 @@ class TicketsCog(commands.Cog):
         await ctx.respond(embed=self.bot.formatter.help_embed(ctx))
 
 
-    @discord.slash_command(name="record_time", description="Record time against a program")
+    @discord.slash_command(name="hours", description="Record time against a program")
     @option("hours", description="Hours worked on the program: `3.5`")
     @option("program_id", choices=get_program_options(), description="Select the program or grant", required=True)
     @option("note", description="Optional: Additional comments")
     async def recordTime(self, ctx: discord.ApplicationContext, hours: float, program_id: int, note: str = ""):
-        log.info(f">>> {hours} {program_id} {note}")
         redmine: Client = ctx.bot.redmine
 
         user = redmine.user_mgr.find(ctx.user.name)
@@ -884,5 +883,5 @@ class TicketsCog(commands.Cog):
         redmine.ticket_mgr.record_time(ticket_id, user, hours, program_id, note)
         if autoresolve:
             redmine.ticket_mgr.resolve(ticket_id)
-
-        await ctx.respond(f"Recorded {hours} on {program_id} for {user.discord}")
+        program = ctx.bot.redmine.ticket_mgr.get_program_by_id(program_id)
+        await ctx.respond(f"Recorded **{hours} hours** on **{program}** for *{user.discord}*")

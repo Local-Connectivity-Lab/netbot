@@ -103,6 +103,12 @@ class TicketManager():
         return self.programs.get(program_name, self.default_program)
 
 
+    def get_program_by_id(self, program_id) -> str:
+        for name, prog_id in self.programs.items():
+            if program_id == prog_id:
+                return name
+
+
     def load_priorities(self) -> dict[str,NamedId]:
         """load active priorities"""
 
