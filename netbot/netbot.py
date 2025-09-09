@@ -510,7 +510,9 @@ class NetBot(commands.Bot):
                 await self.recycle_ticket(ticket)
 
 
-    @tasks.loop(hours=24)
+    # The goal is to run the "daily" activities at 10am pacific daily
+    _ten_am_pacific = synctime.parse_hours("10:00 PT")
+    @tasks.loop(time=_ten_am_pacific)
     async def run_daily_tasks(self):
         """Process dusty and recycled tickets.
         Expected to run every 24 hours to:

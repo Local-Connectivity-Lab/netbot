@@ -66,6 +66,11 @@ def zulu(timestamp:dt.datetime) -> str:
     return timestamp.strftime(ZULU_FORMAT)
 
 
+def parse_hours(hour_str:str) -> dt.time:
+    """convert '10:00 PT' into a time-of-day object"""
+    return dt.datetime.strptime(hour_str, "%H:%M %z").time()
+
+
 class SyncRecord():
     """encapulates the record of the last ticket syncronization"""
     def __init__(self, ticket_id: int, channel_id: int, last_sync: dt.datetime):
