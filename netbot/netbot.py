@@ -511,7 +511,7 @@ class NetBot(commands.Bot):
 
 
     # The goal is to run the "daily" activities at 10am pacific daily
-    _ten_am_pacific = synctime.parse_hours("10:00 PT")
+    _ten_am_pacific = synctime.parse_hours("10:00 -0800")
     @tasks.loop(time=_ten_am_pacific)
     async def run_daily_tasks(self):
         """Process dusty and recycled tickets.
