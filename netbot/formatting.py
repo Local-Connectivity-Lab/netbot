@@ -31,6 +31,7 @@ EMOJI = {
     'Urgent': '⚠️',
     'Immediate': '❗',
     'EPIC': '🎇',
+    'Standing': '🚩',
     '?': '❓',
 }
 
