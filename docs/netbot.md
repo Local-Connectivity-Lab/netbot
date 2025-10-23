@@ -2,10 +2,12 @@
 
 ## Setup Checklist
 
+1. Install `uv`: https://docs.astral.sh/uv/getting-started/installation/
+1. Clone the project: `git clone https://github.com/Local-Connectivity-Lab/netbot.git; cd netbot`
 1. Configure `.env` file with Redmine and Discord settings
    1. Generate the [Discord token](#discord-token)
    2. Generate the [Redmine token](#redmine-token)
-2. Deploy `netbot` container with `docker compose`
+2. Deploy `netbot` container: `docker compose up --build -d`
 3. Confirm operation with `docker logs`
 
 To start, you will need the URL of the Redmine server you're integrating with, and admin access to that redmine instance.
@@ -14,7 +16,7 @@ To start, you will need the URL of the Redmine server you're integrating with, a
 ## Cheatsheet
 
 * To deploy the latest: `git pull; docker compose up --build -d`
-* To shudown netbot: `docker cmopose down`
+* To shudown netbot: `docker compose down`
 * To check for errors in the logs: `docker logs netbot | grep ERROR`
 
 
@@ -35,6 +37,24 @@ DISCORD_TOKEN=ABC-ANOTHER-TOKEN-DEF
 ```
 
 Once the `.env` file has been created, the container can be started
+
+
+## Development
+
+`uv` is used to manage Python environment, build and run netbot. https://github.com/astral-sh/uv/
+
+
+### Operation
+
+To run tests: `uv run -m tests`
+
+To run a local development version: `uv run -m netbot.netbot debug sync-off`
+
+Parameters `uv run -m netbot.netbot` accepts:
+* `debug`: Turn on debug logging
+* `sync-off`: Disable the periodic sync operations
+
+To run netbot in a container...
 
 
 ## Docker Compose
