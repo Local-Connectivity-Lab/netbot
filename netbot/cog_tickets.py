@@ -4,6 +4,7 @@
 
 import logging
 import datetime as dt
+import re
 
 import discord
 from discord import ScheduledEvent, OptionChoice
@@ -12,6 +13,10 @@ from discord.ext import commands
 from discord.enums import InputTextStyle
 from discord.ui.item import Item, V
 from discord.utils import basic_autocomplete
+from datetime import datetime
+from netbot.llm_redactor import RedmineProcessor
+import logging
+import json
 
 import dateparser
 
@@ -254,38 +259,48 @@ class EditSubjectAndDescModal(discord.ui.Modal):
 
 
 class EditDescriptionModal(discord.ui.Modal):
-    """modal dialog to edit the ticket subject and description"""
-    def __init__(self, redmine: Client, ticket: Ticket, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        # Note: redmine must be available in callback, as the bot is not
-        # available thru the Interaction.
-        self.redmine = redmine
-        self.ticket_id = ticket.id
-        self.add_item(discord.ui.InputText(label="Description",
-                                           value=ticket.description,
-                                           style=InputTextStyle.paragraph))
+    def __init__(self, processor, ticket_id: int, initial_text: str, title: str = "Edit Description"):
+        super().__init__(title=title, timeout=300)
+        self.processor = processor
+        self.ticket_id = ticket_id
+
+        self.input = discord.ui.InputText(
+            label="Description (raw, will be redacted on submit)",
+            style=discord.InputTextStyle.long,
+            value=initial_text[:4000] if initial_text else "",  
+            required=False
+        )
+        self.add_item(self.input)
 
 
     async def callback(self, interaction: discord.Interaction):
-        description = self.children[0].value
-        log.debug(f"callback: {description}")
+        await interaction.response.defer()
 
-        user = self.redmine.user_mgr.find_discord_user(interaction.user.name)
+        new_text = (self.input.value or "").strip()
+        # print(f"new_text: {new_text}")
 
-        fields = {
-            "description": description,
-        }
-        ticket = self.redmine.ticket_mgr.update(self.ticket_id, fields, user.login)
+        result = self.processor.redact_pii(new_text, {})
+        # print(f"result: {result}")
+        cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", (result or "").strip(), flags=re.DOTALL)
+        # print(f"cleaned: {cleaned}")
+        final_output = cleaned
+        # print(f"final_output: {new_text}")
+        try:
+            payload = json.loads(cleaned)
+            final_output = payload.get("redacted_text", cleaned)
+        except json.JSONDecodeError:
+            pass
 
-        embed = discord.Embed(title=f"Updated ticket {ticket.id} description")
-        embed.add_field(name="Description", value=ticket.description)
+        self.processor.update_ticket(self.ticket_id, {
+            "description": new_text,
+            "red_description": final_output
+        })
 
-        await interaction.response.send_message(embeds=[embed])
+        embed = discord.Embed(title=f"Updated ticket #{self.ticket_id}")
+        embed.add_field(name="Redacted description", value=final_output or "*empty*", inline=False)
+        await interaction.followup.send(embed=embed, ephemeral=False)
 
-
-# distinct from above. takes app-context
 def default_term(ctx: discord.ApplicationContext) -> str:
-    # examine the thread
     ch_name = ctx.channel.name
     ticket_id = NetBot.parse_thread_title(ch_name)
     if ticket_id:
@@ -301,6 +316,11 @@ class TicketsCog(commands.Cog):
     def __init__(self, bot:NetBot):
         self.bot:NetBot = bot
         self.redmine: Client = bot.redmine
+        self.bot = bot
+        self.redmine_processor = RedmineProcessor(
+            api_key="8e9f6efeac50a11afc26d0c7bead709f0dfce25b", 
+            redmine_url="http://localhost:80"
+        )
 
 
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
@@ -349,51 +369,80 @@ class TicketsCog(commands.Cog):
     @option(name="term",
             description="Query can include ticket ID, owner, team or any term used for a text match.",
             default="")
-    async def query(self, ctx: discord.ApplicationContext, term:str = ""):
-        """List tickets for you, or filtered by parameter"""
-        # different options: none, me (default), [group-name], intake, tracker name
-        # buid index for trackers, groups
-        # add groups to users.
-
-        # lookup the user
+    async def query(self, ctx: discord.ApplicationContext, term: str = ""):
+        """List tickets for you, or filtered by parameter. If a single ticket ID is requested,
+        show the redacted description (if present) instead of raw."""
         user = self.redmine.user_mgr.find(ctx.user.name)
         if not user:
-            log.info(f"Unknown user name: {ctx.user.name}")
-            # TODO make this a standard error.
-            await ctx.respond(f"Discord member **{ctx.user.name}** is not provisioned in redmine. Use `/scn add [redmine-user]` to provision.")
+            await ctx.respond(
+                f"Discord member **{ctx.user.name}** is not provisioned in redmine. "
+                "Use `/scn add [redmine-user]` to provision."
+            )
             return
 
-        log.debug(f"found user mapping for {ctx.user.name}: {user}")
-
         if term == "":
-            # empty param, try to derive from channel name
-            term = default_term(ctx)
-            if term is None:
-                # still none, default to...
-                term = "me"
+            term = default_term(ctx) or "me"
 
         if term == "me":
             results = self.redmine.ticket_mgr.my_tickets(user.login)
         else:
             results = self.resolve_query_term(term)
 
-        if results and len(results) > 0:
-            await self.bot.formatter.print_tickets(f"{term}", results, ctx)
-        else:
+        if not results or len(results) == 0:
             await ctx.respond(f"Zero results for: `{term}`")
+            return
 
+        is_single_numeric = term.isdigit() and len(results) == 1
+        if is_single_numeric:
+            ticket = results[0]
+
+            redacted = await self.get_redacted_description(ticket.id)
+            if not redacted:
+                try:
+                    processed = self.redmine_processor.process_ticket(ticket.id)
+                    if processed:
+                        redacted = processed.get("redacted_description")
+                except Exception as e:
+                    log.warning(f"On-the-fly redaction failed for #{ticket.id}: {e}")
+
+            await self.bot.formatter.print_ticket(ticket, ctx, description_override=redacted)
+            return  
+
+        for t in results:
+            issue = self.redmine_processor.fetch_ticket_by_id(t.id)
+            desc = issue.get("red_description") or issue.get("description") or ""
+            await self.bot.formatter.print_ticket(t, ctx, description_override=desc)
+
+
+
+
+    async def get_redacted_description(self, ticket_id: int):
+        issue = self.redmine_processor.fetch_ticket_by_id(ticket_id)
+        if not issue:
+            return None
+        return issue.get("red_description") 
 
 
     @ticket.command(description="Get ticket details")
     @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
-    async def details(self, ctx: discord.ApplicationContext, ticket_id:int):
-        """Update status on a ticket, using: unassign, resolve, progress"""
-        #log.debug(f"found user mapping for {ctx.user.name}: {user}")
-        ticket = self.redmine.ticket_mgr.get(ticket_id, include="children,watchers")
-        if ticket:
-            await self.bot.formatter.print_ticket(ticket, ctx)
-        else:
-            await ctx.respond(f"Ticket {ticket_id} not found.") # print error
+    async def details(self, ctx: discord.ApplicationContext, ticket_id: int):
+        await ctx.defer()
+        try:
+            ticket = self.redmine.ticket_mgr.get(ticket_id, include="children,watchers")
+            if not ticket:
+                return await ctx.respond(f"Ticket #{ticket_id} not found.")
+
+            redacted = await self.get_redacted_description(ticket_id)
+            await self.bot.formatter.print_ticket(
+                ticket,
+                ctx,
+                description_override=redacted or ticket.description
+            )
+        except Exception as e:
+            log.error(f"Error in /ticket details for #{ticket_id}: {e}")
+            await ctx.respond("An error occurred while processing your ticket.")
+
+
 
 
     @ticket.command(description="Collaborate on a ticket")
@@ -509,17 +558,6 @@ class TicketsCog(commands.Cog):
         else:
             await ctx.respond(f"Ticket {ticket_id} not found.") # print error
 
-
-    # command disabled
-    #@ticket.command(name="edit", description="Edit a ticket")
-    #@option("ticket_id", description="ticket ID")
-    # async def edit(self, ctx:discord.ApplicationContext, ticket_id: int):
-    #     """Edit the fields of a ticket"""
-    #     # check team? admin?, provide reasonable error msg.
-    #     ticket = self.redmine.ticket_mgr.get(ticket_id)
-    #     await ctx.respond(f"EDIT #{ticket.id}", view=EditView(self.bot))
-
-
     async def create_thread(self, ticket:Ticket, ctx:discord.ApplicationContext):
         log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel.name}")
         thread_name = f"Ticket #{ticket.id}: {ticket.subject}"
@@ -532,7 +570,6 @@ class TicketsCog(commands.Cog):
         # ticket-614: Creating new thread should post the ticket details to the new thread
         await thread.send(self.bot.formatter.format_ticket_details(ticket))
         return thread
-
 
     @ticket.command(name="new", description="Create a new ticket")
     @option("title", description="Title of the new SCN ticket")
@@ -550,7 +587,6 @@ class TicketsCog(commands.Cog):
         ticket_id = NetBot.parse_thread_title(channel_name)
         log.debug(f">>> {channel_name} --> ticket: {ticket_id}")
         if ticket_id:
-            # check if it's an epic
             epic = self.redmine.ticket_mgr.get(ticket_id)
             if epic and epic.priority.name == "EPIC":
                 log.debug(f">>> {ticket_id} is an EPIC!")
@@ -558,7 +594,6 @@ class TicketsCog(commands.Cog):
                 await self.thread(ctx, ticket.id)
                 return
 
-        # not in ticket thread, try tracker
         tracker = self.bot.tracker_for_channel(channel_name)
         team = self.bot.team_for_tracker(tracker)
         role = self.bot.get_role_by_name(team.name)
@@ -576,8 +611,9 @@ class TicketsCog(commands.Cog):
                 log.warning(f"unable to load role by team name: {team.name}")
             await ctx.respond(alert_msg, embed=self.bot.formatter.ticket_embed(ctx, ticket))
         else:
-            log.error(f"no tracker for {channel_name}")
-            await ctx.respond(f"ERROR: No tracker for {channel_name}.")
+            log.debug(f"no parent ot tracker for {channel_name}")
+            ticket = self.redmine.ticket_mgr.create(user, message)
+            await self.thread(ctx, ticket.id)
 
 
     @ticket.command(name="notify", description="Notify collaborators on a ticket")
@@ -808,41 +844,40 @@ class TicketsCog(commands.Cog):
 
     @ticket.command(name="description", description="Edit the description of a ticket")
     async def edit_description(self, ctx: discord.ApplicationContext):
-        # pop the the edit description embed
+        """Open a modal to edit the ticket's description using a fresh fetch from Redmine."""
         ticket_id = NetBot.parse_thread_title(ctx.channel.name)
-        ticket = self.redmine.ticket_mgr.get(ticket_id)
-        if ticket:
-            modal = EditDescriptionModal(self.redmine, ticket, title=f"Editing ticket #{ticket.id}")
-            await ctx.send_modal(modal)
-        else:
-            await ctx.respond(f"Cannot find ticket for {ctx.channel}")
+        issue = self.redmine_processor.fetch_ticket_by_id(ticket_id)
+        if not issue:
+            await ctx.followup.send(f"Couldn't find ticket for thread: {ctx.channel.mention}", ephemeral=True)
+            return
+        initial_text = issue.get("description") or ""
 
+        modal = EditDescriptionModal(
+            processor=self.redmine_processor,
+            ticket_id=ticket_id,
+            initial_text=initial_text,
+            title=f"Editing ticket #{ticket_id} description"
+        )
+        await ctx.send_modal(modal)
 
     @ticket.command(name="parent", description="Set a parent ticket for ")
     @option("parent_ticket", description="The ID of the parent ticket")
     async def parent(self, ctx: discord.ApplicationContext, parent_ticket:int):
-        # /ticket parent 234 <- Get *this* ticket and set the parent to 234.
-
-        # get ticket Id from thread
         ticket_id = NetBot.parse_thread_title(ctx.channel.name)
         if not ticket_id:
-             # error - no ticket ID
             await ctx.respond("Command only valid in ticket thread. No ticket info found in this thread.")
             return
 
-        # validate user
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
         if not user:
             await ctx.respond(f"ERROR: Discord user without redmine config: {ctx.user.name}. Create with `/scn add`")
             return
 
-        # check that parent_ticket is valid
         parent = self.redmine.ticket_mgr.get(parent_ticket)
         if not parent:
             await ctx.respond(f"ERROR: Unknow ticket #: {parent_ticket}")
             return
 
-        # update the ticket
         params = {
             "parent_issue_id": parent_ticket,
         }

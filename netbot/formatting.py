@@ -76,8 +76,8 @@ class DiscordFormatter():
             await ctx.respond(msg)
 
 
-    async def print_ticket(self, ticket, ctx:discord.ApplicationContext):
-        await ctx.respond(embed=self.ticket_embed(ctx, ticket))
+    async def print_ticket(self, ticket, ctx: discord.ApplicationContext, *, description_override: str | None = None):
+        await ctx.respond(embed=self.ticket_embed(ctx, ticket, description_override=description_override))
 
 
     def format_registered_users(self, users: list[User]) -> str:
@@ -376,21 +376,27 @@ class DiscordFormatter():
         return self.format_discord_member(ctx, ticket.watchers[0].id)
 
 
-    def ticket_embed(self, ctx: discord.ApplicationContext, ticket:Ticket) -> discord.Embed:
+    def ticket_embed(self, ctx: discord.ApplicationContext, ticket:Ticket, description_override: str | None = None) -> discord.Embed:
         """Build an embed panel with full ticket details"""
         subject = f"{get_emoji(ticket.priority.name)} {ticket.subject[:EMBED_TITLE_LEN-8]} (#{ticket.id})"
+
+        desc = (
+            description_override or getattr(ticket, "red_description", None)
+            or getattr(ticket, "description", None)
+            or ""
+        )
+        if len(desc) > EMBED_DESC_LEN:
+            desc = desc[:EMBED_DESC_LEN]
         embed = discord.Embed(
             title=subject,
-            description=ticket.description[:EMBED_DESC_LEN],
+            description=desc,
             colour=self.ticket_color(ticket)
         )
-
-        # noting, assuming all these values are less than
-        #         status = self.format_icon(ticket.status)
-        #priority = self.format_icon(ticket.priority)
         embed.add_field(name="Status", value=self.format_icon(ticket.status))
         embed.add_field(name="Priority", value=self.format_icon(ticket.priority))
         embed.add_field(name="Tracker", value=self.format_icon(ticket.tracker))
+
+
         if ticket.category:
             embed.add_field(name="Category", value=ticket.category)
 
