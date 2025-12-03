@@ -40,3 +40,7 @@ A `Makefile` is provided with the following targets:
 - `htmlcov`  : run the unit tests and generate a full report in htmlcov/
 
 Testing and coverage requires standing up a local testbed. For details, see [Design](docs/design.md).
+
+
+## Adding `llm-redactor` branch
+For the redactor feature.
