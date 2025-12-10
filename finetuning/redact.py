@@ -6,7 +6,7 @@ from mlx_lm import load, generate
 print("Loading model...", file=sys.stderr)
 model, tokenizer = load(
     "mlx-community/Llama-3.2-3B-Instruct-4bit",
-    adapter_path="adapters/pii-redactor-3b"
+    adapter_path="adapters/pii-redactor-3b-varied"
 )
 
 # Get input
@@ -130,16 +130,19 @@ system_prompt = """You are a **privacy compliance officer** responsible for reda
 
         ALWAYS REMEMBER: never summarize a ticket. redact per instructions but never summarize or shorten excessively
 
-You must output in JSON format with:
-{
-  "redacted_text": "the fully redacted text",
-  "properties_redacted": {
-     "lastname1": "original last name",
-     "email1": "original email",
-     "ip1": "original IP",
-     ...
-  }
-}"""
+    You must output in JSON format with:
+    {
+    "redacted_text": "the fully redacted text",
+    "properties_redacted": {
+        "lastname1": "original last name",
+        "email1": "original email",
+        "ip1": "original IP",
+        ...
+    }
+    }
+    Do not include empty fields. Only include properties that were actually found and redacted.
+
+"""
 
 messages = [
     {"role": "system", "content": system_prompt},
