@@ -1,11 +1,11 @@
 """Simple PII redactor"""
 
+import re
 import json
 import logging
-import re
+import sys
 from mlx_lm import load, generate
 from redmine.model import Ticket
-#from finetuning.redact import system_prompt, model_name
 
 log = logging.getLogger(__name__)
 
@@ -156,9 +156,22 @@ class RedactedText:
 
     def unredact(self) -> str:
         # retacted text format: Some text [aValue] more text [anotherValue]
+        # match all [], iterate over matches
+        pattern = re.compile(r"\[(\w+)\]")
+
         restored_text = self.text
-        for name, value in self.fields.items():
-            restored_text = restored_text.replace('[' + name + ']', value)
+
+        # this is all about managing UpperCase vs lowercase keys
+        for match in pattern.finditer(self.text):
+            key = match.group(1)
+            lookup_key = key
+            if lookup_key not in self.fields:
+                lookup_key = lookup_key.lower()
+            if lookup_key not in self.fields:
+                log.error(f"Expected field, {key}, not provided.")
+                continue
+            value = self.fields[lookup_key]
+            restored_text = restored_text.replace('[' + key + ']', value)
 
         return restored_text
 
@@ -192,10 +205,15 @@ class Redactor:
 
 
 def main():
-    original = "Your confirmation number is 54F-KA8. Mr Yoyo Ma, 404-213-4436, ma@yoyo.org, is attending the symphony."
+    # Get input
+    if len(sys.argv) > 1:
+        text = " ".join(sys.argv[1:])
+    else:
+        text = sys.stdin.read().strip()
+
     redactor = Redactor()
-    redacted = redactor.redact_text(original)
-    print("Text:", original)
+    redacted = redactor.redact_text(text)
+    print("Input:", text)
     print("Redacted:", redacted)
     print("Fields:", redacted.fields)
     print("Unredacted:", redacted.unredact())
