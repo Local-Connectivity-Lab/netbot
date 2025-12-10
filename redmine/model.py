@@ -334,6 +334,7 @@ class ParentTicket:
 
 SYNC_FIELD_NAME = "syncdata"
 TO_CC_FIELD_NAME = "To/CC"
+REDACTOR_FIELD_NAME = "redacted"
 
 
 @dataclass
@@ -484,6 +485,20 @@ class Ticket():
         return synctime.age_str(self.updated_on)
 
 
+    @property
+    def redacted_fields(self) -> dict[str,str]:
+        val = self.get_custom_field(REDACTOR_FIELD_NAME)
+        if val:
+            # assume is json str
+            fields = json.loads(val)
+            return fields
+
+
+    @property
+    def is_redacted(self) -> bool:
+        return self.redacted_fields is not None
+
+
     def __str__(self):
         return f"#{self.id:04d}  {self.status.name:<11}  {self.priority.name:<6}  {self.assigned:<20}  {self.subject}"
 
@@ -531,6 +546,17 @@ class Ticket():
                     notes.append(note)
 
         return notes
+
+
+    # NOTE: This probably need to move up the stack to the element that has access to custom-field resolution
+    def set_redacted_fields(self, fields: dict[str,str]) -> dict[str,str]:
+        # FIXME Need ID for custom field name, via lookup.
+        field_id = 10 # FIXME
+        value = json.dumps(fields)
+        old_value_json = self.set_custom_field(field_id, REDACTOR_FIELD_NAME, value)
+        old_val = json.loads(old_value_json)
+        return old_val
+
 
     def get_field(self, fieldname:str):
         val = getattr(self, fieldname)
