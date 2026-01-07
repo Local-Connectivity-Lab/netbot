@@ -135,7 +135,13 @@ You must output in JSON format with:
      "ip1": "original IP",
      ...
   }
-}"""
+}
+Rules:
+Use snake_case consistently for all keys, inside both "redacted_text" and "properties_redacted"
+Do not include empty fields.
+In "properties_redacted", include only properties that were actually found and redacted.
+Do not add any text outside the JSON object.
+"""
 
 
 class RedactedText:
