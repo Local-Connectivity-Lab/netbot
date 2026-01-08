@@ -5,7 +5,6 @@ import json
 import logging
 import sys
 from mlx_lm import load, generate
-from redmine.model import Ticket
 
 log = logging.getLogger(__name__)
 
@@ -204,10 +203,6 @@ class Redactor:
             result = result[json_start:json_end]
 
         return RedactedText.from_json(result.strip())
-
-
-    def redact_ticket(self, ticket: Ticket) -> Ticket:
-        pass
 
 
 def main():

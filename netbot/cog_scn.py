@@ -394,3 +394,31 @@ class SCNCog(commands.Cog):
 
         else:
             await ctx.respond("Must be authorized admin to approve Redmine users.")
+
+
+    # --------
+
+    # @scn.command(description="Redact a ticket")
+    # async def redact(self, ctx:discord.ApplicationContext, ticket_id: int):
+    #     if self.is_admin(ctx.user):
+    #         ticket = self.redmine.ticket_mgr.get(ticket_id)
+    #         if ticket:
+    #             ticket = self.redmine.redact_ticket(ticket)
+    #             await self.bot.formatter.print_ticket(ticket, ctx)
+    #         else:
+    #             # TODO user error
+    #             await ctx.respond(f"Ticket {ticket_id} not found.", ephemeral=True)
+
+
+    @scn.command(description="Display ticket details with redacted info displayed")
+    async def unredact(self, ctx:discord.ApplicationContext, ticket_id: int):
+        if self.is_admin(ctx.user):
+            ticket = self.redmine.ticket_mgr.get(ticket_id)
+            if ticket:
+                ticket = self.redmine.unredact_ticket(ticket)
+                #await self.bot.formatter.print_ticket(ticket, ctx)
+                await ctx.respond(embed=self.formatter.ticket_embed(ctx, ticket), ephemeral=True)
+
+            else:
+                # TODO user error
+                await ctx.respond(f"Ticket {ticket_id} not found.")

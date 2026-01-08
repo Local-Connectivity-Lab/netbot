@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """redmine client"""
 
+import json
 import os
 import re
 import logging
 
+from redactor.redactor import RedactedText, Redactor
 from redmine.session import RedmineSession
-from redmine.model import Message, Ticket, User, NamedId
+from redmine.model import REDACTOR_FIELD_NAME, Message, Ticket, User, NamedId
 from redmine.users import UserManager
 from redmine.tickets import TicketManager, SCN_PROJECT_ID
 
@@ -38,6 +40,9 @@ class Client():
         self.session = session
         self.user_mgr = user_mgr
         self.ticket_mgr = ticket_mgr
+
+        # Redactor - initialize, with default model location
+        self.redactor = Redactor()
 
         # sanity check
         self.validate_sanity() # FATAL if not
@@ -120,11 +125,48 @@ class Client():
         log.info(f"Creating ticket with project={project_id} and tracker={tracker.id}")
         ticket = self.ticket_mgr.create(user, message, project_id=project_id, tracker_id=tracker.id)
 
+        # Redactor - this is where redaction happens
+        if self.redactor:
+            ticket = self.redactor.redact_ticket(ticket)
+
         # check user status, reject the ticket if blocked
         if self.user_mgr.is_blocked(user):
             log.debug(f"Rejecting ticket #{ticket.id} based on blocked user {user.login}")
             ticket = self.ticket_mgr.reject_ticket(ticket.id)
 
+        return ticket
+
+
+    # Redact a ticket.
+    # This will store the ticket as redacted.
+    def redact_ticket(self, ticket: Ticket) -> Ticket:
+        log.debug(f"Redacting : {ticket}")
+        redacted_desc = self.redactor.redact_text(ticket.description)
+        if len(redacted_desc.fields) > 0:
+            log.info(f"Redacted fields: {redacted_desc.fields.keys()}")
+            redaction_cf = self.ticket_mgr.get_custom_field(REDACTOR_FIELD_NAME)
+            redacted_fields_json = json.dumps(redacted_desc.fields)
+
+            fields = {
+                "custom_fields": [
+                    { "id": redaction_cf.id, "value": redacted_fields_json }
+                ],
+                "description": str(redacted_desc)
+            }
+            return self.ticket_mgr.update(ticket.id, fields)
+        else:
+            log.debug(f"Nothing to redact on {ticket}")
+            return ticket
+
+
+    # returns an in-memory un-redacted copy of the ticket
+    # that works with the display info
+    def unredact_ticket(self, ticket:Ticket) -> Ticket:
+        field_str = ticket.get_custom_field(REDACTOR_FIELD_NAME)
+        if field_str:
+            fields = json.loads(field_str)
+            redacted = RedactedText(ticket.description, fields)
+            ticket.description = redacted.unredact()
         return ticket
 
 

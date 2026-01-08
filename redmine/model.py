@@ -548,16 +548,6 @@ class Ticket():
         return notes
 
 
-    # NOTE: This probably need to move up the stack to the element that has access to custom-field resolution
-    def set_redacted_fields(self, fields: dict[str,str]) -> dict[str,str]:
-        # FIXME Need ID for custom field name, via lookup.
-        field_id = 10 # FIXME
-        value = json.dumps(fields)
-        old_value_json = self.set_custom_field(field_id, REDACTOR_FIELD_NAME, value)
-        old_val = json.loads(old_value_json)
-        return old_val
-
-
     def get_field(self, fieldname:str):
         val = getattr(self, fieldname)
         return val

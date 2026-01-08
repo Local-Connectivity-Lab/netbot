@@ -349,7 +349,7 @@ class DiscordFormatter():
 
     def get_user_id(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
         if ticket is None or ticket.assigned_to is None:
-            return ""
+            return None
 
         user_str = self.format_discord_member(ctx, ticket.assigned_to.id)
         if not user_str:
@@ -359,12 +359,12 @@ class DiscordFormatter():
 
 
     def format_discord_member(self, ctx: discord.ApplicationContext, user_id:int) -> str:
-        user = ctx.bot.redmine.user_mgr.get(user_id) # call to cache
+        user = ctx.bot.redmine.user_mgr.cache.get(user_id) # call to cache directly
         if user and user.discord_id:
             return f"<@!{user.discord_id.id}>"
         if user:
             return user.name
-        return ""
+        return None
 
 
     def format_collaborators(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
