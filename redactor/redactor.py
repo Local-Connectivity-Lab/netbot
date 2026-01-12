@@ -10,8 +10,7 @@ log = logging.getLogger(__name__)
 
 default_model_file = "finetuning/adapters/pii-redactor"
 model_name = "mlx-community/Llama-3.2-3B-Instruct-4bit"
-system_prompt = 
-"""
+system_prompt = """
         You are a **privacy compliance officer** responsible for redacting **personally identifiable information (PII)** from **Redmine support tickets** before they are shared on public platforms like Discord.
 
         Your primary goal is to **remove PII while preserving ticket clarity and structure** so that it remains **useful for troubleshooting and public discussion.**
@@ -79,7 +78,7 @@ system_prompt =
         - Example (Multiple people):
         - **Original:** *Alert: Taylor Brown and Drew Thomas detected outage near 3672 Oak Ave, Tacoma, MT 96267. Phone 584-657-5661.*
         - **Redacted:** *Alert: Taylor [LastName1] and Drew [LastName2] detected outage near [Address1], [City1], [State1] [Zip1]. Phone [Phone1].*
-        
+
         ## 2. HASHED OR SYSTEM-GENERATED CODES
 
         When a ticket contains machine-generated identifiers (e.g., hexadecimal strings, reference codes, fingerprints, tracking IDs), redact them using `[HashedCodeN]`.
@@ -270,11 +269,11 @@ system_prompt =
         Betsie [LastName1]
 
         Example5:
-        Thanks so much, 
+        Thanks so much,
         Rachel Kim 1280 AFA4 DD14 5898
 
         Redacted:
-        Thanks so much, 
+        Thanks so much,
         Rachel [LastName1] [HashCode1]
 
         ### **4. Physical Addresses**
@@ -385,7 +384,7 @@ class RedactedText:
     def unredact(self) -> str:
         # retacted text format: Some text [aValue] more text [anotherValue]
         # match all [], iterate over matches
-        pattern = re.compile(r"\[(\w+)\]")
+        pattern = re.compile(r"(\[\w+\])")
 
         restored_text = self.text
 
@@ -393,13 +392,13 @@ class RedactedText:
         for match in pattern.finditer(self.text):
             key = match.group(1)
             lookup_key = key
-            if lookup_key not in self.fields:
-                lookup_key = lookup_key.lower()
+            #if lookup_key not in self.fields:
+            #    lookup_key = lookup_key.lower()
             if lookup_key not in self.fields:
                 log.error(f"Expected field, {key}, not provided.")
                 continue
             value = self.fields[lookup_key]
-            restored_text = restored_text.replace('[' + key + ']', value)
+            restored_text = restored_text.replace(key, value)
 
         return restored_text
 
@@ -421,7 +420,7 @@ class Redactor:
             Do NOT include notes.
             Do NOT include text outside the JSON object.
             Redact all PII from the following text according to the rules and output the result strictly in JSON format.
-            
+
             TEXT:
             {text}
             """}
