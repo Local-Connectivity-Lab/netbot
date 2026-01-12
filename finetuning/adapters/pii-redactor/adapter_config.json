@@ -1,6 +1,6 @@
 {
     "adapter_path": "adapters/pii-redactor",
-    "batch_size": 4,
+    "batch_size": 1,
     "config": null,
     "data": "data",
     "fine_tune_type": "lora",
@@ -16,7 +16,7 @@
     "lr_schedule": null,
     "mask_prompt": false,
     "max_seq_length": 2048,
-    "model": "mlx-community/Llama-3.2-1B-Instruct-4bit",
+    "model": "mlx-community/Llama-3.2-3B-Instruct-4bit",
     "num_layers": 8,
     "optimizer": "adam",
     "optimizer_config": {
@@ -29,9 +29,9 @@
     "project_name": null,
     "report_to": null,
     "resume_adapter_file": null,
-    "save_every": 100,
+    "save_every": 40,
     "seed": 0,
-    "steps_per_eval": 100,
+    "steps_per_eval": 40,
     "steps_per_report": 10,
     "test": false,
     "test_batches": 500,
