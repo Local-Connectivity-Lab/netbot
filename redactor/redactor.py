@@ -4,12 +4,12 @@ import re
 import json
 import logging
 import sys
-from mlx_lm import load, generate
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from peft import PeftModel
+import torch
 
 log = logging.getLogger(__name__)
 
-default_model_file = "finetuning/adapters/pii-redactor"
-model_name = "mlx-community/Llama-3.2-3B-Instruct-4bit"
 system_prompt = """
         You are a **privacy compliance officer** responsible for redacting **personally identifiable information (PII)** from **Redmine support tickets** before they are shared on public platforms like Discord.
 
@@ -404,10 +404,21 @@ class RedactedText:
 
 
 class Redactor:
-    def __init__(self, path: str = default_model_file): # relative to current module
-        log.info("Loading model from {path}")
-        self.model, self.tokenizer = load(model_name, adapter_path=path)
-
+    def __init__(self, path: str = "finetuning/adapters/pii-redactor-adapter"):
+        log.info(f"Loading model from {path}")
+        
+        base_model_name = "meta-llama/Llama-3.2-3B-Instruct"
+        self.tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+        
+        base_model = AutoModelForCausalLM.from_pretrained(
+            base_model_name,
+            device_map="auto",
+            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+            low_cpu_mem_usage=True
+        )
+        
+        self.model = PeftModel.from_pretrained(base_model, path)
+        self.model.eval()
 
     def redact_text(self, text: str) -> RedactedText:
         text = text.strip()
@@ -425,10 +436,25 @@ class Redactor:
             {text}
             """}
         ]
-        prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        result = generate(self.model, self.tokenizer, prompt=prompt, max_tokens=1024)
+        prompt = self.tokenizer.apply_chat_template(
+            messages, 
+            tokenize=False, 
+            add_generation_prompt=True
+        )
+        
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=1024,
+                do_sample=False,
+                pad_token_id=self.tokenizer.eos_token_id
+            )
+        
+        result = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        result = result[len(prompt):].strip()
 
-        # Extract JSON only
         if '{' in result:
             json_start = result.find('{')
             json_end = result.rfind('}') + 1
