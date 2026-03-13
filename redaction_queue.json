@@ -1,0 +1,103 @@
+{
+  "queue": [
+    {
+      "id": "edit-3015-1771907301",
+      "type": "edit",
+      "ticket_id": 3015,
+      "description": "Hi team,\n\nI spoke with Daniel Kim about the WiFi issue at the Rainier site. He said the router has been intermittently dropping connection since yesterday afternoon. You can reach him at daniel.kim@gmail.com or 206-555-2187 if you need details.\n\nThe equipment is located at 3124 S Alaska St, Seattle, WA 98108. Please let me know once someone is able to take a look.\n\nThanks,\nJay Robert",
+      "user": {
+        "name": "Robert Terracin",
+        "login": "iamlamp",
+        "discord_id": 469362479059959819
+      },
+      "timestamp": "2026-02-24T04:28:21.329895",
+      "status": "failed",
+      "error": "API returned status 500: {\"detail\":\"Failed to parse model output: Failed to parse model output: Invalid control character at: line 2 column 33 (char 34)\"}"
+    },
+    {
+      "id": "edit-3017-1771968205",
+      "type": "edit",
+      "ticket_id": 3017,
+      "description": "Hi team,\n\nI spoke with Daniel Kim about the WiFi issue at the Rainier site. He said the router has been intermittently dropping connection since yesterday afternoon. You can reach him at daniel.kim@gmail.com or 206-555-2187 if you need more details.\n\n127.0.0.1\n\nThe equipment is located at 3124 S Alaska St, Seattle, WA 98108. Please let me know once someone is able to take a look.\n\nThanks,\nJay Robert",
+      "user": {
+        "name": "Dan",
+        "login": "danbSCN",
+        "discord_id": 739669349199118426
+      },
+      "timestamp": "2026-02-24T21:23:25.370608",
+      "status": "failed",
+      "error": "LLM API busy after max retries"
+    },
+    {
+      "id": "edit-3017-1771968664",
+      "type": "edit",
+      "ticket_id": 3017,
+      "description": "Hi team,\n\nI spoke with Daniel Kim about the WiFi issue at the Rainier site. He said the router has been intermittently dropping connection since yesterday afternoon. You can reach him at daniel.kim@gmail.com or 206-555-2187 if you need more details.\n\nIP address: 172.0.0.1\n\nThe equipment is located at 3124 S Alaska St, Seattle, WA 98108. Please let me know once someone is able to take a look.\n\nThanks,\nJay Robert",
+      "user": {
+        "name": "Rudra Singh",
+        "login": "rudra",
+        "discord_id": 1117682047369089115
+      },
+      "timestamp": "2026-02-24T21:31:04.007547",
+      "status": "failed",
+      "error": "LLM API busy after max retries"
+    },
+    {
+      "id": "edit-3182-1773277492",
+      "type": "edit",
+      "ticket_id": 3182,
+      "description": "(note: this is a test email by Tom for purposes of testing the discord\nredaction feature. Information here is not real and this ticket can be\ndeleted)\n\nHi team,\nI\u2019m having trouble accessing the shared drive this morning. Every time I\ntry to open \\\\acme-fs01\\Projects, I get an error that says \u201cNetwork path\nnot found.\u201d I\u2019ve tried restarting my laptop (ACMELAP123-BSM) and verified\nI\u2019m connected to VPN, but the issue persists.\n\nCan someone take a look? I\u2019ve got a report due this afternoon that depends\non those files.\n\nYou can expense new hardware for me.  My credit card number is\n1234-1111-2222-3334, exp 10/26, security code 999.\n\nThanks,\n\nBob Smith\nSenior Data Analyst\nACME Corporation\nWork phone: (206) 555-1389\nEmployee ID: 104382\nSent from my ACME-issued laptop\n(note: this is a test email by Tom for purposes of testing the discord\nredaction feature. Information here is not real and this ticket can be\ndeleted).",
+      "user": {
+        "name": "Rudra Singh",
+        "login": "rudra",
+        "discord_id": 1117682047369089115
+      },
+      "timestamp": "2026-03-12T01:04:52.235124",
+      "status": "failed",
+      "error": "API returned status 500: {\"detail\":\"Failed to parse model output: Failed to parse model output: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)\"}"
+    },
+    {
+      "id": "edit-3182-1773294724",
+      "type": "edit",
+      "ticket_id": 3182,
+      "description": "(note: this is a test email by Tom for purposes of testing the discord\nredaction feature. Information here is not real and this ticket can be\ndeleted)\n\nHi team,\nI\u2019m having trouble accessing the shared drive this morning. Every time I\ntry to open \\\\acme-fs01\\Projects, I get an error that says \u201cNetwork path\nnot found.\u201d I\u2019ve tried restarting my laptop (ACMELAP123-BSM) and verified\nI\u2019m connected to VPN, but the issue persists.\n\nCan someone take a look? I\u2019ve got a report due this afternoon that depends\non those files.\n\nYou can expense new hardware for me.  My credit card number is\n1234-1111-2222-3334, exp 10/26, security code 999.\n\nThanks,\n\nBob Smith\nSenior Data Analyst\nACME Corporation\nWork phone: (206) 555-1389\nEmployee ID: 104382\nSent from my ACME-issued laptop\n(note: this is a test email by Tom for purposes of testing the discord\nredaction feature. Information here is not real and this ticket can be\ndeleted).",
+      "user": {
+        "name": "Rudra Singh",
+        "login": "rudra",
+        "discord_id": 1117682047369089115
+      },
+      "timestamp": "2026-03-12T05:52:04.082416",
+      "status": "failed",
+      "error": "API returned status 500: {\"detail\":\"Failed to parse model output: Failed to parse model output: Invalid \\\\escape: line 2 column 119 (char 120)\"}"
+    },
+    {
+      "id": "edit-3182-1773295877",
+      "type": "edit",
+      "ticket_id": 3182,
+      "description": "(note: this is a test email by Tom for purposes of testing the discord\nredaction feature. Information here is not real and this ticket can be\ndeleted)\n\nHi team,\nI\u2019m having trouble accessing the shared drive this morning. Every time I\ntry to open \\\\acme-fs01\\Projects, I get an error that says \u201cNetwork path\nnot found.\u201d I\u2019ve tried restarting my laptop (ACMELAP123-BSM) and verified\nI\u2019m connected to VPN, but the issue persists.\n\nCan someone take a look? I\u2019ve got a report due this afternoon that depends\non those files.\n\nYou can expense new hardware for me.  My credit card number is\n1234-1111-2222-3334, exp 10/26, security code 999.\n\nThanks,\n\nBob Smith\nSenior Data Analyst\nACME Corporation\nWork phone: (206) 555-1389\nEmployee ID: 104382\nSent from my ACME-issued laptop\n(note: this is a test email by Tom for purposes of testing the discord\nredaction feature. Information here is not real and this ticket can be\ndeleted).",
+      "user": {
+        "name": "Rudra Singh",
+        "login": "rudra",
+        "discord_id": 1117682047369089115
+      },
+      "timestamp": "2026-03-12T06:11:17.375759",
+      "status": "failed",
+      "error": "API returned status 500: {\"detail\":\"Failed to parse model output: Failed to parse model output: Invalid \\\\escape: line 2 column 119 (char 120)\"}"
+    },
+    {
+      "id": "edit-3182-1773297224",
+      "type": "edit",
+      "ticket_id": 3182,
+      "description": "(note: this is a test email by Tom for purposes of testing the discord\nredaction feature. Information here is not real and this ticket can be\ndeleted)\n\nHi team,\nI\u2019m having trouble accessing the shared drive this morning. Every time I\ntry to open \\\\acme-fs01\\Projects, I get an error that says \u201cNetwork path\nnot found.\u201d I\u2019ve tried restarting my laptop (ACMELAP123-BSM) and verified\nI\u2019m connected to VPN, but the issue persists.\n\nCan someone take a look? I\u2019ve got a report due this afternoon that depends\non those files.\n\nYou can expense new hardware for me.  My credit card number is\n1234-1111-2222-3334, exp 10/26, security code 999.\n\nThanks,\n\nBob Smith\nSenior Data Analyst\nACME Corporation\nWork phone: (206) 555-1389\nEmployee ID: 104382\nSent from my ACME-issued laptop\n(note: this is a test email by Tom for purposes of testing the discord\nredaction feature. Information here is not real and this ticket can be\ndeleted).",
+      "user": {
+        "name": "Rudra Singh",
+        "login": "rudra",
+        "discord_id": 1117682047369089115
+      },
+      "timestamp": "2026-03-12T06:33:44.729389",
+      "status": "failed",
+      "error": "API returned status 500: {\"detail\":\"Failed to parse model output: Failed to parse model output: Invalid \\\\escape: line 2 column 121 (char 122)\"}"
+    }
+  ],
+  "locked_tickets": {}
+}

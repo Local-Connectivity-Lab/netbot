@@ -1,15 +1,17 @@
-"""Simple PII redactor"""
-
+"""Simple PII redactor - PyTorch/CPU version"""
 import re
 import json
 import logging
 import sys
-from mlx_lm import load, generate
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from peft import PeftModel
 
 log = logging.getLogger(__name__)
 
-default_model_file = "finetuning/adapters/pii-redactor"
-model_name = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+BASE_MODEL = "meta-llama/Llama-3.2-3B-Instruct"
+DEFAULT_ADAPTER_PATH = "finetuning/adapters/pii-redactor-lora"
+
 system_prompt = """
         You are a **privacy compliance officer** responsible for redacting **personally identifiable information (PII)** from **Redmine support tickets** before they are shared on public platforms like Discord.
 
@@ -68,17 +70,17 @@ system_prompt = """
         - **Redacted:** *John reported an issue with network latency.*
 
         - Example (Multiple people):
-        - **Original:** *Eyoel Jin contacted Alice about the issue.*
-        - **Redacted:** *Eyoel [LastName1] contacted Alice about the issue.*
+        - **Original:** *Esther Jang contacted Alice about the issue.*
+        - **Redacted:** *Esther [LastName1] contacted Alice about the issue.*
 
         - Example (Multiple people):
-        - **Original:** *Eyoel Jin contacted Alice Beatrice about the issue.*
-        - **Redacted:** *Eyoel [LastName1] contacted Alice [LastName2] about the issue.*
+        - **Original:** *Esther Jang contacted Alice Beatrice about the issue.*
+        - **Redacted:** *Esther [LastName1] contacted Alice [LastName2] about the issue.*
 
         - Example (Multiple people):
         - **Original:** *Alert: Taylor Brown and Drew Thomas detected outage near 3672 Oak Ave, Tacoma, MT 96267. Phone 584-657-5661.*
         - **Redacted:** *Alert: Taylor [LastName1] and Drew [LastName2] detected outage near [Address1], [City1], [State1] [Zip1]. Phone [Phone1].*
-
+        
         ## 2. HASHED OR SYSTEM-GENERATED CODES
 
         When a ticket contains machine-generated identifiers (e.g., hexadecimal strings, reference codes, fingerprints, tracking IDs), redact them using `[HashedCodeN]`.
@@ -92,27 +94,27 @@ system_prompt = """
 
         Original:
         Thanks so much,
-        -Eyoel
-        1210 N1A4 DM14 519B
+        -Esther
+        1280 AFA4 DD14 589B
 
         Redacted:
         Thanks so much,
-        -Eyoel
+        -Esther
         [HashedCode1]
 
          Original:
         Thanks so much,
-        -Eyoel 1210 N1A4 DM14 519B
+        -Esther 1280 AFA4 DD14 589B
 
         Redacted:
         Thanks so much,
-        -Eyoel [HashedCode1]
+        -Esther [HashedCode1]
 
         If multiple codes appear:
 
         Original:
-        Reference: 1210 N1A4 DM14 519B
-        Backup ID: 519B 88A1 N1A4
+        Reference: 1280 AFA4 DD14 589B
+        Backup ID: 9C3F 88A1 004D
 
         Redacted:
         Reference: [HashedCode1]
@@ -153,7 +155,7 @@ system_prompt = """
         - **Original:** *Please contact john.doe@example.com for assistance.*
         - **Redacted:** *Please contact [Email1] for assistance.*
 
-        - **Original:** *mira@cs.washington.edu requested access to the document.*
+        - **Original:** *infrared@cs.washington.edu requested access to the document.*
         - **Redacted:** *[Email2] requested access to the document.*
 
         Original: Please contact Jamie Lee for assistance.
@@ -243,12 +245,12 @@ system_prompt = """
 
         Example2:
         Best,
-        Eyoel
+        Esther
         8531 Lake City Way NE
         (206)-702-6551
 
         Redacted:
-        Eyoel
+        Esther
         [StreetAddress1]
         [PhoneNumber1]
 
@@ -269,11 +271,11 @@ system_prompt = """
         Betsie [LastName1]
 
         Example5:
-        Thanks so much,
+        Thanks so much, 
         Rachel Kim 1280 AFA4 DD14 5898
 
         Redacted:
-        Thanks so much,
+        Thanks so much, 
         Rachel [LastName1] [HashCode1]
 
         ### **4. Physical Addresses**
@@ -283,6 +285,10 @@ system_prompt = """
         - **Original:** *The router is located at 1234 Elm St, Seattle, WA 98101.*
         - **Redacted:** *The router is located at [Address1].*
 
+         - Example:
+        - **Original: Alert: Chris Garcia and Elena Lopez detected outage near 44 Beacon St, Boston, MA 02108. Phone 206-555-9988
+        - **Redacted: Alert: Chris [LastName1] and Elena [LastName2] detected outage near [Address1]. Phone [Phone1]
+        
         ### **5. IP & MAC Addresses**
         Replace all IP addresses (both IPv4 and IPv6) and MAC addresses with **[IPN]** and **[MACN]**, respectively.
 
@@ -330,13 +336,13 @@ system_prompt = """
         - **Original:**
         ```
         Chris Caputo: Please fix this issue.
-        Eyoel Jin: I have escalated this to IT.
+        Esther Jang: I have escalated this to IT.
         Chris Caputo: Thank you!
         ```
         - **Redacted:**
         ```
         Chris [LastName1]: Please fix this issue.
-        Eyoel [LastName2]: I have escalated this to IT.
+        Esther [LastName2]: I have escalated this to IT.
         Chris [LastName1]: Thank you!
         ```
 
@@ -362,98 +368,167 @@ system_prompt = """
         Do not add any text outside the JSON object.
         Only the following placeholder prefixes are allowed:
         LastName, Email, Phone, Address, HashedCode, IP, MAC, PublicKey, Username, Password.
-"""
 
+        """
 
 class RedactedText:
     def __init__(self, text: str, fields: dict[str,str]):
         self.text = text
         self.fields = fields
-
-
+    
     @classmethod
     def from_json(cls, json_str: str):
         result = json.loads(json_str)
         return cls(text=result['redacted_text'], fields=result['properties_redacted'])
-
-
+    
     def __str__(self):
         return self.text
-
-
+    
     def unredact(self) -> str:
-        # retacted text format: Some text [aValue] more text [anotherValue]
-        # match all [], iterate over matches
-        pattern = re.compile(r"(\[\w+\])")
-
+        pattern = re.compile(r"\[(\w+)\]")
         restored_text = self.text
-
-        # this is all about managing UpperCase vs lowercase keys
+        
         for match in pattern.finditer(self.text):
-            key = match.group(1)
-            lookup_key = key
-            #if lookup_key not in self.fields:
-            #    lookup_key = lookup_key.lower()
-            if lookup_key not in self.fields:
+            placeholder_with_brackets = match.group(0)  # [LastName1]
+            key = match.group(1)  # LastName1
+            
+            if key not in self.fields:
                 log.error(f"Expected field, {key}, not provided.")
                 continue
-            value = self.fields[lookup_key]
-            restored_text = restored_text.replace(key, value)
-
+            
+            value = self.fields[key]
+            restored_text = restored_text.replace(placeholder_with_brackets, value)
+        
         return restored_text
 
-
 class Redactor:
-    def __init__(self, path: str = default_model_file): # relative to current module
-        log.info("Loading model from {path}")
-        self.model, self.tokenizer = load(model_name, adapter_path=path)
-
-
+    def __init__(self, adapter_path: str = DEFAULT_ADAPTER_PATH):
+        log.info(f"Loading model from {adapter_path}")
+        
+        self.tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        
+        log.info("Loading base model")
+        self.model = AutoModelForCausalLM.from_pretrained(
+            BASE_MODEL,
+            torch_dtype=torch.float16,
+            device_map="cpu",
+            low_cpu_mem_usage=True,
+        )
+        
+        log.info("Loading LoRA adapter...")
+        self.model = PeftModel.from_pretrained(self.model, adapter_path)
+        self.model = self.model.merge_and_unload()
+        self.model.eval()
+        
+        log.info("Model ready!")
+    
     def redact_text(self, text: str) -> RedactedText:
         text = text.strip()
+        
+        log.info("Preparing prompt...")
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"""
             You MUST output ONLY valid JSON.
-            Do NOT explain.
-            Do NOT include analysis.
-            Do NOT include notes.
+            Do NOT explain. Do NOT include analysis. Do NOT include notes.
             Do NOT include text outside the JSON object.
             Redact all PII from the following text according to the rules and output the result strictly in JSON format.
-
             TEXT:
             {text}
             """}
         ]
-        prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        result = generate(self.model, self.tokenizer, prompt=prompt, max_tokens=1024)
+        
+        log.info("Tokenizing input...")
+        prompt = self.tokenizer.apply_chat_template(
+            messages, 
+            tokenize=False, 
+            add_generation_prompt=True
+        )
+        inputs = self.tokenizer(prompt, return_tensors="pt")
+        
+        log.info("Generating redaction (takes around ~7.5 min on CPU)...")
+        log.info("Please be patient - CPU inference is slow...")
+        
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=1024,
+                temperature=0.1,
+                do_sample=True,
+                pad_token_id=self.tokenizer.eos_token_id
+            )
+        
+        log.info("Decoding result...")
+        result = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-        # Extract JSON only
-        if '{' in result:
-            json_start = result.find('{')
-            json_end = result.rfind('}') + 1
-            result = result[json_start:json_end]
-
-        return RedactedText.from_json(result.strip())
-
+        # this helps extract the json from LLM output since llm outputs extra information beyond required json
+        if '```json' in result:
+            json_start = result.rfind('```json') + 7
+            json_end = result.find('```', json_start)
+            if json_end > json_start:
+                result = result[json_start:json_end].strip()
+        elif '{' in result:
+            json_blocks = []
+            start = 0
+            while True:
+                json_start = result.find('{', start)
+                if json_start == -1:
+                    break
+                depth = 0
+                for i in range(json_start, len(result)):
+                    if result[i] == '{':
+                        depth += 1
+                    elif result[i] == '}':
+                        depth -= 1
+                        if depth == 0:
+                            json_blocks.append(result[json_start:i+1])
+                            start = i + 1
+                            break
+                else:
+                    break
+            
+            if json_blocks:
+                result = json_blocks[-1]
+                
+        log.info("Done!")
+        # TODO: remove debug statement before deploying
+        # print("\n=== RAW JSON OUTPUT ===")
+        # print(result)
+        # print("======================\n")
+        
+        try:
+            # print("The returned response:")
+            # print(result.strip())
+            return RedactedText.from_json(result.strip())
+        except json.JSONDecodeError as e:
+            log.error(f"Failed to parse JSON: {e}")
+            log.error(f"Raw output: {result}")
+            raise
 
 def main():
-    # Get input
+    # enable logging with timestamps
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(message)s',
+        datefmt='%H:%M:%S'
+    )
+    
     if len(sys.argv) > 1:
         text = " ".join(sys.argv[1:])
     else:
         text = sys.stdin.read().strip()
-
+    
+    log.info("Starting PII Redactor...")
     redactor = Redactor()
     redacted = redactor.redact_text(text)
-    print("Input:", text)
-    print("Redacted:", redacted)
-    print("Fields:", redacted.fields)
-    print("Unredacted:", redacted.unredact())
+    
+    # print("\n" + "="*80)
+    # print("Input:", text)
+    # print("Redacted:", redacted)
+    # print("Fields:", redacted.fields)
+    # print("Unredacted:", redacted.unredact())
+    # print("="*80)
 
-
-
-
-# Run the IMAP sync process
 if __name__ == '__main__':
     main()

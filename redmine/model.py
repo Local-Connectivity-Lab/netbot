@@ -334,7 +334,7 @@ class ParentTicket:
 
 SYNC_FIELD_NAME = "syncdata"
 TO_CC_FIELD_NAME = "To/CC"
-REDACTOR_FIELD_NAME = "redacted"
+REDACTOR_FIELD_NAME = "unredacted"
 
 
 @dataclass
