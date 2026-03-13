@@ -610,6 +610,14 @@ class NetBot(commands.Bot):
         # auth role not found
         return False
 
+    def is_pii_admin(self, user: discord.Member) -> bool:
+        """Check if user has PII admin role (can view unredacted content and edit tickets)"""
+        # search user for "pii_admin" role
+        for role in user.roles:
+            if "pii_admin" == role.name:
+                return True
+        # pii_admin role not found
+        return False
 
 def main():
     """netbot main function"""
