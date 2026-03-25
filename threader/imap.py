@@ -178,6 +178,10 @@ class Client(): ## imap.Client()
         subject = message.subject_cleaned()
         log.debug(f'uid:{msg_id} - from:{last}, {first}, email:{addr}, subject:{subject}')
 
+        # NOTE: Might need a setting to override "search for matching ticket"
+        # Simplyfying assumption: If the subject has a valid tracker tag -> [Valid-Tracker-Name]
+        # Then skip the searches in first, next.
+
         ticket = None
         # first, search for a matching subject
         tickets = self.redmine.ticket_mgr.match_subject(subject)

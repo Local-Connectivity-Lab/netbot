@@ -10,6 +10,7 @@ from tests import test_utils
 
 log = logging.getLogger(__name__)
 
+
 class TestUserManager(test_utils.MockRedmineTestCase):
     """Mocked testing of user manager"""
 
@@ -43,3 +44,8 @@ class TestUserManager(test_utils.MockRedmineTestCase):
         self.assertEqual(discord_name, updated.discord_id.name)
 
         mock_get.assert_called_once()
+
+
+    def test_role_cache(self):
+        found_id = self.user_mgr.cache.lookup_role("Volunteer")
+        self.assertEqual(found_id, 4)

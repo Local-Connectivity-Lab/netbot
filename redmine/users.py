@@ -15,6 +15,7 @@ log = logging.getLogger(__name__)
 
 USER_RESOURCE = "/users.json"
 TEAM_RESOURCE = "/groups.json"
+ROLES_RESOURCE = "/roles.json"
 BLOCKED_TEAM_NAME = "blocked"
 
 
@@ -26,6 +27,7 @@ class UserCache():
         self.user_emails: dict[str, int]  = {}
         self.discord_ids: dict[str, int]  = {}
         self.teams: dict[str, Team] = {}
+        self.roles: dict[str, int] = {} # role name, id
 
 
     def clear(self):
@@ -34,6 +36,7 @@ class UserCache():
         self.user_ids.clear()
         self.user_emails.clear()
         self.discord_ids.clear()
+        self.roles.clear()
 
 
     def cache_user(self, user: User) -> None:
@@ -119,6 +122,10 @@ class UserCache():
                     return True
 
         return False
+
+
+    def lookup_role(self, role_name:str) -> int: # role_id in redmine
+        return self.roles.get(role_name)
 
 
 class UserManager():
@@ -324,6 +331,10 @@ class UserManager():
             ]
         }
         updated = self.update(user, fields)
+
+        # make sure user has a volunteer role on the SCN project
+        self.assure_project_role(user, "scn", "Volunteer")
+
         # cache updated user, based on now-or-changed discord id.
         self.cache.cache_user(updated)
         return updated
@@ -498,4 +509,51 @@ class UserManager():
         start = dt.datetime.now()
         self.reindex_users()
         self.reindex_teams()
+        self.reindex_roles()
         log.info(f"reindex took {dt.datetime.now() - start}")
+
+
+    def assure_project_role(self, user: User, project_name: str, role_name: str):
+        role_id = self.cache.lookup_role(role_name)
+        if not role_id:
+            raise RedmineException(f"assure_project_role {user.login} {project_name} UNKNOWN ROLE: {role_name}")
+
+        # https://www.redmine.org/projects/redmine/wiki/Rest_Memberships#POST
+        # POST /projects/{project_name}/memberships.json
+        data = {
+            'membership': {
+                "user_id": user.id,
+                "role_ids": [ role_id ],
+            }
+        }
+
+        # The project identifier, "scn", can be used directly in the url.
+        url = f"/projects/{project_name}/memberships.json"
+        response = self.session.post(url, data=json.dumps(data))
+
+        # check status
+        if response:
+            log.info(f"created {user.login} {project_name} {role_name}: {response}")
+        else:
+            raise RedmineException(f"assure_project_role {user.login} {project_name} {role_name} failed",
+                                   response.headers.get('X-Request-Id', "None"))
+
+
+    def get_all_roles(self) -> dict[str, int]:
+        roles = {}
+
+        response = self.session.get(ROLES_RESOURCE)
+        if response:
+            for item in response['roles']:
+                roles[item['name']] = item['id']
+
+        return roles
+
+
+    def reindex_roles(self):
+        all_roles = self.get_all_roles()
+        if all_roles:
+            self.cache.roles = all_roles
+            log.debug(f"Roles: {self.cache.roles}")
+        else:
+            log.warning("No roles to index")
