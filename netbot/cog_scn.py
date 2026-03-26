@@ -182,7 +182,10 @@ class SCNCog(commands.Cog):
             # check the
             id_from_user = user.discord_id
             if id_from_user.id > 0:
-                # a valid
+                # a valid user
+                # make sure user has a volunteer role on the SCN project
+                project_id = 1 # "scn"
+                self.redmine.user_mgr.assure_project_roles(user, project_id, ["Volunteer", "User"])
                 await ctx.respond(f"Discord user: {discord_id} is fully configured as redmine user: {user.login}")
             else:
                 # need to update
@@ -199,7 +202,7 @@ class SCNCog(commands.Cog):
                 await ctx.send_modal(modal)
 
             # reindex users after changes
-            self.redmine.user_mgr.reindex_users()
+            #self.redmine.user_mgr.reindex_users()
 
 
     @scn.command()

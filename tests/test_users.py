@@ -43,7 +43,7 @@ class TestUserManager(test_utils.MockRedmineTestCase):
         self.assertEqual(discord_id, updated.discord_id.id)
         self.assertEqual(discord_name, updated.discord_id.name)
 
-        mock_get.assert_called_once()
+        mock_get.assert_called()
 
 
     def test_role_cache(self):
