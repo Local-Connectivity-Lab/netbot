@@ -97,6 +97,34 @@
       "timestamp": "2026-03-12T06:33:44.729389",
       "status": "failed",
       "error": "API returned status 500: {\"detail\":\"Failed to parse model output: Failed to parse model output: Invalid \\\\escape: line 2 column 121 (char 122)\"}"
+    },
+    {
+      "id": "edit-3091-1773844658",
+      "type": "edit",
+      "ticket_id": 3091,
+      "description": "TODO:\n- Run Esther thro latest changes\n- Clarify how to handle wg3 \n- handle existing/old IPs correction\n- implement error-catching logic\n- Test on \"full\" vyos output\n- Pipe vyos output in, rather than a txt/json?\n- Test on actual SCN netbox",
+      "user": {
+        "name": "Gabrielle Strandquist",
+        "login": "ellie",
+        "discord_id": 1096539392757215314
+      },
+      "timestamp": "2026-03-18T14:37:38.798737",
+      "status": "failed",
+      "error": "API returned status 500: {\"detail\":\"Failed to parse model output: Failed to parse model output: Expecting ',' delimiter: line 2 column 200 (char 201)\"}"
+    },
+    {
+      "id": "edit-3090-1774985812",
+      "type": "edit",
+      "ticket_id": 3090,
+      "description": "Created by Discord user dan.con in channel outreach. \nPlanning to acquire merch and info to promote SCN at the annual Hamvention in Dayton, OH. Event draws in ham radio operators throughout the country. https://greenecoexpocenter.com/events/hamvention.\n\nAlso created printable stl file to create SCN coins to share in tandem with merch.",
+      "user": {
+        "name": "Dan",
+        "login": "danbSCN",
+        "discord_id": 739669349199118426
+      },
+      "timestamp": "2026-03-31T19:36:52.071589",
+      "status": "failed",
+      "error": "LLM API busy after max retries"
     }
   ],
   "locked_tickets": {}
