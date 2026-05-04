@@ -48,6 +48,14 @@ The `threader_job.sh` exists to make sure the `.env` file and the `venv` Python 
 
 All output to stdout and stderr captured and logged to syslog with the tag "threader".
 
+## Redactor Configuration
+
+If the `redactor` is being used, it should be configured in the `.env` file in the netbot deployment:
+
+```
+REDACTOR_URL=http://192.168.20.64:8000
+```
+
 
 ## Threader Logs: `/var/log/syslog`
 
