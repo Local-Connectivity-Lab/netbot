@@ -1,10 +1,9 @@
-import json
 import os
 import re
 import logging
 
 from redmine.session import RedmineSession
-from redmine.model import REDACTOR_FIELD_NAME, Message, Ticket, User, NamedId
+from redmine.model import Message, Ticket, User, NamedId
 from redmine.users import UserManager
 from redmine.tickets import TicketManager, SCN_PROJECT_ID
 

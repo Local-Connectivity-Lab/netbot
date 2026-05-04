@@ -15,6 +15,9 @@ run:
 lint:
 	uvx ruff check .
 
+fix:
+	uvx ruff check --fix .
+
 test: lint
 	uv run -m tests
 

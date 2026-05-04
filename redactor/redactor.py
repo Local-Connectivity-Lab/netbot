@@ -80,7 +80,7 @@ system_prompt = """
         - Example (Multiple people):
         - **Original:** *Alert: Taylor Brown and Drew Thomas detected outage near 3672 Oak Ave, Tacoma, MT 96267. Phone 584-657-5661.*
         - **Redacted:** *Alert: Taylor [LastName1] and Drew [LastName2] detected outage near [Address1], [City1], [State1] [Zip1]. Phone [Phone1].*
-        
+
         ## 2. HASHED OR SYSTEM-GENERATED CODES
 
         When a ticket contains machine-generated identifiers (e.g., hexadecimal strings, reference codes, fingerprints, tracking IDs), redact them using `[HashedCodeN]`.
@@ -271,11 +271,11 @@ system_prompt = """
         Betsie [LastName1]
 
         Example5:
-        Thanks so much, 
+        Thanks so much,
         Rachel Kim 1280 AFA4 DD14 5898
 
         Redacted:
-        Thanks so much, 
+        Thanks so much,
         Rachel [LastName1] [HashCode1]
 
         ### **4. Physical Addresses**
@@ -288,7 +288,7 @@ system_prompt = """
          - Example:
         - **Original: Alert: Chris Garcia and Elena Lopez detected outage near 44 Beacon St, Boston, MA 02108. Phone 206-555-9988
         - **Redacted: Alert: Chris [LastName1] and Elena [LastName2] detected outage near [Address1]. Phone [Phone1]
-        
+
         ### **5. IP & MAC Addresses**
         Replace all IP addresses (both IPv4 and IPv6) and MAC addresses with **[IPN]** and **[MACN]**, respectively.
 
@@ -375,39 +375,39 @@ class RedactedText:
     def __init__(self, text: str, fields: dict[str,str]):
         self.text = text
         self.fields = fields
-    
+
     @classmethod
     def from_json(cls, json_str: str):
         result = json.loads(json_str)
         return cls(text=result['redacted_text'], fields=result['properties_redacted'])
-    
+
     def __str__(self):
         return self.text
-    
+
     def unredact(self) -> str:
         pattern = re.compile(r"\[(\w+)\]")
         restored_text = self.text
-        
+
         for match in pattern.finditer(self.text):
             placeholder_with_brackets = match.group(0)  # [LastName1]
             key = match.group(1)  # LastName1
-            
+
             if key not in self.fields:
                 log.error(f"Expected field, {key}, not provided.")
                 continue
-            
+
             value = self.fields[key]
             restored_text = restored_text.replace(placeholder_with_brackets, value)
-        
+
         return restored_text
 
 class Redactor:
     def __init__(self, adapter_path: str = DEFAULT_ADAPTER_PATH):
         log.info(f"Loading model from {adapter_path}")
-        
+
         self.tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        
+
         log.info("Loading base model")
         self.model = AutoModelForCausalLM.from_pretrained(
             BASE_MODEL,
@@ -415,17 +415,17 @@ class Redactor:
             device_map="cpu",
             low_cpu_mem_usage=True,
         )
-        
+
         log.info("Loading LoRA adapter...")
         self.model = PeftModel.from_pretrained(self.model, adapter_path)
         self.model = self.model.merge_and_unload()
         self.model.eval()
-        
+
         log.info("Model ready!")
-    
+
     def redact_text(self, text: str) -> RedactedText:
         text = text.strip()
-        
+
         log.info("Preparing prompt...")
         messages = [
             {"role": "system", "content": system_prompt},
@@ -438,18 +438,18 @@ class Redactor:
             {text}
             """}
         ]
-        
+
         log.info("Tokenizing input...")
         prompt = self.tokenizer.apply_chat_template(
-            messages, 
-            tokenize=False, 
+            messages,
+            tokenize=False,
             add_generation_prompt=True
         )
         inputs = self.tokenizer(prompt, return_tensors="pt")
-        
+
         log.info("Generating redaction (takes around ~7.5 min on CPU)...")
         log.info("Please be patient - CPU inference is slow...")
-        
+
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,
@@ -458,7 +458,7 @@ class Redactor:
                 do_sample=True,
                 pad_token_id=self.tokenizer.eos_token_id
             )
-        
+
         log.info("Decoding result...")
         result = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
@@ -487,16 +487,16 @@ class Redactor:
                             break
                 else:
                     break
-            
+
             if json_blocks:
                 result = json_blocks[-1]
-                
+
         log.info("Done!")
         # TODO: remove debug statement before deploying
         # print("\n=== RAW JSON OUTPUT ===")
         # print(result)
         # print("======================\n")
-        
+
         try:
             # print("The returned response:")
             # print(result.strip())
@@ -513,19 +513,19 @@ def main():
         format='%(asctime)s - %(message)s',
         datefmt='%H:%M:%S'
     )
-    
+
     if len(sys.argv) > 1:
         text = " ".join(sys.argv[1:])
     else:
         text = sys.stdin.read().strip()
-    
+
     log.info("Starting PII Redactor...")
     redactor = Redactor()
     redacted = redactor.redact_text(text)
-    
+
     # print("\n" + "="*80)
     # print("Input:", text)
-    # print("Redacted:", redacted)
+    print("Redacted:", redacted)
     # print("Fields:", redacted.fields)
     # print("Unredacted:", redacted.unredact())
     # print("="*80)
