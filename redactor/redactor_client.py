@@ -135,22 +135,22 @@ class RedactorClient:
         raise RuntimeError("Redaction failed after all retries")
 
 
-# For compatibility with existing code
-class Redactor(RedactorClient):
-    """Alias for backward compatibility"""
-    pass
+# # For compatibility with existing code
+# class Redactor(RedactorClient):
+#     """Alias for backward compatibility"""
+#     pass
 
 
-if __name__ == "__main__":
-    # Test the client
-    logging.basicConfig(level=logging.INFO)
+# if __name__ == "__main__":
+#     # Test the client
+#     logging.basicConfig(level=logging.INFO)
 
-    client = RedactorClient()
+#     client = RedactorClient()
 
-    test_text = "Contact John Smith at john.smith@example.com or call 555-123-4567"
-    result = client.redact_text(test_text)
+#     test_text = "Contact John Smith at john.smith@example.com or call 555-123-4567"
+#     result = client.redact_text(test_text)
 
-    print(f"Original: {test_text}")
-    print(f"Redacted: {result.text}")
-    print(f"Fields: {result.fields}")
-    print(f"Unredacted: {result.unredact()}")
+#     print(f"Original: {test_text}")
+#     print(f"Redacted: {result.text}")
+#     print(f"Fields: {result.fields}")
+#     print(f"Unredacted: {result.unredact()}")
