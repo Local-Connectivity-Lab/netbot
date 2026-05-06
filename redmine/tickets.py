@@ -465,17 +465,18 @@ class TicketManager():
             return None
 
 
-    def new_tickets_since(self, timestamp:dt.datetime):
+    def new_tickets_since(self, timestamp:dt.datetime) -> list[Ticket]:
         """get new tickets since provided timestamp"""
         # query for new tickets since date
         # To fetch issues created after a certain timestamp (uncrypted filter is ">=2014-01-02T08:12:32Z") :
         # GET /issues.xml?created_on=%3E%3D2014-01-02T08:12:32Z
-        timestr = dt.datetime.isoformat(timestamp) # time-format.
+        timestr = synctime.zulu(timestamp)
         query = f"/issues.json?created_on=%3E%3D{timestr}&sort={DEFAULT_SORT}&limit=100"
         response = self.session.get(query)
-
-        if response.total_count > 0:
-            return response.issues
+        if response:
+            result = TicketsResult(**response)
+            log.debug(f"new_tickets_since: {result}")
+            return result.issues
         else:
             log.debug(f"No tickets created since {timestamp}")
             return None
@@ -578,9 +579,8 @@ class TicketManager():
             "cf_1": "1", # TODO: lookup in self.get_field_id
         }
 
-        return self.update(ticket_id, fields, user.login)
-        # currently doesn't return or throw anything
-        # todo: better error reporting back to discord
+        user_login = user.login if user is not None else None
+        return self.update(ticket_id, fields, user_login)
 
 
     def assign_ticket(self, ticket_id, user:User, user_id=None):

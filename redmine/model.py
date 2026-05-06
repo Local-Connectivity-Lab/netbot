@@ -532,6 +532,20 @@ class Ticket():
             return record
 
 
+    @property
+    def channel_id(self) -> int:
+        """
+        IFF there is a valid sync record attached to the ticket,
+        return the channel_id of the sync record.
+        Otherwise, 0.
+        """
+        sync_rec = self.get_sync_record()
+        if sync_rec:
+            return sync_rec.channel_id
+        else:
+            return 0
+
+
     def validate_sync_record(self, expected_channel: int = 0) -> synctime.SyncRecord | None:
         # Parse custom_field into datetime
         # lookup field by name

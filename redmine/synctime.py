@@ -68,7 +68,7 @@ def zulu(timestamp:dt.datetime) -> str:
 
 class SyncRecord():
     """encapulates the record of the last ticket syncronization"""
-    def __init__(self, ticket_id: int, channel_id: int, last_sync: dt.datetime):
+    def __init__(self, ticket_id: int, channel_id: int, last_sync: dt.datetime = now()):
         assert last_sync.tzinfo is dt.timezone.utc # make sure TZ is set and correct
         assert last_sync.timestamp() > 0
         self.ticket_id = ticket_id
@@ -112,4 +112,4 @@ class SyncRecord():
 
 
     def __str__(self) -> str:
-        return f"SYNC #{self.ticket_id} <-> {self.channel_id}, {age_str(self.last_sync)}"
+        return f"SYNC #{self.ticket_id} <-> {self.channel_id}, synced {age_str(self.last_sync)} ago"
