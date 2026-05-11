@@ -206,8 +206,29 @@ class TeamSet:
         team.add_user(NamedId(userid, username))
 
 
-DISCORD_ID_FIELD = "Discord ID"
+# 'memberships': [
+#     { 'id': 1674,
+#       'project': {'id': 1, 'name': 'Seattle Community Network'},
+#       'roles': [
+#           {'id': 4, 'name': 'Volunteer'},
+#           {'id': 4, 'name': 'Volunteer', 'inherited': True},
+#           {'id': 4, 'name': 'Volunteer', 'inherited': True},
+#           {'id': 3, 'name': 'Administrator'},
+#           {'id': 5, 'name': 'User'}]}]}}
 
+
+@dataclass
+class Membership():
+    id: int
+    project: NamedId
+    roles: list[NamedId]
+
+    def __post_init__(self):
+        self.project = NamedId(**self.project)
+        self.roles = [NamedId(id=role['id'], name=role['name']) for role in self.roles]
+
+
+DISCORD_ID_FIELD = "Discord ID"
 
 @dataclass
 class User():
@@ -225,13 +246,15 @@ class User():
     last_login_on: dt.datetime
     passwd_changed_on: dt.datetime
     twofa_scheme: str
+    custom_fields: list[CustomField]
+    memberships: list[Membership] | None = None
     api_key: str = ""
     status: int = 0
-    custom_fields: list[CustomField]
-
 
     def __post_init__(self):
         self.custom_fields = [CustomField(**field) for field in self.custom_fields]
+        if self.memberships:
+            self.memberships = [Membership(**membership) for membership in self.memberships]
         self.discord_id = self.parse_discord_custom_field()
 
 
@@ -295,6 +318,17 @@ class User():
     @property
     def json(self):
         return json.dumps(self.asdict(), indent=4, default=vars)
+
+    # Return a list of role IDs for the given project
+    def project_roles(self, project_id: int) -> list[int]:
+        roles = []
+        if self.memberships:
+            for membership in self.memberships:
+                if membership.project.id == project_id:
+                    for role in membership.roles:
+                        if role.id not in roles:
+                            roles.append(role.id)
+        return roles
 
 
 @dataclass
@@ -496,6 +530,20 @@ class Ticket():
             record = synctime.SyncRecord.from_token(self.id, token)
             log.debug(f"created sync_rec from token: {record}")
             return record
+
+
+    @property
+    def channel_id(self) -> int:
+        """
+        IFF there is a valid sync record attached to the ticket,
+        return the channel_id of the sync record.
+        Otherwise, 0.
+        """
+        sync_rec = self.get_sync_record()
+        if sync_rec:
+            return sync_rec.channel_id
+        else:
+            return 0
 
 
     def validate_sync_record(self, expected_channel: int = 0) -> synctime.SyncRecord | None:

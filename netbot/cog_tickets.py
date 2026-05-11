@@ -11,7 +11,9 @@ from discord.commands import option, SlashCommandGroup
 from discord.ext import commands
 from discord.enums import InputTextStyle
 from discord.ui.item import Item, V
-from discord.utils import basic_autocomplete
+import discord.utils
+from discord.ext import tasks
+
 
 import dateparser
 
@@ -302,9 +304,15 @@ class TicketsCog(commands.Cog):
         self.bot:NetBot = bot
         self.redmine: Client = bot.redmine
 
-
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
     ticket = SlashCommandGroup("ticket",  "ticket commands")
+
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        # start the tasks running
+        self.poll_new_tickets.start()
+        log.info("Initialized ticket polling")
 
 
     # figure out what the term refers to
@@ -385,7 +393,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Get ticket details")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     async def details(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
         #log.debug(f"found user mapping for {ctx.user.name}: {user}")
@@ -397,7 +405,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Collaborate on a ticket")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("member", description="Discord member collaborating with ticket", optional=True)
     async def collaborate(self, ctx: discord.ApplicationContext, ticket_id:int, member:discord.Member=None):
         """Add yourself as a collaborator on a ticket"""
@@ -422,7 +430,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Unassign a ticket")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     async def unassign(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
         # lookup the user
@@ -440,7 +448,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Resolve a ticket")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     async def resolve(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
         # lookup the user
@@ -461,7 +469,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Mark a ticket in-progress")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("member", description="Discord member taking ownership", optional=True)
     async def progress(self, ctx: discord.ApplicationContext, ticket_id:int, member:discord.Member=None):
         """Update status on a ticket, using: progress"""
@@ -488,7 +496,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Assign a ticket")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("member", description="Discord member taking ownership", optional=True)
     async def assign(self, ctx: discord.ApplicationContext, ticket_id:int, member:discord.Member=None):
         # lookup the user
@@ -520,17 +528,16 @@ class TicketsCog(commands.Cog):
     #     await ctx.respond(f"EDIT #{ticket.id}", view=EditView(self.bot))
 
 
-    async def create_thread(self, ticket:Ticket, ctx:discord.ApplicationContext):
-        log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel.name}")
-        thread_name = f"Ticket #{ticket.id}: {ticket.subject}"
-        if isinstance(ctx.channel, discord.Thread):
-            log.debug(f"creating thread in parent channel {ctx.channel.parent.name}, for {ticket}")
-            thread = await ctx.channel.parent.create_thread(name=thread_name, type=discord.ChannelType.public_thread)
+    async def create_thread(self, ticket:Ticket, channel):
+        if isinstance(channel, discord.Thread):
+            log.debug(f"creating thread in parent channel {channel.parent.name}, for {ticket}")
+            thread = await self.create_ticket_thread(ticket, channel.parent)
+        elif isinstance(channel, discord.TextChannel):
+            log.debug(f"creating thread in channel {channel.name}, for {ticket}")
+            thread = await self.create_ticket_thread(ticket, channel)
         else:
-            log.debug(f"creating thread in channel {ctx.channel.name}, for {ticket}")
-            thread = await ctx.channel.create_thread(name=thread_name, type=discord.ChannelType.public_thread)
-        # ticket-614: Creating new thread should post the ticket details to the new thread
-        await thread.send(self.bot.formatter.format_ticket_details(ticket))
+            log.warning(f"Unrecognized channel type: {type(channel)}, {channel}")
+
         return thread
 
 
@@ -566,7 +573,7 @@ class TicketsCog(commands.Cog):
             log.debug(f"creating ticket in {channel_name} for tracker={tracker}, owner={team}")
             ticket = self.redmine.ticket_mgr.create(user, message, tracker_id=tracker.id, assigned_to_id=team.id)
             # create new ticket thread
-            thread = await self.create_thread(ticket, ctx)
+            thread = await self.create_thread(ticket, ctx.channel)
             # use to send notification for team/role
             ticket_link = self.bot.formatter.redmine_link(ticket)
             alert_msg = f"New ticket created: {ticket_link}"
@@ -605,7 +612,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Thread a Redmine ticket in Discord")
-    @option("ticket_id", description="ID of tick to create thread for")
+    @option("ticket_id", description="ID of ticket to create thread for")
     async def thread(self, ctx: discord.ApplicationContext, ticket_id:int):
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
@@ -626,7 +633,7 @@ class TicketsCog(commands.Cog):
                     # fall thru to create thread and sync
 
             # create the thread...
-            thread = await self.create_thread(ticket, ctx)
+            thread = await self.create_thread(ticket, ctx.channel)
 
             # update the discord flag on tickets, add a note with url of thread; thread.jump_url
             name = thread.name
@@ -642,7 +649,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(name="tracker", description="Update the tracker of a ticket")
-    @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ID of ticket to update", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("tracker", description="Tracker to assign to ticket", autocomplete=get_trackers)
     async def tracker(self, ctx: discord.ApplicationContext, ticket_id:int, tracker:str):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
@@ -665,7 +672,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(name="status", description="Update the status of a ticket")
-    @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ID of ticket to update", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("status", description="Status to assign to ticket", autocomplete=get_statuses)
     async def status(self, ctx: discord.ApplicationContext, ticket_id:int, status:str):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
@@ -688,7 +695,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(name="priority", description="Update the priority of a ticket")
-    @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ID of ticket to update", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("priority", description="Priority to assign to ticket", autocomplete=get_priorities)
     async def priority(self, ctx: discord.ApplicationContext, ticket_id:int, priority:str):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
@@ -715,7 +722,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(name="subject", description="Update the subject of a ticket")
-    @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ID of ticket to update", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("subject", description="Updated subject")
     async def subject(self, ctx: discord.ApplicationContext, ticket_id:int, subject:str):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
@@ -885,3 +892,79 @@ class TicketsCog(commands.Cog):
             redmine.ticket_mgr.resolve(ticket_id)
         program = ctx.bot.redmine.ticket_mgr.get_program_by_id(program_id)
         await ctx.respond(f"Recorded **{hours} hours** on **{program}** for *{user.discord}*")
+
+
+    ### Ticket autothreading and notification ###
+
+    AUTOTHREAD_TRACKERS = ["Mutual-Aid-Action"]
+    AUTONOTIFY_TRACKERS = ["Mutual-Aid-Action"]
+
+
+    @tasks.loop(minutes=1.0)
+    async def poll_new_tickets(self):
+        log.debug("notify_new_tickets. this should be called every minute.")
+
+        # check for new tickets
+        for ticket in self.get_new_tickets():
+            if ticket.tracker.name in self.AUTOTHREAD_TRACKERS:
+                log.debug(f"auto-threading ticket {ticket.id} based on tracker: {ticket.tracker}")
+                await self.sync_ticket(ticket)
+
+            if ticket.tracker.name in self.AUTONOTIFY_TRACKERS:
+                # no need to await the notification
+                await self.notify_ticket(ticket)
+
+
+    def get_new_tickets(self):
+        log.debug("Checking for new tickets")
+        # for now, tickets created in the last 5 minutes
+        ## FIXME - track and manage queries, state in netbot for last query
+        timestamp = synctime.now() - dt.timedelta(minutes=5)
+        tickets = self.redmine.ticket_mgr.new_tickets_since(timestamp)
+        return tickets
+
+
+    ### returns true only when a discord thread is created.
+    async def sync_ticket(self, ticket: Ticket) -> bool:
+        # first, check if sync currently exists
+        # possible TODO: cache of ticket id -> thread ids
+        channel_id = ticket.channel_id
+        if channel_id == 0:
+            # find parent channel for thread
+            parent = self.bot.channel_for_ticket(ticket)
+            # create thread
+            thread = await self.create_ticket_thread(ticket, parent)
+            if thread:
+                # create sync record
+                sync_rec = synctime.SyncRecord(ticket.id, thread.id)
+                self.redmine.ticket_mgr.update_sync_record(sync_rec)
+                # sync
+                complete = await self.bot.sync_thread(thread)
+                return complete
+            else:
+                log.error(f"No update. Cannot find channel for {ticket}")
+                return False
+        else:
+            thread = self.bot.channel_for_ticket(ticket)
+            _ = await self.bot.sync_thread(thread)
+            return False
+
+
+    async def notify_ticket(self, ticket:Ticket) -> None:
+        log.info(f"FIXME: Notify ticket: {ticket}")
+
+
+    async def create_ticket_thread(self, ticket: Ticket, parent_channel: discord.TextChannel) -> discord.Thread:
+        if parent_channel:
+            log.info(f"creating a new thread for ticket #{ticket.id} in channel: {parent_channel}")
+            thread_name = f"Ticket #{ticket.id}: {ticket.subject}"
+
+            log.debug(f"creating thread in channel {parent_channel.name}, for {ticket}")
+            thread = await parent_channel.create_thread(name=thread_name, type=discord.ChannelType.public_thread)
+
+            # ticket-614: Creating new thread should post the ticket details to the new thread
+            await thread.send(self.bot.formatter.format_ticket_details(ticket))
+
+            return thread
+        else:
+            log.warning(f"Empty parent_channel provided for threading ticket {ticket}")

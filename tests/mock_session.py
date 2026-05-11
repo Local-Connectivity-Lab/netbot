@@ -102,8 +102,15 @@ class MockSession(RedmineSession):
         # log.debug(f"PUT {path} -> {item}")
 
 
-    # def post(self, resource: str, data:str, user_login: str|None = None, files: list|None = None) -> dict|None:
-    #     log.info(f"POST {resource}, data={data} user_login={user_login}")
+    def post(self, resource: str, data:str, user_login: str|None = None, files: list|None = None) -> dict|None:
+        log.info(f"POST {resource}, data={data} user_login={user_login}")
+        return {
+            "status code": "200",
+            "headers": {
+                'X-Request-Id': __name__
+            }
+        }
+        # TODO: Store state as a blob under that resource and return it later
     #     item_id = self._next_id()
 
     #     path = urlparse(resource).path

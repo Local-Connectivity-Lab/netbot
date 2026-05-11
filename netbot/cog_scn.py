@@ -6,12 +6,11 @@ import discord
 
 from discord.commands import option, SlashCommandGroup
 from discord.ext import commands
-from discord.utils import basic_autocomplete
 
 from redmine.model import Message, User
 from redmine.redmine import Client, BLOCKED_TEAM_NAME
 
-from netbot.netbot import NetBot, default_ticket
+from netbot.netbot import NetBot
 
 log = logging.getLogger(__name__)
 
@@ -169,7 +168,7 @@ class SCNCog(commands.Cog):
 
     # FIXME rename to "register"?
     @scn.command(description="Add a Discord user to redmine")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("redmine_login", description="Your redmine user login")
     @option("member", description="Discord member collaborating with ticket", optional=True)
     async def add(self, ctx:discord.ApplicationContext, redmine_login:str, member:discord.Member=None):
         """add a Discord user to the Redmine ticketing integration"""
@@ -183,7 +182,10 @@ class SCNCog(commands.Cog):
             # check the
             id_from_user = user.discord_id
             if id_from_user.id > 0:
-                # a valid
+                # a valid user
+                # make sure user has a volunteer role on the SCN project
+                project_id = 1 # "scn"
+                self.redmine.user_mgr.assure_project_roles(user, project_id, ["Volunteer", "User"])
                 await ctx.respond(f"Discord user: {discord_id} is fully configured as redmine user: {user.login}")
             else:
                 # need to update
@@ -200,7 +202,7 @@ class SCNCog(commands.Cog):
                 await ctx.send_modal(modal)
 
             # reindex users after changes
-            self.redmine.user_mgr.reindex_users()
+            #self.redmine.user_mgr.reindex_users()
 
 
     @scn.command()
