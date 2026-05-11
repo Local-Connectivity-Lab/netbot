@@ -116,9 +116,13 @@ class TicketManager():
         priorities: dict[str,NamedId] = {}
 
         resp = self.session.get("/enumerations/issue_priorities.json")
-        for priority in reversed(resp['issue_priorities']):
-            if priority.get('active', False):
-                priorities[priority['name']] = NamedId(priority['id'], priority['name'])
+
+        if resp:
+            for priority in reversed(resp['issue_priorities']):
+                if priority.get('active', False):
+                    priorities[priority['name']] = NamedId(priority['id'], priority['name'])
+        else:
+            log.warning("Unable to load priority enumeration")
 
         return priorities
 
