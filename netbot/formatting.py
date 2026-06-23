@@ -33,6 +33,8 @@ EMOJI = {
     'Immediate': '❗',
     'EPIC': '🎇',
     'Standing': '🚩',
+    'Stale': '🕸️',
+    'Open': '📂',
     '?': '❓',
 }
 
@@ -488,12 +490,12 @@ class DiscordFormatter():
             colour=discord.Color.blurple(),
         )
 
-        # five inline count cards
-        embed.add_field(name="Open",   value=str(buckets["open"]),   inline=True)
-        embed.add_field(name="High",   value=str(buckets["high"]),   inline=True)
-        embed.add_field(name="Normal", value=str(buckets["normal"]), inline=True)
-        embed.add_field(name="Low",    value=str(buckets["low"]),    inline=True)
-        embed.add_field(name="Stale",  value=str(buckets["stale"]),  inline=True)
+        # five inline count cards — headers carry the same emoji each list line gets
+        embed.add_field(name=f"{get_emoji('Open')} Open",     value=str(buckets["open"]),   inline=True)
+        embed.add_field(name=f"{get_emoji('High')} High",     value=str(buckets["high"]),   inline=True)
+        embed.add_field(name=f"{get_emoji('Normal')} Normal", value=str(buckets["normal"]), inline=True)
+        embed.add_field(name=f"{get_emoji('Low')} Low",       value=str(buckets["low"]),    inline=True)
+        embed.add_field(name=f"{get_emoji('Stale')} Stale",   value=str(buckets["stale"]),  inline=True)
         # blank field to end the inline row cleanly (Discord renders 3 per row)
         embed.add_field(name="​", value="​", inline=True)
 
@@ -508,11 +510,14 @@ class DiscordFormatter():
         for t in page_tickets:
             age_days = (dt.datetime.now(dt.timezone.utc) - t.updated_on).days
             if t.updated_on <= cutoff:
+                # stale pre-empts priority, so the emoji must too (mirrors bucket_tickets)
+                emoji = get_emoji("Stale")
                 label = f"stale · {age_days}d"
             else:
+                emoji = get_emoji(t.priority.name) if t.priority else get_emoji('?')
                 label = t.priority.name if t.priority else "—"
             subject = t.subject[:60] if t.subject else ""
-            lines.append(f"**#{t.id}** {label} — {subject}")
+            lines.append(f"{emoji} **#{t.id}** {label} — {subject}")
 
         attention_text = "\n".join(lines) if lines else "_No tickets_"
         embed.add_field(name="Needs attention", value=attention_text, inline=False)
