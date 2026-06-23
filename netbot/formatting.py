@@ -16,6 +16,7 @@ EMBED_DESC_LEN = 4096
 EMBED_VALUE_LEN = 1024
 EMBED_FOOTER_LEN = 2048
 EMBED_MAX_LEN = 6000
+STATUS_PAGE_SIZE = 5
 
 # Note: Up to 10 embeds per response, 25 fields each
 
@@ -469,6 +470,59 @@ class DiscordFormatter():
             embeds.append(embed)
 
         return embeds
+
+
+    def status_embed(
+        self,
+        title: str,
+        buckets: dict,
+        page: int,
+        total_pages: int,
+        truncated: bool = False,
+    ) -> discord.Embed:
+        """Build a digest embed: five count cards + one page of the Needs Attention list."""
+        import datetime as dt
+
+        embed = discord.Embed(
+            title=title,
+            colour=discord.Color.blurple(),
+        )
+
+        # five inline count cards
+        embed.add_field(name="Open",   value=str(buckets["open"]),   inline=True)
+        embed.add_field(name="High",   value=str(buckets["high"]),   inline=True)
+        embed.add_field(name="Normal", value=str(buckets["normal"]), inline=True)
+        embed.add_field(name="Low",    value=str(buckets["low"]),    inline=True)
+        embed.add_field(name="Stale",  value=str(buckets["stale"]),  inline=True)
+        # blank field to end the inline row cleanly (Discord renders 3 per row)
+        embed.add_field(name="​", value="​", inline=True)
+
+        # Needs attention list for this page
+        tickets = buckets["sorted_tickets"]
+        start = page * STATUS_PAGE_SIZE
+        page_tickets = tickets[start : start + STATUS_PAGE_SIZE]
+
+        cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=21)
+
+        lines = []
+        for t in page_tickets:
+            age_days = (dt.datetime.now(dt.timezone.utc) - t.updated_on).days
+            if t.updated_on <= cutoff:
+                label = f"stale · {age_days}d"
+            else:
+                label = t.priority.name if t.priority else "—"
+            subject = t.subject[:60] if t.subject else ""
+            lines.append(f"**#{t.id}** {label} — {subject}")
+
+        attention_text = "\n".join(lines) if lines else "_No tickets_"
+        embed.add_field(name="Needs attention", value=attention_text, inline=False)
+
+        footer = f"Page {page + 1}/{total_pages}"
+        if truncated:
+            footer += " · Showing first 100 tickets — queue may be larger"
+        embed.set_footer(text=footer)
+
+        return embed
 
 
     def help_embed(self, _: discord.ApplicationContext) -> discord.Embed:

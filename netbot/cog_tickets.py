@@ -4,6 +4,7 @@
 
 import logging
 import datetime as dt
+import math
 
 import discord
 from discord import ScheduledEvent, OptionChoice
@@ -296,6 +297,64 @@ def default_term(ctx: discord.ApplicationContext) -> str:
         return TEAM_MAPPING[ch_name]
     elif ch_name in CHANNEL_MAPPING:
         return CHANNEL_MAPPING[ch_name]
+
+
+class PrevButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="◀ Prev", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        view: StatusView = self.view
+        view.page = max(0, view.page - 1)
+        view.refresh_buttons()
+        embed = view.bot.formatter.status_embed(
+            view.title, view.buckets, view.page, view.total_pages, view.truncated
+        )
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class NextButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Next ▶", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        view: StatusView = self.view
+        view.page = min(view.total_pages - 1, view.page + 1)
+        view.refresh_buttons()
+        embed = view.bot.formatter.status_embed(
+            view.title, view.buckets, view.page, view.total_pages, view.truncated
+        )
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class StatusView(discord.ui.View):
+    """Paginating view for the /status digest embed."""
+
+    TIMEOUT = 180  # seconds
+
+    def __init__(self, bot, title: str, buckets: dict, truncated: bool = False):
+        super().__init__(timeout=self.TIMEOUT)
+        self.bot = bot
+        self.title = title
+        self.buckets = buckets
+        self.truncated = truncated
+        self.page = 0
+        self.total_pages = max(1, math.ceil(len(buckets["sorted_tickets"]) / 5))
+
+        self.prev_btn = PrevButton()
+        self.next_btn = NextButton()
+        self.add_item(self.prev_btn)
+        self.add_item(self.next_btn)
+        self.refresh_buttons()
+
+    def refresh_buttons(self):
+        self.prev_btn.disabled = (self.page == 0)
+        self.next_btn.disabled = (self.page >= self.total_pages - 1)
+
+    async def on_timeout(self):
+        self.prev_btn.disabled = True
+        self.next_btn.disabled = True
+        self.stop()
 
 
 class TicketsCog(commands.Cog):
@@ -892,6 +951,36 @@ class TicketsCog(commands.Cog):
             redmine.ticket_mgr.resolve(ticket_id)
         program = ctx.bot.redmine.ticket_mgr.get_program_by_id(program_id)
         await ctx.respond(f"Recorded **{hours} hours** on **{program}** for *{user.discord}*")
+
+
+    @discord.slash_command(name="status", description="Show open ticket digest for this team")
+    async def status_digest(self, ctx: discord.ApplicationContext):
+        await ctx.defer()   # Redmine call may take up to 5 s
+
+        term = default_term(ctx)
+        team = self.redmine.user_mgr.find(term) if term else None
+
+        if team:
+            tickets = self.redmine.ticket_mgr.tickets_for_team(team)
+            title = f"{team.name} — Open Tickets"
+        else:
+            from redmine.tickets import DEFAULT_SORT
+            tickets = self.redmine.ticket_mgr.tickets(
+                status_id="open", sort=DEFAULT_SORT, limit=100
+            )
+            title = "All Open Tickets"
+
+        truncated = len(tickets) >= 100
+        if truncated:
+            log.warning(f"/status: hit 100-ticket cap (channel={ctx.channel.name}, term={term})")
+
+        buckets = self.redmine.ticket_mgr.bucket_tickets(tickets)
+        total_pages = max(1, math.ceil(len(buckets["sorted_tickets"]) / 5))
+
+        view = StatusView(self.bot, title, buckets, truncated)
+        embed = self.bot.formatter.status_embed(title, buckets, 0, total_pages, truncated)
+
+        await ctx.respond(embed=embed, view=view)
 
 
     ### Ticket autothreading and notification ###
