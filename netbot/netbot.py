@@ -625,6 +625,7 @@ def main():
     # register cogs
     bot.load_extension("netbot.cog_scn")
     bot.load_extension("netbot.cog_tickets")
+    bot.load_extension("netbot.cog_status")
 
     # sanity check!
     client.sanity_check()

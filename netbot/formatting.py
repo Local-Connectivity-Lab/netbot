@@ -7,6 +7,7 @@ import discord
 
 from redmine.model import NamedId, Ticket, User
 from redmine import synctime
+from redmine.tickets import TICKET_DUSTY_AGE
 
 log = logging.getLogger(__name__)
 
@@ -54,6 +55,21 @@ COLOR = {
     'Backburner': discord.Color.light_gray(),
     'Standing': discord.Color.light_gray(),
 }
+
+
+# Colored dots for the /status "needs attention" rows, keyed by status bucket
+STATUS_DOT = {
+    'high': '🔴',
+    'normal': '🟡',
+    'low': '🟢',
+    'stale': '🟣',
+}
+
+# Tickets per page in the /status digest
+STATUS_PER_PAGE = 5
+
+# Priority names that roll up into the "high" bucket
+HIGH_PRIORITIES = ("High", "Urgent", "Immediate")
 
 
 class DiscordFormatter():
@@ -374,6 +390,82 @@ class DiscordFormatter():
             return ",".join([self.format_discord_member(ctx, watcher.id) for watcher in ticket.watchers])
 
         return self.format_discord_member(ctx, ticket.watchers[0].id)
+
+
+    def status_bucket(self, ticket:Ticket) -> str:
+        """Classify a ticket for the /status digest: stale | high | normal | low.
+
+        Stale (not updated in TICKET_DUSTY_AGE days) takes precedence over priority
+        for the row dot/label. Unknown priorities fall back to 'normal'.
+        """
+        if synctime.age(ticket.updated_on).days >= TICKET_DUSTY_AGE:
+            return "stale"
+        name = ticket.priority.name if ticket.priority else ""
+        if name in HIGH_PRIORITIES:
+            return "high"
+        if name == "Low":
+            return "low"
+        # Normal and anything unrecognized
+        return "normal"
+
+
+    def status_summary(self, tickets:list[Ticket]) -> dict[str,int]:
+        """Count tickets for the digest summary cards.
+
+        Priority counts are by exact name (high = High/Urgent/Immediate, normal = Normal,
+        low = Low); other priorities (e.g. EPIC) are excluded, so the three need not sum
+        to 'open'. 'stale' is orthogonal to priority.
+        """
+        counts = {"open": len(tickets), "high": 0, "normal": 0, "low": 0, "stale": 0}
+        for ticket in tickets:
+            name = ticket.priority.name if ticket.priority else ""
+            if name in HIGH_PRIORITIES:
+                counts["high"] += 1
+            elif name == "Normal":
+                counts["normal"] += 1
+            elif name == "Low":
+                counts["low"] += 1
+            if synctime.age(ticket.updated_on).days >= TICKET_DUSTY_AGE:
+                counts["stale"] += 1
+        return counts
+
+
+    def status_line(self, ticket:Ticket) -> str:
+        """Format a single 'needs attention' row: dot, link, subject, bucket and detail."""
+        bucket = self.status_bucket(ticket)
+        dot = STATUS_DOT.get(bucket, "")
+        if ticket.assigned_to:
+            detail = f"{synctime.age(ticket.updated_on).days}d"
+        else:
+            detail = "unassigned"
+        return f"{dot} {self.redmine_link(ticket)} {ticket.subject[:60]} — {bucket} · {detail}"
+
+
+    def status_embed(self, title:str, tickets:list[Ticket], page:int=0, per_page:int=STATUS_PER_PAGE) -> discord.Embed:
+        """Build the /status digest embed for the given page of tickets."""
+        counts = self.status_summary(tickets)
+        total_pages = max(1, (len(tickets) + per_page - 1) // per_page)
+        page = max(0, min(page, total_pages - 1))
+
+        embed = discord.Embed(
+            title=f"{title} — daily digest",
+            colour=discord.Color.blurple(),
+        )
+
+        # summary "cards" (Discord wraps inline fields at 3/row -> renders as 3 + 2)
+        embed.add_field(name="open", value=str(counts["open"]))
+        embed.add_field(name="high", value=str(counts["high"]))
+        embed.add_field(name="normal", value=str(counts["normal"]))
+        embed.add_field(name="low", value=str(counts["low"]))
+        embed.add_field(name="stale", value=str(counts["stale"]))
+
+        # needs attention: the current page slice
+        start = page * per_page
+        rows = [self.status_line(ticket) for ticket in tickets[start:start + per_page]]
+        embed.add_field(name="Needs attention", value="\n".join(rows) or "—", inline=False)
+
+        embed.set_footer(text=f"Page {page + 1}/{total_pages}")
+        return embed
 
 
     def ticket_embed(self, ctx: discord.ApplicationContext, ticket:Ticket) -> discord.Embed:
