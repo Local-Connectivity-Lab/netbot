@@ -538,6 +538,38 @@ class TicketManager():
             return []
 
 
+    def bucket_tickets(self, tickets: list) -> dict:
+        """Partition open tickets into priority/stale buckets for the status digest.
+
+        Stale pre-empts priority: a ticket older than TICKET_MAX_AGE days is counted
+        only in 'stale', never in high/normal/low.  Buckets are mutually exclusive
+        and sum to open (== len(tickets)).
+        """
+        cutoff = synctime.now() - dt.timedelta(days=TICKET_MAX_AGE)
+
+        HIGH_NAMES = {"high", "urgent", "immediate"}
+
+        high = normal = low = stale = 0
+        for t in tickets:
+            if t.updated_on <= cutoff:
+                stale += 1
+            elif t.priority and t.priority.name and t.priority.name.lower() in HIGH_NAMES:
+                high += 1
+            elif t.priority and t.priority.name and t.priority.name.lower() == "low":
+                low += 1
+            else:
+                normal += 1
+
+        return {
+            "open": len(tickets),
+            "high": high,
+            "normal": normal,
+            "low": low,
+            "stale": stale,
+            "sorted_tickets": list(tickets),   # Redmine already returns in DEFAULT_SORT order
+        }
+
+
     def search(self, term) -> list[Ticket]:
         """search all text of open tickets for the supplied terms"""
         # todo url-encode term?
