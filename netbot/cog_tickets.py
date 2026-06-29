@@ -256,34 +256,83 @@ class EditSubjectAndDescModal(discord.ui.Modal):
         await interaction.response.send_message(embeds=[embed])
 
 
+# class EditDescriptionModal(discord.ui.Modal):
+#     """modal dialog to edit the ticket subject and description"""
+#     def __init__(self, redmine: Client, ticket: Ticket, *args, **kwargs) -> None:
+#         super().__init__(*args, **kwargs)
+#         # Note: redmine must be available in callback, as the bot is not
+#         # available thru the Interaction.
+#         self.redmine = redmine
+#         self.ticket_id = ticket.id
+#         self.add_item(discord.ui.InputText(label="Description",
+#                                            value=ticket.description,
+#                                            style=InputTextStyle.paragraph))
+
+
+#     async def callback(self, interaction: discord.Interaction):
+#         description = self.children[0].value
+#         log.debug(f"callback: {description}")
+
+#         user = self.redmine.user_mgr.find_discord_user(interaction.user.name)
+
+#         fields = {
+#             "description": description,
+#         }
+#         ticket = self.redmine.ticket_mgr.update(self.ticket_id, fields, user.login)
+
+#         embed = discord.Embed(title=f"Updated ticket {ticket.id} description")
+#         embed.add_field(name="Description", value=ticket.description)
+
+#         await interaction.response.send_message(embeds=[embed])
+
 class EditDescriptionModal(discord.ui.Modal):
     """modal dialog to edit the ticket subject and description"""
-    def __init__(self, redmine: Client, ticket: Ticket, *args, **kwargs) -> None:
+    def __init__(self, redmine: Client, ticket: Ticket, bot: NetBot, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        # Note: redmine must be available in callback, as the bot is not
-        # available thru the Interaction.
         self.redmine = redmine
         self.ticket_id = ticket.id
-        self.add_item(discord.ui.InputText(label="Description",
-                                           value=ticket.description,
-                                           style=InputTextStyle.paragraph))
-
+        self.bot = bot
+        self.add_item(discord.ui.InputText(
+            label="Description",
+            value=ticket.get_custom_field("unredacted") or ticket.description,
+            style=InputTextStyle.paragraph
+        ))
 
     async def callback(self, interaction: discord.Interaction):
+        from redaction_queue import RedactionQueue
+
         description = self.children[0].value
-        log.debug(f"callback: {description}")
+        log.debug(f"Edit callback for ticket #{self.ticket_id}")
 
+        queue = RedactionQueue()
+
+        # Check if ticket is locked
+        # if queue.is_locked(self.ticket_id):
+        #     await interaction.response.send_message(
+        #         "Can't edit right now. Please wait and try again in a few minutes.",
+        #         ephemeral=True
+        #     )
+        #     return
+
+        # Get user info
         user = self.redmine.user_mgr.find_discord_user(interaction.user.name)
-
-        fields = {
-            "description": description,
+        user_info = {
+            "name": user.name if user else interaction.user.name,
+            "login": user.login if user else None,
+            "discord_id": interaction.user.id
         }
-        ticket = self.redmine.ticket_mgr.update(self.ticket_id, fields, user.login)
 
-        embed = discord.Embed(title=f"Updated ticket {ticket.id} description")
-        embed.add_field(name="Description", value=ticket.description)
+        # Add to queue
+        job_id = queue.add_edit_job(self.ticket_id, description, user_info)
 
-        await interaction.response.send_message(embeds=[embed])
+        await interaction.response.send_message(
+            f"Your edit has been queued for redaction.\n"
+            f"This will take approximately 15-20 minutes.\n\n"
+            f"Ticket #{self.ticket_id} is locked during this process.",
+            ephemeral=True
+        )
+
+        log.info(f"Queued edit job {job_id} for ticket #{self.ticket_id}")
 
 
 # distinct from above. takes app-context
@@ -449,18 +498,27 @@ class TicketsCog(commands.Cog):
         else:
             await ctx.respond(f"Zero results for: `{term}`")
 
-
-
     @ticket.command(description="Get ticket details")
     @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     async def details(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
         #log.debug(f"found user mapping for {ctx.user.name}: {user}")
         ticket = self.redmine.ticket_mgr.get(ticket_id, include="children,watchers")
-        if ticket:
-            await self.bot.formatter.print_ticket(ticket, ctx)
-        else:
-            await ctx.respond(f"Ticket {ticket_id} not found.") # print error
+
+        if not ticket:
+            await ctx.respond(f"Ticket {ticket_id} not found.", ephemeral=True)
+            return
+
+        if self.is_pii_admin(ctx.user):
+            #pull original PII from unredacted CF and swap into description for UI DISPLAY ONLY
+            unredacted_value = ticket.get_custom_field("unredacted")
+            if unredacted_value:
+                ticket.description = unredacted_value
+
+        await ctx.respond(
+            embed=self.bot.formatter.ticket_embed(ctx, ticket),
+            ephemeral=True
+        )
 
 
     @ticket.command(description="Collaborate on a ticket")
@@ -598,7 +656,6 @@ class TicketsCog(commands.Cog):
             log.warning(f"Unrecognized channel type: {type(channel)}, {channel}")
 
         return thread
-
 
     @ticket.command(name="new", description="Create a new ticket")
     @option("title", description="Title of the new SCN ticket")
@@ -872,16 +929,56 @@ class TicketsCog(commands.Cog):
             await ctx.respond("Command only valid in ticket thread. No ticket info found in this thread.")
 
 
+    # @ticket.command(name="description", description="Edit the description of a ticket")
+    # async def edit_description(self, ctx: discord.ApplicationContext):
+    #     # pop the the edit description embed
+    #     ticket_id = NetBot.parse_thread_title(ctx.channel.name)
+    #     ticket = self.redmine.ticket_mgr.get(ticket_id)
+    #     if ticket:
+    #         modal = EditDescriptionModal(self.redmine, ticket, title=f"Editing ticket #{ticket.id}")
+    #         await ctx.send_modal(modal)
+    #     else:
+    #         await ctx.respond(f"Cannot find ticket for {ctx.channel}")
+
     @ticket.command(name="description", description="Edit the description of a ticket")
     async def edit_description(self, ctx: discord.ApplicationContext):
-        # pop the the edit description embed
+        from redaction_queue import RedactionQueue
+
+        # Check PII admin permission
+        if not self.is_pii_admin(ctx.user):
+            await ctx.respond(
+                "You don't have permission to edit ticket descriptions.",
+                ephemeral=True
+            )
+            return
+
+        # Get ticket from thread name
         ticket_id = NetBot.parse_thread_title(ctx.channel.name)
+        if not ticket_id:
+            await ctx.respond(
+                "This command only works in ticket threads.",
+                ephemeral=True
+            )
+            return
+
+        # Check if ticket is locked
+        queue = RedactionQueue()
+        if queue.is_locked(ticket_id):
+            await ctx.respond(
+                "Ticket is currently being redacted. Please wait and try again in a few moments.",
+                ephemeral=True
+            )
+            return
+
+        # Get ticket
         ticket = self.redmine.ticket_mgr.get(ticket_id)
-        if ticket:
-            modal = EditDescriptionModal(self.redmine, ticket, title=f"Editing ticket #{ticket.id}")
-            await ctx.send_modal(modal)
-        else:
-            await ctx.respond(f"Cannot find ticket for {ctx.channel}")
+        if not ticket:
+            await ctx.respond(f"Cannot find ticket #{ticket_id}", ephemeral=True)
+            return
+
+        # Show edit modal
+        modal = EditDescriptionModal(self.redmine, ticket, self.bot, title=f"Editing ticket #{ticket.id}")
+        await ctx.send_modal(modal)
 
 
     @ticket.command(name="parent", description="Set a parent ticket for ")

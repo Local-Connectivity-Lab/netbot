@@ -368,6 +368,7 @@ class ParentTicket:
 
 SYNC_FIELD_NAME = "syncdata"
 TO_CC_FIELD_NAME = "To/CC"
+REDACTOR_FIELD_NAME = "unredacted"
 
 
 @dataclass
@@ -518,6 +519,20 @@ class Ticket():
         return synctime.age_str(self.updated_on)
 
 
+    @property
+    def redacted_fields(self) -> dict[str,str]:
+        val = self.get_custom_field(REDACTOR_FIELD_NAME)
+        if val:
+            # assume is json str
+            fields = json.loads(val)
+            return fields
+
+
+    @property
+    def is_redacted(self) -> bool:
+        return self.redacted_fields is not None
+
+
     def __str__(self):
         return f"#{self.id:04d}  {self.status.name:<11}  {self.priority.name:<6}  {self.assigned:<20}  {self.subject}"
 
@@ -579,6 +594,7 @@ class Ticket():
                     notes.append(note)
 
         return notes
+
 
     def get_field(self, fieldname:str):
         val = getattr(self, fieldname)

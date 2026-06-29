@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """IMAP test cases"""
-
+import os
 import unittest
 import logging
-import os
 import glob
 
 from dotenv import load_dotenv
@@ -16,7 +15,7 @@ from tests import test_utils
 log = logging.getLogger(__name__)
 
 
-@unittest.skipUnless(load_dotenv(), "ENV settings not available")
+@unittest.skipUnless(load_dotenv() and "REDMINE_URL" in os.environ, "REDMINE_URL not set")
 class TestMessages(test_utils.RedmineTestCase):
     """Test suite for IMAP functions"""
 

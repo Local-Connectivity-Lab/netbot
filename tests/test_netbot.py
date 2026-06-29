@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """NetBot Test Suite"""
-
+import os
 import json
 import unittest
 from unittest.mock import patch
@@ -105,7 +105,7 @@ class TestNetbot(test_utils.MockBotTestCase):
         patched_channel.assert_called_once()
 
 
-@unittest.skipUnless(load_dotenv(), "ENV settings not available")
+@unittest.skipUnless(load_dotenv() and "REDMINE_URL" in os.environ, "REDMINE_URL not set")
 class TestNetbotIntegration(test_utils.BotTestCase):
     """NetBot Integration Test Suite"""
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""IMAP module"""
+"""IMAP module - uses remote LLM API for redaction"""
 
 import os
 import logging
@@ -18,15 +18,12 @@ from dotenv import load_dotenv
 from redmine.model import Attachment, Message
 from redmine import redmine
 
-
-# imapclient docs: https://imapclient.readthedocs.io/en/3.0.0/index.html
-# source code: https://github.com/mjs/imapclient
-
+# Import HTTP client instead of local redactor
+from redactor.redactor_client import RedactorClient
 
 log = logging.getLogger(__name__)
 
 
-# from https://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
 class MLStripper(HTMLParser):
     """strip HTML from a string"""
     def __init__(self):
@@ -50,10 +47,23 @@ class Client(): ## imap.Client()
         self.passwd = os.getenv('IMAP_PASSWORD')
         self.redmine:redmine.Client = redmine.Client.fromenv()
 
-    # note: not happy with this method of dealing with complex email address
-    # but I don't see a better way. open to suggestions
+        redactor_url = os.getenv('REDACTOR_URL')
+        if redactor_url:
+            # Initialize HTTP client for remote redaction
+            try:
+                self.redactor = RedactorClient(redactor_url)
+                log.info("Connected to remote LLM API for redaction")
+            except Exception as e:
+                log.error(f"Failed to connect to LLM API: {e}")
+                log.error("Emails will NOT be redacted!")
+                self.redactor = None
+        else:
+            log.warning("Redactor is not configured. If redaction is needed, please configure REDACTOR_URL env var.")
+            log.warning("Emails will NOT be redacted!")
+            self.redactor = None
+
+
     def parse_email_address(self, email_addr):
-        #regex_str = r"(.*)<(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)>"
         regex_str = r"(.*)<(.*)>"
         m = re.match(regex_str, email_addr)
         first = last = addr = ""
@@ -63,35 +73,25 @@ class Client(): ## imap.Client()
                 first, last = name.rsplit(None, 1)
             else:
                 first = name
-                last = "-" # empty string breaks redmine
+                last = "-"
             addr = m.group(2)
-
             return first, last, addr
         else:
-            # assume it's just email
-            #log.error(f"Unable to parse email str: {email_addr}")
             return "", "", email_addr
 
-
-
     def is_html_doc(self, payload: str) -> bool:
-        # check the first few chars to see if they contain any HTML tags
         tags = [ "<html>", "<!doctype html>" ]
         head = payload[:20].strip().lower()
         for tag in tags:
             if head.startswith(tag):
                 return True
-        # no html tag found
         return False
 
-
     def parse_message(self, data):
-        # NOTE this policy setting is important, default is "compat-mode" amd we need "default"
         root = email.message_from_bytes(data, policy=email.policy.default)
 
         from_address = root.get("From")
         subject = root.get("Subject")
-        # ticket-485: capture to and cc headers
         to_header = root.get("To")
         cc_header = root.get("Cc")
         message = Message(from_address, subject, to_header, cc_header)
@@ -105,15 +105,12 @@ class Client(): ## imap.Client()
                     content_type=content_type,
                     payload=part.get_payload(decode=True)))
                 log.debug(f"Added attachment: {part.get_filename()} {content_type}")
-            elif content_type == 'text/plain': # FIXME std const?
+            elif content_type == 'text/plain':
                 payload = part.get_payload(decode=True).decode('UTF-8')
 
-        # http://10.10.0.218/issues/208
         if payload == "":
             payload = root.get_body().get_content()
-            # search for HTML
             if self.is_html_doc(payload):
-                # strip HTML
                 payload = self.strip_html_tags(payload)
                 log.debug(f"HTML payload after: {payload}")
 
@@ -141,27 +138,21 @@ class Client(): ## imap.Client()
         "1600 Amphitheatre Pkwy",
         "Mountain View CA 94043 USA",
     ]
+
     def strip_forwards(self, text:str) -> str:
-        # strip any forwarded messages
-        # from ^>
         forward_tag = "------ Forwarded message ---------"
         idx = text.find(forward_tag)
         if idx > -1:
             text = text[0:idx]
 
-        # search for "On ... wrote:"
         p = re.compile(r"^On .* <.*>\s+wrote:", flags=re.MULTILINE|re.DOTALL|re.IGNORECASE)
         match = p.search(text)
         if match:
             text = text[0:match.start()]
 
-        # TODO search for --
-
-        # look for google content, as in http://10.10.0.218/issues/323
         buffer = ""
         for line in text.splitlines():
             skip = False
-            # search for skip_strs
             for skip_str in self.skip_strs:
                 if line.startswith(skip_str):
                     skip = True
@@ -182,15 +173,41 @@ class Client(): ## imap.Client()
         # Simplyfying assumption: If the subject has a valid tracker tag -> [Valid-Tracker-Name]
         # Then skip the searches in first, next.
 
-        ticket = None
-        # first, search for a matching subject
+        # Redact message using remote API
+        original_note = message.note
+
+        if self.redactor:
+            try:
+                log.info(f"Redacting PII from message {msg_id} via LLM API...")
+                redacted = self.redactor.redact_text(original_note)
+                log.info(f"Redaction complete for message {msg_id}")
+            except Exception as e:
+                log.error(f"Redaction failed for message {msg_id}: {e}")
+                log.warning("Creating ticket WITHOUT redaction")
+                redacted = None
+        else:
+            log.warning("No redactor available, creating ticket WITHOUT redaction")
+            redacted = None
+
+        # Get user
+        user = self.redmine.user_mgr.get_by_name(addr)
+        if user is None:
+            log.debug(f"Unknown email address, no user found: {addr}, {message.from_address}")
+            user = self.redmine.user_mgr.create(addr, first, last, user_login=None)
+            log.info(f"Unknown user: {addr}, created new account.")
+
+        self.redmine.user_mgr.join_team(user, "users")
+
+        # Upload attachments
+        self.redmine.ticket_mgr.upload_attachments(user, message.attachments)
+
+        # Check for existing ticket
         tickets = self.redmine.ticket_mgr.match_subject(subject)
+
         if len(tickets) == 1:
-            # as expected
             ticket = tickets[0]
             log.debug(f"found ticket id={ticket.id} for subject: {subject}")
         elif len(tickets) >= 2:
-            # more than expected
             log.warning(f"subject query returned {len(tickets)} results, using first: {subject}")
             ticket = tickets[0]
 
@@ -213,63 +230,198 @@ class Client(): ## imap.Client()
         self.redmine.ticket_mgr.upload_attachments(user, message.attachments)
 
         if ticket:
-            # found a ticket, append the message
-            self.redmine.ticket_mgr.append_message(ticket.id, user.login, message.note, message.attachments)
+            # Update existing ticket
+            # self.redmine.ticket_mgr.append_message(ticket.id, user.login, message.note, message.attachments) TODO: CHANGE LATER 2/9
+            # Use API key account (admin) instead of impersonating sender
+            # This avoids 403 permission errors for external users
+            attributed_note = f"**From:** {user.name} ({user.mail})\n\n{message.note}"
+            self.redmine.ticket_mgr.append_message(ticket.id, None, attributed_note, message.attachments)
             log.info(f"Updated ticket #{ticket.id} with message from {user.login} and {len(message.attachments)} attachments")
         else:
-            # no open tickets, create new ticket for the email message
-            ticket = self.redmine.create_ticket(user, message)
+            if redacted:
+                # Store REDACTED in description (public facing)
+                message.note = redacted.text
+                ticket = self.redmine.create_ticket(user, message)
+
+                # Store ORIGINAL in unredacted custom field (PII admin only)
+                unredacted_cf = self.redmine.ticket_mgr.get_custom_field("unredacted")
+                if unredacted_cf:
+                    fields = {
+                        "custom_fields": [
+                            {"id": unredacted_cf.id, "value": original_note}
+                        ]
+                    }
+                    self.redmine.ticket_mgr.update(ticket.id, fields)
+                    log.info(f"Stored original in unredacted CF for ticket #{ticket.id}")
+                else:
+                    log.error("Custom field 'unredacted' not found!")
+            else:
+                # No redaction available, store original in description only
+                message.note = original_note
+                ticket = self.redmine.create_ticket(user, message)
             log.info(f"Created new ticket for: {ticket}, with {len(message.attachments)} attachments")
 
-
     def synchronize(self):
+        """Process ONE email, then return. Returns number of emails processed (0 or 1)."""
+        processed_count = 0
         try:
             with IMAPClient(host=self.host, ssl=True) as server:
-                # https://imapclient.readthedocs.io/en/3.0.1/api.html#imapclient.IMAPClient.oauthbearer_login
-                # NOTE: self.user -> IMAP_USER -> identity, self.user -> IMAP_PASSWD -> token
                 server.login(self.user, self.passwd)
-                #server.oauthbearer_login(self.user, self.passwd)
-                #server.oauth2_login(self.user, self.passwd)
-
                 server.select_folder("INBOX", readonly=False)
                 log.info(f'logged into imap {self.host}')
 
                 messages = server.search("UNSEEN")
                 log.info(f"processing {len(messages)} new messages from {self.host}")
 
-                for uid, message_data in server.fetch(messages, "RFC822").items():
-                    # process each message returned by the query
-                    try:
-                        # decode the message
-                        data = message_data[b"RFC822"]
-                        message = self.parse_message(data)
+                if not messages:
+                    # No emails to process
+                    log.info("done. processed 0 messages")
+                    return 0
 
-                        # handle the message
-                        self.handle_message(uid, message)
+                # Process ONLY the first email
+                uid = messages[0]  # Get first unread email
+                message_data = server.fetch([uid], "RFC822")
 
-                        #  mark msg uid seen and deleted, as per redmine imap.rb
-                        server.add_flags(uid, [SEEN, DELETED])
+                try:
+                    data = message_data[uid][b"RFC822"]
+                    message = self.parse_message(data)
+                    self.handle_message(uid, message)
+                    server.add_flags(uid, [SEEN, DELETED])
+                    processed_count = 1
+                    log.info("done. processed 1 message")
+                except Exception as e:
+                    log.error(f"Message {uid} can not be processed: {e}")
+                    traceback.print_exc()
+                    with open(f"message-err-{uid}.eml", "wb") as file:
+                        file.write(data)
+                    server.add_flags(uid, [SEEN])
+                    processed_count = 0
 
-                    except Exception as e:
-                        log.error(f"Message {uid} can not be processed: {e}")
-                        traceback.print_exc()
-                        # save the message data in a file
-                        with open(f"message-err-{uid}.eml", "wb") as file:
-                            file.write(data)
-                        server.add_flags(uid, [SEEN])
-
-                log.info(f"done. processed {len(messages)} messages")
         except Exception as ex:
             log.error(f"caught exception syncing IMAP: {ex}")
             traceback.print_exc()
 
+        return processed_count
 
-# Run the IMAP sync process
+    # def process_edit_job(self, job: dict):
+    #     #Process a ticket edit job from the queue
+    #     from redaction_queue import RedactionQueue
+
+    #     ticket_id = job["ticket_id"]
+    #     new_description = job["description"]
+    #     user_info = job["user"]
+
+    #     log.info(f"Processing edit for ticket #{ticket_id}")
+
+    #     queue = RedactionQueue()
+
+    #     try:
+    #         # Lock the ticket
+    #         queue.lock_ticket(ticket_id, "edit")
+
+    #         # Get ticket
+    #         ticket = self.redmine.ticket_mgr.get(ticket_id)
+    #         if not ticket:
+    #             raise Exception(f"Ticket #{ticket_id} not found")
+
+    #         # Redact the new description
+    #         if self.redactor:
+    #             log.info(f"Redacting new description for ticket #{ticket_id}")
+    #             redacted = self.redactor.redact_text(new_description)
+    #             log.info(f"Redaction complete for ticket #{ticket_id}")
+    #         else:
+    #             log.warning("No redactor available")
+    #             redacted = None
+
+    #         # Update ticket in Redmine
+    #         if redacted:
+    #             # Store ORIGINAL in description (admin-only)
+    #             fields = {"description": new_description}
+    #             self.redmine.ticket_mgr.update(ticket_id, fields)
+
+    #             # Store REDACTED in custom field (public)
+    #             redacted_cf = self.redmine.ticket_mgr.get_custom_field("redacted")
+    #             if redacted_cf:
+    #                 fields = {
+    #                     "custom_fields": [
+    #                         {"id": redacted_cf.id, "value": redacted.text}
+    #                     ]
+    #                 }
+    #                 self.redmine.ticket_mgr.update(ticket_id, fields)
+    #                 log.info(f"Updated redacted field for ticket #{ticket_id}")
+    #         else:
+    #             # No redaction, just update description
+    #             fields = {"description": new_description}
+    #             self.redmine.ticket_mgr.update(ticket_id, fields)
+
+    #         log.info(f"Successfully updated ticket #{ticket_id}")
+
+    #     finally:
+    #         # Always unlock ticket
+    #         queue.unlock_ticket(ticket_id)
+
+
+    def process_edit_job(self, job: dict):
+        #process a ticket edit job from the queue
+        from redaction_queue import RedactionQueue
+
+        ticket_id = job["ticket_id"]
+        new_description = job["description"]
+        user_info = job.get("user", {})
+
+        queue = RedactionQueue()
+
+        try:
+            queue.lock_ticket(ticket_id, "edit")
+
+            log.info(f"Processing edit for ticket #{ticket_id}")
+
+            # Get ticket
+            # ticket = self.redmine.ticket_mgr.get(ticket_id)
+            # Only ticket_id is needed.
+
+            # Redact description
+            log.info(f"Redacting new description for ticket #{ticket_id}")
+            if self.redactor:
+                redacted = self.redactor.redact_text(new_description)
+            else:
+                redacted = None
+
+            # Update Redmine
+            if redacted:
+                # Redacted in description (public facing)
+                # Original in unredacted CF (PII admin only)
+                unredacted_cf = self.redmine.ticket_mgr.get_custom_field("unredacted")
+                if unredacted_cf:
+                    fields = {
+                        "description": redacted.text,
+                        "custom_fields": [
+                            {"id": unredacted_cf.id, "value": new_description}
+                        ],
+                        "notes": f"Ticket description updated and redacted by {user_info.get('name', 'user')}"
+                    }
+                    self.redmine.ticket_mgr.update(ticket_id, fields)
+                    log.info(f"Updated description (redacted) and unredacted CF for ticket #{ticket_id}")
+                else:
+                    log.error("Custom field 'unredacted' not found!")
+                    self.redmine.ticket_mgr.update(ticket_id, {
+                        "description": redacted.text,
+                        "notes": f"Ticket description updated and redacted by {user_info.get('name', 'user')}"
+                    })
+            else:
+                # No redaction available - store original in description
+                params = {
+                    "description": new_description,
+                    "notes": f"Ticket description updated (no redaction) by {user_info.get('name', 'user')}"
+                }
+                self.redmine.ticket_mgr.update(ticket_id, params)
+            log.info(f"Successfully updated ticket #{ticket_id}")
+
+        finally:
+            queue.unlock_ticket(ticket_id)
+
+
 if __name__ == '__main__':
     log.info('initializing IMAP threader')
-
-    # load credentials
     load_dotenv()
-
-    # construct the client and run the email check
     Client().synchronize()

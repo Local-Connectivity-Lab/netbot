@@ -271,6 +271,7 @@ class DiscordFormatter():
         # ### Description
         # description text
         #link_padding = ' ' * (5 - len(str(ticket.id))) # field width = 6
+
         status = self.format_icon(ticket.status)
         priority = self.format_icon(ticket.priority)
         created_age = synctime.age_str(ticket.created_on)
@@ -284,9 +285,17 @@ class DiscordFormatter():
         details += f"**Priority:**  {priority}\n"
         details += f"**Assignee:**  {assigned}\n"
         details += f"**Category:**  {ticket.category}\n"
-        if ticket.to or ticket.cc:
-            details += f"**To:** {', '.join(ticket.to)}  **Cc:** {', '.join(ticket.cc)}\n"
+        # if ticket.to or ticket.cc:
+        #     details += f"**To:** {', '.join(ticket.to)}  **Cc:** {', '.join(ticket.cc)}\n"
+        #removed since reveals PII in ticket thread
 
+
+        # #TODO CHANGE LATER
+        # redacted_desc = ticket.get_custom_field("redacted")
+        # description = redacted_desc if redacted_desc else ticket.description
+        # #TODO CHANGE LATER
+        # details += f"### Description\n{description}"
+        # Description is always public-safe (redacted text stored directly in description)
         details += f"### Description\n{ticket.description}"
         return details
 
@@ -352,7 +361,7 @@ class DiscordFormatter():
 
     def get_user_id(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:
         if ticket is None or ticket.assigned_to is None:
-            return ""
+            return None
 
         user_str = self.format_discord_member(ctx, ticket.assigned_to.id)
         if not user_str:
@@ -362,12 +371,12 @@ class DiscordFormatter():
 
 
     def format_discord_member(self, ctx: discord.ApplicationContext, user_id:int) -> str:
-        user = ctx.bot.redmine.user_mgr.get(user_id) # call to cache
+        user = ctx.bot.redmine.user_mgr.cache.get(user_id) # call to cache directly
         if user and user.discord_id:
             return f"<@!{user.discord_id.id}>"
         if user:
             return user.name
-        return ""
+        return None
 
 
     def format_collaborators(self, ctx: discord.ApplicationContext, ticket:Ticket) -> str:

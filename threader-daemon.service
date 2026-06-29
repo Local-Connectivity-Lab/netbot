@@ -1,0 +1,21 @@
+[Unit]
+Description=Threader Daemon - IMAP Email Processor with PII Redaction
+After=network.target
+
+[Service]
+Type=simple
+User=scn
+WorkingDirectory=/home/scn/netbot-redacted
+ExecStart=/home/scn/.local/bin/uv run python threader_daemon.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Graceful shutdown
+TimeoutStopSec=300
+KillMode=mixed
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

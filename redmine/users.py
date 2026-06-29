@@ -55,6 +55,7 @@ class UserCache():
     def cache_team(self, team: Team) -> None:
         """add the team to the cache"""
         self.teams[team.name] = team
+        self.user_ids[team.id] = team # hack to make teams visible by ID
 
 
     def get(self, user_id:int):
@@ -78,6 +79,8 @@ class UserCache():
             return self.get(self.discord_ids[name])
         if name in self.teams:
             return self.teams[name] #ugly. put groups in user collection?
+        if name in self.user_ids:
+            return self.user_ids[name] # hack to support user-id in find()
 
         return None
 

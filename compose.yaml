@@ -7,5 +7,7 @@ services:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - REDMINE_TOKEN=${REDMINE_TOKEN}
       - REDMINE_URL=${REDMINE_URL}
+    volumes:
+      - ./redaction_queue.json:/app/redaction_queue.json  #share queue file
     restart: on-failure:1
     network_mode: host

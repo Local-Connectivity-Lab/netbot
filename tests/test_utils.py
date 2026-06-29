@@ -77,12 +77,16 @@ def init_test_users(user_mgr:UserManager) -> None:
     test_users = [TEST_USER, "test-known-user"]
 
     for username in test_users:
-        user = user_mgr.find(username)
-        if not user:
-            log.info("Test user not found! Creating: {username}")
-            name = username.replace("-", "")
-            email = name + "@example.com"
-            user = user_mgr.create(email, "Test", name, username)
+        try:
+            user = user_mgr.find(username)
+            if not user:
+                log.info("Test user not found! Creating: {username}")
+                name = username.replace("-", "")
+                email = name + "@example.com"
+                user = user_mgr.create(email, "Test", name, username)
+        except Exception as e:
+            log.exception("Problem checking test user $username", exc_info=e)
+            raise
 
 
 def lookup_test_user(user_mgr:UserManager) -> User:

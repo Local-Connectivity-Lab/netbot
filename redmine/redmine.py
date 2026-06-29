@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-"""redmine client"""
-
 import os
 import re
 import logging
@@ -18,9 +15,8 @@ DEFAULT_SORT = "status:desc,priority:desc,updated_on:desc"
 TIMEOUT = 10 # seconds
 SYNC_FIELD_NAME = "syncdata"
 BLOCKED_TEAM_NAME = "blocked"
-STATUS_REJECT = 5 # could to status lookup, based on "reject"
+STATUS_REJECT = 5
 DEFAULT_TRACKER = "External-Comms-Intake"
-#TRACKER_REGEX = re.compile(r"tracker=([\w-]+)")
 TRACKER_REGEX = re.compile(r"\s*\[([\w-]+)\]\s*")
 
 
@@ -39,9 +35,7 @@ class Client():
         self.user_mgr = user_mgr
         self.ticket_mgr = ticket_mgr
 
-        # sanity check
-        self.validate_sanity() # FATAL if not
-
+        self.validate_sanity() 
 
     @classmethod
     def from_session(cls, session:RedmineSession, default_project:int):
@@ -67,8 +61,8 @@ class Client():
 
 
     def reindex(self):
-        self.ticket_mgr.reindex() # re-load enumerations (priority, tracker, etc)
-        self.user_mgr.reindex() # rebuild the user cache
+        self.ticket_mgr.reindex()
+        self.user_mgr.reindex()
 
 
     def sanity_check(self) -> dict[str, bool]:
@@ -80,14 +74,12 @@ class Client():
         for subsystem, good in self.sanity_check().items():
             log.info(f"- {subsystem}: {good}")
             if not good:
-                #log.critical(f"Subsystem {subsystem} not loading correctly.")
                 raise RedmineException(f"Subsystem {subsystem} not loading correctly.")
 
 
     def find_tracker_in_message(self, message:Message) -> NamedId:
         tracker = self.find_tracker(message.subject)
         if tracker.name != DEFAULT_TRACKER:
-            # valid tracker found in subject. strip it.
             message.subject = TRACKER_REGEX.sub("", message.subject)
         return tracker
 
@@ -111,8 +103,8 @@ class Client():
 
     def create_ticket(self, user:User, message:Message) -> Ticket:
         """
-        This is a special case of ticket creation that manages blocked users
-        and checks for tracker field in message body to set on new ticket.
+        Create a ticket - NO redaction happens here
+        Redaction is done in threader before calling this
         """
         project_id = SCN_PROJECT_ID
         tracker = self.find_tracker_in_message(message)
@@ -128,9 +120,20 @@ class Client():
         return ticket
 
 
+    def unredact_ticket(self, ticket:Ticket) -> Ticket:
+        """
+        Return ticket with original (unredacted) description
+        The description field already contains original text
+        """
+        # With new architecture:
+        # - description = original (unredacted) 
+        # - custom field "redacted" = redacted version for Discord
+        # So unredact just returns the ticket as-is
+        return ticket
+
+
     def find_ticket_from_str(self, string:str) -> Ticket:
         """parse a ticket number from a string and get the associated ticket"""
-        # for now, this is a trivial REGEX to match '#nnn' in a string, and return ticket #nnn
         match = re.search(r'#(\d+)', string)
         if match:
             ticket_num = int(match.group(1))
