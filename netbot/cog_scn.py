@@ -6,11 +6,11 @@ import logging
 import discord
 from discord.commands import SlashCommandGroup, option
 from discord.ext import commands
-from discord.utils import basic_autocomplete
 
-from netbot.netbot import NetBot, default_ticket
 from redmine.model import Message, User
-from redmine.redmine import BLOCKED_TEAM_NAME, Client
+from redmine.redmine import Client, BLOCKED_TEAM_NAME
+
+from netbot.netbot import NetBot
 
 log = logging.getLogger(__name__)
 
@@ -185,20 +185,9 @@ class SCNCog(commands.Cog):
 
     # FIXME rename to "register"?
     @scn.command(description="Add a Discord user to redmine")
-    @option(
-        "ticket_id",
-        description="ticket ID",
-        autocomplete=basic_autocomplete(default_ticket),
-    )
-    @option(
-        "member", description="Discord member collaborating with ticket", optional=True
-    )
-    async def add(
-        self,
-        ctx: discord.ApplicationContext,
-        redmine_login: str,
-        member: discord.Member = None,
-    ):
+    @option("redmine_login", description="Your redmine user login")
+    @option("member", description="Discord member collaborating with ticket", optional=True)
+    async def add(self, ctx:discord.ApplicationContext, redmine_login:str, member:discord.Member=None):
         """add a Discord user to the Redmine ticketing integration"""
         discord_id = ctx.user  # by default, assume current user
         if member:
@@ -211,11 +200,12 @@ class SCNCog(commands.Cog):
         if user:
             # check the
             id_from_user = user.discord_id
-            if id_from_user and id_from_user.id > 0:
-                # a valid
-                await ctx.respond(
-                    f"Discord user: {discord_id} is fully configured as redmine user: {user.login}"
-                )
+            if id_from_user.id > 0:
+                # a valid user
+                # make sure user has a volunteer role on the SCN project
+                project_id = 1 # "scn"
+                self.redmine.user_mgr.assure_project_roles(user, project_id, ["Volunteer", "User"])
+                await ctx.respond(f"Discord user: {discord_id} is fully configured as redmine user: {user.login}")
             else:
                 # need to update
                 self.redmine.user_mgr.create_discord_mapping(
@@ -242,6 +232,7 @@ class SCNCog(commands.Cog):
 
             # reindex users after changes
             self.redmine.user_mgr.reindex_users()
+
 
     @scn.command()
     async def sync(self, ctx: discord.ApplicationContext):

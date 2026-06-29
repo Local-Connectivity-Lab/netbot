@@ -4,6 +4,7 @@
 
 import logging
 import datetime as dt
+import math
 
 import discord
 from discord import ScheduledEvent, OptionChoice
@@ -11,7 +12,9 @@ from discord.commands import option, SlashCommandGroup
 from discord.ext import commands
 from discord.enums import InputTextStyle
 from discord.ui.item import Item, V
-from discord.utils import basic_autocomplete
+import discord.utils
+from discord.ext import tasks
+
 
 import dateparser
 
@@ -297,12 +300,12 @@ class EditDescriptionModal(discord.ui.Modal):
 
     async def callback(self, interaction: discord.Interaction):
         from redaction_queue import RedactionQueue
-        
+
         description = self.children[0].value
         log.debug(f"Edit callback for ticket #{self.ticket_id}")
 
         queue = RedactionQueue()
-        
+
         # Check if ticket is locked
         # if queue.is_locked(self.ticket_id):
         #     await interaction.response.send_message(
@@ -310,7 +313,7 @@ class EditDescriptionModal(discord.ui.Modal):
         #         ephemeral=True
         #     )
         #     return
-        
+
         # Get user info
         user = self.redmine.user_mgr.find_discord_user(interaction.user.name)
         user_info = {
@@ -318,17 +321,17 @@ class EditDescriptionModal(discord.ui.Modal):
             "login": user.login if user else None,
             "discord_id": interaction.user.id
         }
-        
+
         # Add to queue
         job_id = queue.add_edit_job(self.ticket_id, description, user_info)
-        
+
         await interaction.response.send_message(
             f"Your edit has been queued for redaction.\n"
             f"This will take approximately 15-20 minutes.\n\n"
             f"Ticket #{self.ticket_id} is locked during this process.",
             ephemeral=True
         )
-        
+
         log.info(f"Queued edit job {job_id} for ticket #{self.ticket_id}")
 
 
@@ -345,19 +348,79 @@ def default_term(ctx: discord.ApplicationContext) -> str:
         return CHANNEL_MAPPING[ch_name]
 
 
+class PrevButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="◀ Prev", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        view: StatusView = self.view
+        view.page = max(0, view.page - 1)
+        view.refresh_buttons()
+        embed = view.bot.formatter.status_embed(
+            view.title, view.buckets, view.page, view.total_pages, view.truncated
+        )
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class NextButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Next ▶", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        view: StatusView = self.view
+        view.page = min(view.total_pages - 1, view.page + 1)
+        view.refresh_buttons()
+        embed = view.bot.formatter.status_embed(
+            view.title, view.buckets, view.page, view.total_pages, view.truncated
+        )
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class StatusView(discord.ui.View):
+    """Paginating view for the /status digest embed."""
+
+    TIMEOUT = 180  # seconds
+
+    def __init__(self, bot, title: str, buckets: dict, truncated: bool = False):
+        super().__init__(timeout=self.TIMEOUT)
+        self.bot = bot
+        self.title = title
+        self.buckets = buckets
+        self.truncated = truncated
+        self.page = 0
+        self.total_pages = max(1, math.ceil(len(buckets["sorted_tickets"]) / 5))
+
+        self.prev_btn = PrevButton()
+        self.next_btn = NextButton()
+        self.add_item(self.prev_btn)
+        self.add_item(self.next_btn)
+        self.refresh_buttons()
+
+    def refresh_buttons(self):
+        self.prev_btn.disabled = (self.page == 0)
+        self.next_btn.disabled = (self.page >= self.total_pages - 1)
+
+    async def on_timeout(self):
+        self.prev_btn.disabled = True
+        self.next_btn.disabled = True
+        self.stop()
+
+
 class TicketsCog(commands.Cog):
     """encapsulate Discord ticket functions"""
     def __init__(self, bot:NetBot):
         self.bot:NetBot = bot
         self.redmine: Client = bot.redmine
 
-    def is_pii_admin(self, user: discord.Member) -> bool:
-        """Check if user has PII admin role"""
-        return self.bot.is_pii_admin(user)
-
-
     # see https://github.com/Pycord-Development/pycord/blob/master/examples/app_commands/slash_cog_groups.py
     ticket = SlashCommandGroup("ticket",  "ticket commands")
+
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        # start the tasks running
+        self.poll_new_tickets.start()
+        log.info("Initialized ticket polling")
 
 
     # figure out what the term refers to
@@ -436,23 +499,22 @@ class TicketsCog(commands.Cog):
             await ctx.respond(f"Zero results for: `{term}`")
 
     @ticket.command(description="Get ticket details")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
-    async def details(self, ctx: discord.ApplicationContext, ticket_id: int):
-        #Show ticket details always ephemeral
-        #PII admin: pulls unredacted CF and swaps into description for display
-        #Regular user: shows description as is (already redacted)
+    @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
+    async def details(self, ctx: discord.ApplicationContext, ticket_id:int):
+        """Update status on a ticket, using: unassign, resolve, progress"""
+        #log.debug(f"found user mapping for {ctx.user.name}: {user}")
         ticket = self.redmine.ticket_mgr.get(ticket_id, include="children,watchers")
-        
+
         if not ticket:
             await ctx.respond(f"Ticket {ticket_id} not found.", ephemeral=True)
             return
-        
+
         if self.is_pii_admin(ctx.user):
             #pull original PII from unredacted CF and swap into description for UI DISPLAY ONLY
             unredacted_value = ticket.get_custom_field("unredacted")
             if unredacted_value:
                 ticket.description = unredacted_value
-        
+
         await ctx.respond(
             embed=self.bot.formatter.ticket_embed(ctx, ticket),
             ephemeral=True
@@ -460,7 +522,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Collaborate on a ticket")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("member", description="Discord member collaborating with ticket", optional=True)
     async def collaborate(self, ctx: discord.ApplicationContext, ticket_id:int, member:discord.Member=None):
         """Add yourself as a collaborator on a ticket"""
@@ -485,7 +547,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Unassign a ticket")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     async def unassign(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
         # lookup the user
@@ -503,7 +565,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Resolve a ticket")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     async def resolve(self, ctx: discord.ApplicationContext, ticket_id:int):
         """Update status on a ticket, using: unassign, resolve, progress"""
         # lookup the user
@@ -524,7 +586,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Mark a ticket in-progress")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("member", description="Discord member taking ownership", optional=True)
     async def progress(self, ctx: discord.ApplicationContext, ticket_id:int, member:discord.Member=None):
         """Update status on a ticket, using: progress"""
@@ -551,7 +613,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Assign a ticket")
-    @option("ticket_id", description="ticket ID", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ticket ID", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("member", description="Discord member taking ownership", optional=True)
     async def assign(self, ctx: discord.ApplicationContext, ticket_id:int, member:discord.Member=None):
         # lookup the user
@@ -583,18 +645,16 @@ class TicketsCog(commands.Cog):
     #     await ctx.respond(f"EDIT #{ticket.id}", view=EditView(self.bot))
 
 
-    async def create_thread(self, ticket:Ticket, ctx:discord.ApplicationContext):
-        log.info(f"creating a new thread for ticket #{ticket.id} in channel: {ctx.channel.name}")
-        thread_name = f"Ticket #{ticket.id}: {ticket.subject}"
-
-        if isinstance(ctx.channel, discord.Thread):
-            log.debug(f"creating thread in parent channel {ctx.channel.parent.name}, for {ticket}")
-            thread = await ctx.channel.parent.create_thread(name=thread_name, type=discord.ChannelType.public_thread)
+    async def create_thread(self, ticket:Ticket, channel):
+        if isinstance(channel, discord.Thread):
+            log.debug(f"creating thread in parent channel {channel.parent.name}, for {ticket}")
+            thread = await self.create_ticket_thread(ticket, channel.parent)
+        elif isinstance(channel, discord.TextChannel):
+            log.debug(f"creating thread in channel {channel.name}, for {ticket}")
+            thread = await self.create_ticket_thread(ticket, channel)
         else:
-            log.debug(f"creating thread in channel {ctx.channel.name}, for {ticket}")
-            thread = await ctx.channel.create_thread(name=thread_name, type=discord.ChannelType.public_thread)
-        # ticket-614: Creating new thread should post the ticket details to the new thread
-        await thread.send(self.bot.formatter.format_ticket_details(ticket))
+            log.warning(f"Unrecognized channel type: {type(channel)}, {channel}")
+
         return thread
 
     @ticket.command(name="new", description="Create a new ticket")
@@ -629,7 +689,7 @@ class TicketsCog(commands.Cog):
             log.debug(f"creating ticket in {channel_name} for tracker={tracker}, owner={team}")
             ticket = self.redmine.ticket_mgr.create(user, message, tracker_id=tracker.id, assigned_to_id=team.id)
             # create new ticket thread
-            thread = await self.create_thread(ticket, ctx)
+            thread = await self.create_thread(ticket, ctx.channel)
             # use to send notification for team/role
             ticket_link = self.bot.formatter.redmine_link(ticket)
             alert_msg = f"New ticket created: {ticket_link}"
@@ -668,7 +728,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(description="Thread a Redmine ticket in Discord")
-    @option("ticket_id", description="ID of tick to create thread for")
+    @option("ticket_id", description="ID of ticket to create thread for")
     async def thread(self, ctx: discord.ApplicationContext, ticket_id:int):
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if ticket:
@@ -689,7 +749,7 @@ class TicketsCog(commands.Cog):
                     # fall thru to create thread and sync
 
             # create the thread...
-            thread = await self.create_thread(ticket, ctx)
+            thread = await self.create_thread(ticket, ctx.channel)
 
             # update the discord flag on tickets, add a note with url of thread; thread.jump_url
             name = thread.name
@@ -705,7 +765,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(name="tracker", description="Update the tracker of a ticket")
-    @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ID of ticket to update", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("tracker", description="Tracker to assign to ticket", autocomplete=get_trackers)
     async def tracker(self, ctx: discord.ApplicationContext, ticket_id:int, tracker:str):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
@@ -728,7 +788,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(name="status", description="Update the status of a ticket")
-    @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ID of ticket to update", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("status", description="Status to assign to ticket", autocomplete=get_statuses)
     async def status(self, ctx: discord.ApplicationContext, ticket_id:int, status:str):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
@@ -751,7 +811,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(name="priority", description="Update the priority of a ticket")
-    @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ID of ticket to update", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("priority", description="Priority to assign to ticket", autocomplete=get_priorities)
     async def priority(self, ctx: discord.ApplicationContext, ticket_id:int, priority:str):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
@@ -778,7 +838,7 @@ class TicketsCog(commands.Cog):
 
 
     @ticket.command(name="subject", description="Update the subject of a ticket")
-    @option("ticket_id", description="ID of ticket to update", autocomplete=basic_autocomplete(default_ticket))
+    @option("ticket_id", description="ID of ticket to update", autocomplete=discord.utils.basic_autocomplete(default_ticket))
     @option("subject", description="Updated subject")
     async def subject(self, ctx: discord.ApplicationContext, ticket_id:int, subject:str):
         user = self.redmine.user_mgr.find_discord_user(ctx.user.name)
@@ -883,7 +943,7 @@ class TicketsCog(commands.Cog):
     @ticket.command(name="description", description="Edit the description of a ticket")
     async def edit_description(self, ctx: discord.ApplicationContext):
         from redaction_queue import RedactionQueue
-        
+
         # Check PII admin permission
         if not self.is_pii_admin(ctx.user):
             await ctx.respond(
@@ -891,7 +951,7 @@ class TicketsCog(commands.Cog):
                 ephemeral=True
             )
             return
-        
+
         # Get ticket from thread name
         ticket_id = NetBot.parse_thread_title(ctx.channel.name)
         if not ticket_id:
@@ -900,7 +960,7 @@ class TicketsCog(commands.Cog):
                 ephemeral=True
             )
             return
-        
+
         # Check if ticket is locked
         queue = RedactionQueue()
         if queue.is_locked(ticket_id):
@@ -909,13 +969,13 @@ class TicketsCog(commands.Cog):
                 ephemeral=True
             )
             return
-        
+
         # Get ticket
         ticket = self.redmine.ticket_mgr.get(ticket_id)
         if not ticket:
             await ctx.respond(f"Cannot find ticket #{ticket_id}", ephemeral=True)
             return
-        
+
         # Show edit modal
         modal = EditDescriptionModal(self.redmine, ticket, self.bot, title=f"Editing ticket #{ticket.id}")
         await ctx.send_modal(modal)
@@ -988,3 +1048,109 @@ class TicketsCog(commands.Cog):
             redmine.ticket_mgr.resolve(ticket_id)
         program = ctx.bot.redmine.ticket_mgr.get_program_by_id(program_id)
         await ctx.respond(f"Recorded **{hours} hours** on **{program}** for *{user.discord}*")
+
+
+    @discord.slash_command(name="status", description="Show open ticket digest for this team")
+    async def status_digest(self, ctx: discord.ApplicationContext):
+        await ctx.defer()   # Redmine call may take up to 5 s
+
+        term = default_term(ctx)
+        team = self.redmine.user_mgr.find(term) if term else None
+
+        if team:
+            tickets = self.redmine.ticket_mgr.tickets_for_team(team)
+            title = f"{team.name} — Open Tickets"
+        else:
+            from redmine.tickets import DEFAULT_SORT
+            tickets = self.redmine.ticket_mgr.tickets(
+                status_id="open", sort=DEFAULT_SORT, limit=100
+            )
+            title = "All Open Tickets"
+
+        truncated = len(tickets) >= 100
+        if truncated:
+            log.warning(f"/status: hit 100-ticket cap (channel={ctx.channel.name}, term={term})")
+
+        buckets = self.redmine.ticket_mgr.bucket_tickets(tickets)
+        total_pages = max(1, math.ceil(len(buckets["sorted_tickets"]) / 5))
+
+        view = StatusView(self.bot, title, buckets, truncated)
+        embed = self.bot.formatter.status_embed(title, buckets, 0, total_pages, truncated)
+
+        await ctx.respond(embed=embed, view=view)
+
+
+    ### Ticket autothreading and notification ###
+
+    AUTOTHREAD_TRACKERS = ["Mutual-Aid-Action"]
+    AUTONOTIFY_TRACKERS = ["Mutual-Aid-Action"]
+
+
+    @tasks.loop(minutes=1.0)
+    async def poll_new_tickets(self):
+        log.debug("notify_new_tickets. this should be called every minute.")
+
+        # check for new tickets
+        for ticket in self.get_new_tickets():
+            if ticket.tracker.name in self.AUTOTHREAD_TRACKERS:
+                log.debug(f"auto-threading ticket {ticket.id} based on tracker: {ticket.tracker}")
+                await self.sync_ticket(ticket)
+
+            if ticket.tracker.name in self.AUTONOTIFY_TRACKERS:
+                # no need to await the notification
+                await self.notify_ticket(ticket)
+
+
+    def get_new_tickets(self):
+        log.debug("Checking for new tickets")
+        # for now, tickets created in the last 5 minutes
+        ## FIXME - track and manage queries, state in netbot for last query
+        timestamp = synctime.now() - dt.timedelta(minutes=5)
+        tickets = self.redmine.ticket_mgr.new_tickets_since(timestamp)
+        return tickets
+
+
+    ### returns true only when a discord thread is created.
+    async def sync_ticket(self, ticket: Ticket) -> bool:
+        # first, check if sync currently exists
+        # possible TODO: cache of ticket id -> thread ids
+        channel_id = ticket.channel_id
+        if channel_id == 0:
+            # find parent channel for thread
+            parent = self.bot.channel_for_ticket(ticket)
+            # create thread
+            thread = await self.create_ticket_thread(ticket, parent)
+            if thread:
+                # create sync record
+                sync_rec = synctime.SyncRecord(ticket.id, thread.id)
+                self.redmine.ticket_mgr.update_sync_record(sync_rec)
+                # sync
+                complete = await self.bot.sync_thread(thread)
+                return complete
+            else:
+                log.error(f"No update. Cannot find channel for {ticket}")
+                return False
+        else:
+            thread = self.bot.channel_for_ticket(ticket)
+            _ = await self.bot.sync_thread(thread)
+            return False
+
+
+    async def notify_ticket(self, ticket:Ticket) -> None:
+        log.info(f"FIXME: Notify ticket: {ticket}")
+
+
+    async def create_ticket_thread(self, ticket: Ticket, parent_channel: discord.TextChannel) -> discord.Thread:
+        if parent_channel:
+            log.info(f"creating a new thread for ticket #{ticket.id} in channel: {parent_channel}")
+            thread_name = f"Ticket #{ticket.id}: {ticket.subject}"
+
+            log.debug(f"creating thread in channel {parent_channel.name}, for {ticket}")
+            thread = await parent_channel.create_thread(name=thread_name, type=discord.ChannelType.public_thread)
+
+            # ticket-614: Creating new thread should post the ticket details to the new thread
+            await thread.send(self.bot.formatter.format_ticket_details(ticket))
+
+            return thread
+        else:
+            log.warning(f"Empty parent_channel provided for threading ticket {ticket}")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """testing the SCN cog"""
-
+import os
 import unittest
 import logging
 import discord
@@ -20,7 +20,7 @@ test_username2: str = "freddy"
 test_user_id: int = 5
 
 
-@unittest.skipUnless(load_dotenv(), "ENV settings not available")
+@unittest.skipUnless(load_dotenv() and "REDMINE_URL" in os.environ, "REDMINE_URL not set")
 class TestSCNCog(test_utils.BotTestCase):
     """testing scn cog"""
 

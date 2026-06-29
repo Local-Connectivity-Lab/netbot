@@ -169,6 +169,10 @@ class Client(): ## imap.Client()
         subject = message.subject_cleaned()
         log.debug(f'uid:{msg_id} - from:{last}, {first}, email:{addr}, subject:{subject}')
 
+        # NOTE: Might need a setting to override "search for matching ticket"
+        # Simplyfying assumption: If the subject has a valid tracker tag -> [Valid-Tracker-Name]
+        # Then skip the searches in first, next.
+
         # Redact message using remote API
         original_note = message.note
 
@@ -206,8 +210,24 @@ class Client(): ## imap.Client()
         elif len(tickets) >= 2:
             log.warning(f"subject query returned {len(tickets)} results, using first: {subject}")
             ticket = tickets[0]
-        else:
+
+        # next, find ticket using the subject, if possible
+        if ticket is None:
+            # this uses a simple REGEX '#\d+' to match ticket numbers
             ticket = self.redmine.find_ticket_from_str(subject)
+
+        # get user id from from_address
+        user = self.redmine.user_mgr.get_by_name(addr)
+        if user is None:
+            log.debug(f"Unknown email address, no user found: {addr}, {message.from_address}")
+            # create new user
+            user = self.redmine.user_mgr.create(addr, first, last, user_login=None)
+            log.info(f"Unknow user: {addr}, created new account.")
+        # make sure user is in users group
+        self.redmine.user_mgr.join_team(user, "users")
+
+        #  upload any attachments
+        self.redmine.ticket_mgr.upload_attachments(user, message.attachments)
 
         if ticket:
             # Update existing ticket

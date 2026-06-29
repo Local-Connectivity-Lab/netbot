@@ -5,6 +5,8 @@ import datetime as dt
 import logging
 import json
 
+import urllib
+
 
 from redmine.model import Team, User, UserResult, NamedId, DISCORD_ID_FIELD
 from redmine.session import RedmineSession, RedmineException
@@ -15,6 +17,7 @@ log = logging.getLogger(__name__)
 
 USER_RESOURCE = "/users.json"
 TEAM_RESOURCE = "/groups.json"
+ROLES_RESOURCE = "/roles.json"
 BLOCKED_TEAM_NAME = "blocked"
 
 
@@ -26,6 +29,7 @@ class UserCache():
         self.user_emails: dict[str, int]  = {}
         self.discord_ids: dict[str, int]  = {}
         self.teams: dict[str, Team] = {}
+        self.roles: dict[str, int] = {} # role name, id
 
 
     def clear(self):
@@ -34,6 +38,7 @@ class UserCache():
         self.user_ids.clear()
         self.user_emails.clear()
         self.discord_ids.clear()
+        self.roles.clear()
 
 
     def cache_user(self, user: User) -> None:
@@ -122,6 +127,10 @@ class UserCache():
                     return True
 
         return False
+
+
+    def lookup_role(self, role_name:str) -> int: # role_id in redmine
+        return self.roles.get(role_name)
 
 
 class UserManager():
@@ -290,18 +299,18 @@ class UserManager():
         # just a proxy
         return self.cache.find_discord_user(discord_user_id)
 
-    #def is_user_or_group(self, term:str):
-    #    return self.cache.is_user_or_group(term)
 
     def is_team(self, name:str):
         return self.cache.is_team(name)
 
-    def get(self, user_id:int):
+
+    def get(self, user_id:int, **params) -> User|None:
         """get a user by ID, directly from redmine"""
-        jresp = self.session.get(f"/users/{user_id}.json")
-        if jresp:
-            #log.info(f"^^^ {jresp['user']}")
-            return User(**jresp['user'])
+        query = f"/users/{user_id}.json?{urllib.parse.urlencode(params)}"
+        response = self.session.get(query)
+        if response:
+            #log.debug(f"USER: {response}")
+            return User(**response['user'])
 
 
     # used only in testing
@@ -327,6 +336,11 @@ class UserManager():
             ]
         }
         updated = self.update(user, fields)
+
+        # make sure user has a volunteer role on the SCN project
+        project_id = 1 # FIXME: lookup_project("scn")
+        self.assure_project_roles(user, project_id, ["Volunteer", "User"])
+
         # cache updated user, based on now-or-changed discord id.
         self.cache.cache_user(updated)
         return updated
@@ -501,4 +515,65 @@ class UserManager():
         start = dt.datetime.now()
         self.reindex_users()
         self.reindex_teams()
+        self.reindex_roles()
         log.info(f"reindex took {dt.datetime.now() - start}")
+
+
+    def assure_project_roles(self, user: User, project_id: int, role_names: list[str]):
+        # get the user info, with memberships
+        user = self.get(user.id, include="memberships")
+        current_roles = user.project_roles(project_id) # this only works if "memberships" is populated, as above
+        roles = []
+        for role_name in role_names:
+            role_id = self.cache.lookup_role(role_name)
+            if role_id:
+                if role_id in current_roles:
+                    log.info(f"Skipping existing role: {user.login} -> {project_id}, role={role_name}, id={role_id}")
+                else:
+                    roles.append(role_id)
+            else:
+                log.error(f"assure_project_role {user.login} {project_id} UNKNOWN ROLE: {role_name}")
+
+        if len(roles) == 0:
+            log.info(f"No roles to add for {user.login} {project_id}")
+            return
+
+        # https://www.redmine.org/projects/redmine/wiki/Rest_Memberships#POST
+        # POST /projects/{project_name}/memberships.json
+        data = {
+            'membership': {
+                "user_id": user.id,
+                "role_ids": roles,
+            }
+        }
+
+        # The project identifier, "scn", can be used directly in the url.
+        url = f"/projects/{project_id}/memberships.json"
+        response = self.session.post(url, data=json.dumps(data))
+
+        # check status
+        if response:
+            log.info(f"created {user.login} {project_id} {role_names}: {response}")
+        else:
+            raise RedmineException(f"assure_project_role {user.login} {project_id} {role_name} failed",
+                                   response.headers['X-Request-Id'])
+
+
+    def get_all_roles(self) -> dict[str, int]:
+        roles = {}
+
+        response = self.session.get(ROLES_RESOURCE)
+        if response:
+            for item in response['roles']:
+                roles[item['name']] = item['id']
+
+        return roles
+
+
+    def reindex_roles(self):
+        all_roles = self.get_all_roles()
+        if all_roles:
+            self.cache.roles = all_roles
+            log.debug(f"Roles: {self.cache.roles}")
+        else:
+            log.warning("No roles to index")

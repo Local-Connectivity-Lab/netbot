@@ -238,7 +238,7 @@ class NetBot(commands.Bot):
             self.redmine.ticket_mgr.append_message(ticket.id, user_login=None, note=formatted)
 
 
-    async def synchronize_ticket(self, ticket, thread:discord.Thread) -> bool:
+    async def synchronize_ticket(self, ticket:Ticket, thread:discord.Thread) -> bool:
         """
         Synchronize a ticket to a thread
         returns True after a sucessful sync or if there are no changes, false if a sync is in progress.
@@ -357,8 +357,6 @@ class NetBot(commands.Bot):
                 return ticket
             else:
                 raise NetbotException(f"Ticket {ticket.id} is locked for syncronization.")
-        else:
-            log.debug(f"no ticket found for {thread.name}")
 
         return None
 
@@ -388,8 +386,8 @@ class NetBot(commands.Bot):
                     # ticket is locked.
                     # skip gracefully
                     log.debug(str(ex))
-                except Exception:
-                    log.exception(f"Error syncing {thread}")
+                except Exception as ex:
+                    log.exception(f"Error syncing {thread}: {ex}")
 
 
     def channel_for_ticket(self, ticket: Ticket) -> discord.TextChannel:

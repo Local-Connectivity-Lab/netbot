@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Redmine test cases"""
-
+import os
 import unittest
 import logging
 
@@ -44,7 +44,7 @@ class TestRedmine(test_utils.MockRedmineTestCase):
         self.assertEqual(self.redmine.find_tracker_in_message(message2).name, DEFAULT_TRACKER)
 
 
-@unittest.skipUnless(load_dotenv(), "ENV settings not available")
+@unittest.skipUnless(load_dotenv() and "REDMINE_URL" in os.environ, "REDMINE_URL not set")
 class TestRedmineIntegration(test_utils.RedmineTestCase):
     """Test suite for Redmine client"""
 

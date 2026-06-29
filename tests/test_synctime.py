@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """unittest for time"""
-
+import os
 import datetime as dt
 import logging
 import unittest
@@ -13,7 +13,7 @@ from tests import test_utils
 log = logging.getLogger(__name__)
 
 
-@unittest.skipUnless(load_dotenv(), "ENV settings not available")
+@unittest.skipUnless(load_dotenv() and "REDMINE_URL" in os.environ, "REDMINE_URL not set")
 class TestTime(test_utils.RedmineTestCase):
     """testing time functions"""
 

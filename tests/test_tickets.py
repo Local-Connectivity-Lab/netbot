@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Redmine tickets manager test cases"""
-
+import os
 import datetime
 import unittest
 import logging
@@ -106,7 +106,7 @@ class TestTicketManager(test_utils.MockRedmineTestCase):
 
 
 # The integration test suite is only run if the ENV settings are configured correctly
-@unittest.skipUnless(load_dotenv(), "ENV settings not available")
+@unittest.skipUnless(load_dotenv() and "REDMINE_URL" in os.environ, "REDMINE_URL not set")
 class TestIntegrationTicketManager(test_utils.RedmineTestCase):
     """Test suite for Redmine ticket manager"""
 

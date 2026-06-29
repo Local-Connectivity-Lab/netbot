@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Test case for the TicketsCog"""
-
+import os
 import unittest
 import logging
 import re
@@ -88,7 +88,7 @@ class TestTicketsCog(test_utils.MockBotTestCase):
         self.assertEqual(response['issue']['tracker_id'], 4)
 
 
-@unittest.skipUnless(load_dotenv(), "ENV settings not available")
+@unittest.skipUnless(load_dotenv() and "REDMINE_URL" in os.environ, "REDMINE_URL not set")
 class IntegrationTestTicketsCog(test_utils.BotTestCase):
     """Integration test suite for TicketsCog"""
 

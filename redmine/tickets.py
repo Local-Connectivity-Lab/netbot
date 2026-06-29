@@ -116,9 +116,13 @@ class TicketManager():
         priorities: dict[str,NamedId] = {}
 
         resp = self.session.get("/enumerations/issue_priorities.json")
-        for priority in reversed(resp['issue_priorities']):
-            if priority.get('active', False):
-                priorities[priority['name']] = NamedId(priority['id'], priority['name'])
+
+        if resp:
+            for priority in reversed(resp['issue_priorities']):
+                if priority.get('active', False):
+                    priorities[priority['name']] = NamedId(priority['id'], priority['name'])
+        else:
+            log.warning("Unable to load priority enumeration")
 
         return priorities
 
@@ -465,17 +469,18 @@ class TicketManager():
             return None
 
 
-    def new_tickets_since(self, timestamp:dt.datetime):
+    def new_tickets_since(self, timestamp:dt.datetime) -> list[Ticket]:
         """get new tickets since provided timestamp"""
         # query for new tickets since date
         # To fetch issues created after a certain timestamp (uncrypted filter is ">=2014-01-02T08:12:32Z") :
         # GET /issues.xml?created_on=%3E%3D2014-01-02T08:12:32Z
-        timestr = dt.datetime.isoformat(timestamp) # time-format.
+        timestr = synctime.zulu(timestamp)
         query = f"/issues.json?created_on=%3E%3D{timestr}&sort={DEFAULT_SORT}&limit=100"
         response = self.session.get(query)
-
-        if response.total_count > 0:
-            return response.issues
+        if response:
+            result = TicketsResult(**response)
+            log.debug(f"new_tickets_since: {result}")
+            return result.issues
         else:
             log.debug(f"No tickets created since {timestamp}")
             return None
@@ -533,6 +538,38 @@ class TicketManager():
             return []
 
 
+    def bucket_tickets(self, tickets: list) -> dict:
+        """Partition open tickets into priority/stale buckets for the status digest.
+
+        Stale pre-empts priority: a ticket older than TICKET_MAX_AGE days is counted
+        only in 'stale', never in high/normal/low.  Buckets are mutually exclusive
+        and sum to open (== len(tickets)).
+        """
+        cutoff = synctime.now() - dt.timedelta(days=TICKET_MAX_AGE)
+
+        HIGH_NAMES = {"high", "urgent", "immediate"}
+
+        high = normal = low = stale = 0
+        for t in tickets:
+            if t.updated_on <= cutoff:
+                stale += 1
+            elif t.priority and t.priority.name and t.priority.name.lower() in HIGH_NAMES:
+                high += 1
+            elif t.priority and t.priority.name and t.priority.name.lower() == "low":
+                low += 1
+            else:
+                normal += 1
+
+        return {
+            "open": len(tickets),
+            "high": high,
+            "normal": normal,
+            "low": low,
+            "stale": stale,
+            "sorted_tickets": list(tickets),   # Redmine already returns in DEFAULT_SORT order
+        }
+
+
     def search(self, term) -> list[Ticket]:
         """search all text of open tickets for the supplied terms"""
         # todo url-encode term?
@@ -578,9 +615,8 @@ class TicketManager():
             "cf_1": "1", # TODO: lookup in self.get_field_id
         }
 
-        return self.update(ticket_id, fields, user.login)
-        # currently doesn't return or throw anything
-        # todo: better error reporting back to discord
+        user_login = user.login if user is not None else None
+        return self.update(ticket_id, fields, user_login)
 
 
     def assign_ticket(self, ticket_id, user:User, user_id=None):
