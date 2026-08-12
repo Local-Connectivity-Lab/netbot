@@ -659,11 +659,11 @@ class TicketsCog(commands.Cog):
 
     @ticket.command(name="new", description="Create a new ticket")
     @option("title", description="Title of the new SCN ticket")
-    async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str):
+    async def create_new_ticket(self, ctx: discord.ApplicationContext, title:str) -> Ticket | None:
         user = self.redmine.user_mgr.find(ctx.user.name)
         if not user:
             await ctx.respond(f"User {ctx.user.name} not mapped to redmine. Use `/scn add` to create the mapping.") # error
-            return
+            return None
 
         channel_name = ctx.channel.name
         text = f"Created by Discord user {ctx.user.name} in channel {channel_name}"
@@ -679,7 +679,7 @@ class TicketsCog(commands.Cog):
                 log.debug(f">>> {ticket_id} is an EPIC!")
                 ticket = self.redmine.ticket_mgr.create(user, message, parent_issue_id=ticket_id)
                 await self.thread(ctx, ticket.id)
-                return
+                return ticket
 
         # not in ticket thread, try tracker
         tracker = self.bot.tracker_for_channel(channel_name)
@@ -698,9 +698,11 @@ class TicketsCog(commands.Cog):
             else:
                 log.warning(f"unable to load role by team name: {team.name}")
             await ctx.respond(alert_msg, embed=self.bot.formatter.ticket_embed(ctx, ticket))
+            return ticket
         else:
             log.error(f"no tracker for {channel_name}")
             await ctx.respond(f"ERROR: No tracker for {channel_name}.")
+            return None
 
 
     @ticket.command(name="notify", description="Notify collaborators on a ticket")
@@ -1038,10 +1040,9 @@ class TicketsCog(commands.Cog):
         ticket_id = NetBot.parse_thread_title(ctx.channel.name)
         if ticket_id is None:
             # create a ticket and thread
-            ticket_cog = ctx.bot.get_cog('TicketsCog')
-            if ticket_cog:
-                await ticket_cog.create_new_ticket(ctx, note)
-                autoresolve = True
+            ticket = await self.create_new_ticket(ctx, note)
+            ticket_id = ticket.id
+            autoresolve = True
 
         redmine.ticket_mgr.record_time(ticket_id, user, hours, program_id, note)
         if autoresolve:
